@@ -19,7 +19,7 @@ dxvk.sd865CompilerThreads = 0
 
 To A/B test shader compilation scheduling, try `dxvk.sd865CompilerThreads = 2`, `3` and `4` on **the same Turnip driver, game, resolution, temperature and FEX setup**. Restart the application for each run. Restore to `0` for the untouched scheduler behavior. An explicit `dxvk.numCompilerThreads` override **always wins** and disables the SD865-specific worker override.
 
-`dxvk.sd865Profile = 0` disables detection/tuning but still allows passive driver logging when diagnostics are enabled. The explicit value `1` can force the experimental profile if a Qualcomm Turnip fork changes the Adreno 650 device name; it will *not* activate on another Vulkan vendor or a proprietary Qualcomm driver. Do not force this mode on an A660/A730; the diagnostic line warns if hardware identification was not verified. Only turn on optional worker tuning on a verified Adreno 650.
+`dxvk.sd865Profile = False` disables detection/tuning but still allows passive driver logging when diagnostics are enabled. The explicit value `True` can force the experimental profile if a Qualcomm Turnip fork changes the Adreno 650 device name; it will *not* activate on another Vulkan vendor or a proprietary Qualcomm driver. Do not force this mode on an A660/A730; the diagnostic line warns if hardware identification was not verified. Only turn on optional worker tuning on a verified Adreno 650.
 
 ## What the logs show
 
