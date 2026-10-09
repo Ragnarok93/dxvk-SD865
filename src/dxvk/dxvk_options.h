@@ -21,6 +21,16 @@ namespace dxvk {
     /// when using the state cache
     int32_t numCompilerThreads = 0;
 
+    /// Qualcomm/Turnip Adreno 650 policy: auto, disabled, or forced for testing.
+    Tristate sd865Profile = Tristate::Auto;
+
+    /// Log selected A650 driver properties and enabled Vulkan features.
+    bool sd865Diagnostics = true;
+
+    /// Optional A/B compiler-worker override; 0 = original DXVK behaviour.
+    /// dxvk.numCompilerThreads takes precedence over this experimental setting.
+    int32_t sd865CompilerThreads = 0;
+
     /// Enable graphics pipeline library
     Tristate enableGraphicsPipelineLibrary = Tristate::Auto;
 

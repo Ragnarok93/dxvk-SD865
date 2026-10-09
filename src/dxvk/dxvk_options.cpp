@@ -6,6 +6,9 @@ namespace dxvk {
     enableDebugUtils      = config.getOption<bool>    ("dxvk.enableDebugUtils",       false);
     enableMemoryDefrag    = config.getOption<Tristate>("dxvk.enableMemoryDefrag",     Tristate::Auto);
     numCompilerThreads    = config.getOption<int32_t> ("dxvk.numCompilerThreads",     0);
+    sd865Profile          = config.getOption<Tristate>("dxvk.sd865Profile",           Tristate::Auto);
+    sd865Diagnostics      = config.getOption<bool>    ("dxvk.sd865Diagnostics",       true);
+    sd865CompilerThreads  = config.getOption<int32_t> ("dxvk.sd865CompilerThreads",    0);
     enableGraphicsPipelineLibrary = config.getOption<Tristate>("dxvk.enableGraphicsPipelineLibrary", Tristate::Auto);
     enableDescriptorHeap  = config.getOption<Tristate>("dxvk.enableDescriptorHeap",   Tristate::Auto);
     enableDescriptorBuffer = config.getOption<Tristate>("dxvk.enableDescriptorBuffer", Tristate::Auto);

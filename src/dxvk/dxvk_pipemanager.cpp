@@ -2,6 +2,7 @@
 
 #include "dxvk_device.h"
 #include "dxvk_pipemanager.h"
+#include "dxvk_sd865.h"
 
 namespace dxvk {
   
@@ -84,11 +85,17 @@ namespace dxvk {
       // Determine number of available CPU cores, and clamp to a useful
       // range. DXVK is not tested on extremely high core counts, and
       // parallelism may be limited past a certain point.
-      uint32_t coreCount = dxvk::thread::hardware_concurrency();
-      coreCount = std::clamp(coreCount, 1u, 64u);
+      uint32_t coreCount = sd865::chooseCompilerWorkerCount(
+        dxvk::thread::hardware_concurrency(),
+        m_device->config().numCompilerThreads,
+        m_device->config().sd865CompilerThreads,
+        m_device->isSd865ProfileActive());
 
-      if (m_device->config().numCompilerThreads > 0)
-        coreCount = m_device->config().numCompilerThreads;
+      // Manual upstream override wins. SD865-specific worker tuning is opt-in.
+      if (m_device->isSd865ProfileActive()
+       && m_device->config().numCompilerThreads <= 0
+       && m_device->config().sd865CompilerThreads > 0)
+        Logger::info(str::format("DXVK-SD865: experimental compiler worker count=", coreCount));
 
       // Reduce worker count on 32-bit to save adderss space
       uint32_t workerCount = coreCount;
