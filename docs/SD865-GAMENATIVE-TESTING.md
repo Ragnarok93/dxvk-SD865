@@ -55,6 +55,43 @@ dxvk.sd865CompilerTelemetry = True
 
 **Recommended fork-specific test hook:** In `DXVKHelper.setEnvVars()` add a *testing-only* conditional gated by a custom environment variable, e.g. `GN_SD865_TESTING=1`. After GameNative's existing DXVK environment assignments, set `DXVK_LOG_LEVEL=info` and create/update `imageFs.config_path + "/dxvk.conf"` with the five lines above; take the worker setting from another Environment variable `GN_SD865_WORKERS` (default `0`). This lets you switch 0/2/3/4 worker counts on the same GameNative build. Preserve GameNative's other DXVK configuration options: don't replace its entire configuration with an unrelated text blob.
 
+### Copyable GameNative test hook (optional, but recommended)
+
+If you can build the GameNative fork, add this block **at the end of** `DXVKHelper.setEnvVars()`, after its existing `envVars.put("DXVK_CONFIG", content);`. It uses fully qualified Java class names, so no extra imports are required. This affects only a game profile with `GN_SD865_TESTING=1`:
+
+```java
+if ("1".equals(envVars.get("GN_SD865_TESTING"))) {
+    String requestedWorkers = envVars.get("GN_SD865_WORKERS");
+    String workers = requestedWorkers.matches("[0-8]") ? requestedWorkers : "0";
+    boolean profile = "1".equals(envVars.get("GN_SD865_TELEMETRY"));
+
+    String sdConfig =
+        "dxvk.sd865Profile = Auto\n" +
+        "dxvk.sd865Diagnostics = True\n" +
+        "dxvk.sd865CompilerThreads = " + workers + "\n" +
+        "dxvk.sd865StatsInterval = " + (profile ? "300" : "0") + "\n" +
+        "dxvk.sd865CompilerTelemetry = " + (profile ? "True" : "False") + "\n";
+
+    java.io.File testConf = new java.io.File(
+        imageFs.config_path, "dxvk-sd865-test.conf");
+    if (testConf.getParentFile().mkdirs() || testConf.getParentFile().isDirectory()) {
+        try (java.io.FileOutputStream out = new java.io.FileOutputStream(testConf)) {
+            out.write(sdConfig.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            envVars.put("DXVK_CONFIG_FILE", testConf.getAbsolutePath());
+        } catch (java.io.IOException e) {
+            android.util.Log.e("DXVK-SD865", "Failed to write test config", e);
+        }
+    }
+
+    if ("1".equals(envVars.get("GN_SD865_LOG")))
+        envVars.put("DXVK_LOG_LEVEL", "info");
+}
+```
+
+In **GameNative → game configuration → Environment**, add `GN_SD865_TESTING=1`, `GN_SD865_WORKERS=0`, `GN_SD865_TELEMETRY=1`, and `GN_SD865_LOG=1` for the initial capability check. Change only `GN_SD865_WORKERS` to `2`, `3` or `4` for follow-up tests. For **unprofiled FPS runs**, change `GN_SD865_TELEMETRY=0` and `GN_SD865_LOG=0`; use a separate logged startup check to verify the component. Disable the test hook entirely by setting `GN_SD865_TESTING=0`.
+
+This uses a dedicated `dxvk-sd865-test.conf` instead of overwriting the user's existing `dxvk.conf`, and retains GameNative's regular `DXVK_CONFIG` settings. The test-only file can stay on disk without affecting sessions where the test flag is disabled.
+
 **Never trust just the GUI toggle.** On startup, verify the effective log contains:
 
 ```text
