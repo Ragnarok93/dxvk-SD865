@@ -20,11 +20,11 @@ namespace dxvk::sd865 {
     return c >= 'A' && c <= 'Z' ? char(c - 'A' + 'a') : c;
   }
 
-  constexpr bool matchesAt(std::string_view name, size_t offset, std::string_view token) {
+  constexpr bool matchesAt(std::string_view name, std::size_t offset, std::string_view token) {
     if (offset > name.size() || name.size() - offset < token.size())
       return false;
 
-    for (size_t i = 0; i < token.size(); i++) {
+    for (std::size_t i = 0; i < token.size(); i++) {
       if (lowerAscii(name[offset + i]) != lowerAscii(token[i]))
         return false;
     }
@@ -35,19 +35,19 @@ namespace dxvk::sd865 {
   // Mesa/forks have used both "Turnip Adreno (TM) 650" and "Adreno 650".
   // Do not match "6500", "650X" or a different Adreno generation.
   constexpr bool hasAdreno650Name(std::string_view name) {
-    for (size_t i = 0; i < name.size(); i++) {
+    for (std::size_t i = 0; i < name.size(); i++) {
       if (!matchesAt(name, i, "Adreno"))
         continue;
 
       if (i && isAsciiAlphaNumeric(name[i - 1]))
         continue;
 
-      size_t end = i + 6u;
+      std::size_t end = i + 6u;
       if (end < name.size() && isAsciiAlphaNumeric(name[end]))
         continue;
 
       // Allow the optional "(TM)" and spacing between the GPU family and 650.
-      for (size_t j = end; j < name.size() && j < end + 20u; j++) {
+      for (std::size_t j = end; j < name.size() && j < end + 20u; j++) {
         if (matchesAt(name, j, "650")
          && (j == 0u || !isAsciiAlphaNumeric(name[j - 1u]))
          && (j + 3u == name.size() || !isAsciiAlphaNumeric(name[j + 3u])))
