@@ -776,6 +776,7 @@ namespace dxvk {
 
     sync::Spinlock              m_statLock;
     DxvkStatCounters            m_statCounters;
+    DxvkStatCounters            m_sd865PreviousStats;
 
     DxvkRecycler<DxvkCommandList, 16> m_recycledCommandLists;
 

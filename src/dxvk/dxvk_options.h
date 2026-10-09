@@ -31,6 +31,10 @@ namespace dxvk {
     /// dxvk.numCompilerThreads takes precedence over this experimental setting.
     int32_t sd865CompilerThreads = 0;
 
+    /// Interval (present requests) for optional render-pass/counter telemetry.
+    /// 0 disables logging; nonzero values are clamped to 60..3600.
+    uint32_t sd865StatsInterval = 0u;
+
     /// Enable graphics pipeline library
     Tristate enableGraphicsPipelineLibrary = Tristate::Auto;
 

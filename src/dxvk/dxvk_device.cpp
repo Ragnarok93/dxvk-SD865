@@ -666,8 +666,42 @@ namespace dxvk {
 
     m_submissionQueue.present(presentInfo, latencyInfo, status);
     
-    std::lock_guard<sync::Spinlock> statLock(m_statLock);
-    m_statCounters.addCtr(DxvkStatCounter::QueuePresentCount, 1);
+    // Sampling is restricted to the A650 profile and is disabled by
+    // default. These are CPU-submitted counters, not physical display time.
+    if (m_sd865Active && m_options.sd865StatsInterval) {
+      bool report = false;
+      DxvkStatCounters delta;
+
+      {
+        std::lock_guard<sync::Spinlock> statLock(m_statLock);
+        m_statCounters.addCtr(DxvkStatCounter::QueuePresentCount, 1);
+
+        uint64_t presents = m_statCounters.getCtr(DxvkStatCounter::QueuePresentCount);
+        if (!(presents % m_options.sd865StatsInterval)) {
+          delta = m_statCounters.diff(m_sd865PreviousStats);
+          m_sd865PreviousStats = m_statCounters;
+          report = true;
+        }
+      }
+
+      if (report) {
+        DxvkPipelineWorkerStats workers = m_objects.pipelineManager().getWorkerStats();
+        Logger::info(str::format(
+          "DXVK-SD865 counters over ", m_options.sd865StatsInterval,
+          " present requests: renderPasses=", delta.getCtr(DxvkStatCounter::CmdRenderPassCount),
+          " barriers=", delta.getCtr(DxvkStatCounter::CmdBarrierCount),
+          " draws=", delta.getCtr(DxvkStatCounter::CmdDrawCalls),
+          " dispatches=", delta.getCtr(DxvkStatCounter::CmdDispatchCalls),
+          " submits=", delta.getCtr(DxvkStatCounter::QueueSubmitCount),
+          " gpuSyncs=", delta.getCtr(DxvkStatCounter::GpuSyncCount),
+          " gpuWaitUs=", delta.getCtr(DxvkStatCounter::GpuSyncTicks),
+          " csWaitUs=", delta.getCtr(DxvkStatCounter::CsSyncTicks),
+          " shaderTasks=", workers.tasksCompleted, "/", workers.tasksTotal));
+      }
+    } else {
+      std::lock_guard<sync::Spinlock> statLock(m_statLock);
+      m_statCounters.addCtr(DxvkStatCounter::QueuePresentCount, 1);
+    }
   }
 
 

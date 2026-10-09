@@ -77,6 +77,13 @@ namespace dxvk::sd865 {
         && (hasAdreno650Name(name) || mode > 0);
   }
 
+  // Bound frame-based profiling cadence to prevent excessive log spam.
+  // Zero leaves the per-frame fast path untouched.
+  constexpr uint32_t sanitizeStatsInterval(int32_t interval) {
+    return interval <= 0 ? 0u : interval < 60 ? 60u
+         : interval > 3600 ? 3600u : uint32_t(interval);
+  }
+
   // The standard DXVK override ALWAYS wins. In auto mode, existing DXVK
   // behaviour is unchanged; an SD865 override is an explicit A/B experiment.
   constexpr uint32_t chooseCompilerWorkerCount(uint32_t availableCores,
