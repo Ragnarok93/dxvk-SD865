@@ -35,6 +35,9 @@ namespace dxvk {
     /// 0 disables logging; nonzero values are clamped to 60..3600.
     uint32_t sd865StatsInterval = 0u;
 
+    /// Optional per-task compiler timing and queue-depth diagnostics.
+    bool sd865CompilerTelemetry = false;
+
     /// Enable graphics pipeline library
     Tristate enableGraphicsPipelineLibrary = Tristate::Auto;
 

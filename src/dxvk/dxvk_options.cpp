@@ -12,6 +12,7 @@ namespace dxvk {
     sd865CompilerThreads  = config.getOption<int32_t> ("dxvk.sd865CompilerThreads",    0);
     sd865StatsInterval    = sd865::sanitizeStatsInterval(
       config.getOption<int32_t>("dxvk.sd865StatsInterval", 0));
+    sd865CompilerTelemetry = config.getOption<bool>("dxvk.sd865CompilerTelemetry", false);
     enableGraphicsPipelineLibrary = config.getOption<Tristate>("dxvk.enableGraphicsPipelineLibrary", Tristate::Auto);
     enableDescriptorHeap  = config.getOption<Tristate>("dxvk.enableDescriptorHeap",   Tristate::Auto);
     enableDescriptorBuffer = config.getOption<Tristate>("dxvk.enableDescriptorBuffer", Tristate::Auto);
