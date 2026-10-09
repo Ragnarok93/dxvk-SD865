@@ -1,0 +1,30 @@
+name: SD865 policy unit tests
+
+on:
+  push:
+    branches:
+      - 'feature/sd865-*'
+  pull_request:
+    paths:
+      - 'src/dxvk/dxvk_sd865.h'
+      - 'tests/sd865_policy.cpp'
+      - 'tools/sd865_telemetry.py'
+      - 'tests/test_sd865_telemetry.py'
+      - 'tools/package_gamenative_wcp.py'
+      - 'tests/test_gamenative_wcp.py'
+      - '.github/workflows/sd865-policy.yml'
+  workflow_dispatch:
+
+jobs:
+  sd865-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test C++17 driver matching and worker policy
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror -pedantic tests/sd865_policy.cpp -o /tmp/sd865-policy-tests
+          /tmp/sd865-policy-tests
+      - name: Test standard-library telemetry parser
+        run: python3 -m unittest discover -s tests -p 'test_sd865_telemetry.py'
+      - name: Test GameNative component packaging
+        run: python3 -m unittest discover -s tests -p 'test_gamenative_wcp.py'

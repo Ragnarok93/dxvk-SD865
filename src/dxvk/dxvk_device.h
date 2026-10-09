@@ -151,6 +151,10 @@ namespace dxvk {
     const DxvkOptions& config() const {
       return m_options;
     }
+
+    bool isSd865ProfileActive() const {
+      return m_sd865Active;
+    }
     
     /**
      * \brief Queue handles
@@ -762,6 +766,7 @@ namespace dxvk {
 
     DxvkDeviceFeatures          m_features;
     DxvkDeviceInfo              m_properties;
+    bool                        m_sd865Active = false;
 
     DxvkShaderOptions           m_shaderOptions;
 
@@ -771,6 +776,7 @@ namespace dxvk {
 
     sync::Spinlock              m_statLock;
     DxvkStatCounters            m_statCounters;
+    DxvkStatCounters            m_sd865PreviousStats;
 
     DxvkRecycler<DxvkCommandList, 16> m_recycledCommandLists;
 

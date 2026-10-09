@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <mutex>
 #include <queue>
 #include <unordered_map>
@@ -122,6 +123,7 @@ namespace dxvk {
       DxvkShaderPipelineLibrary*    pipelineLibrary;
       DxvkGraphicsPipeline*         graphicsPipeline;
       DxvkGraphicsPipelineStateInfo graphicsState;
+      std::chrono::steady_clock::time_point queuedAt = { };
     };
 
     struct PipelineBucket {
@@ -131,6 +133,13 @@ namespace dxvk {
     };
 
     DxvkDevice*                       m_device;
+    bool                              m_sd865TelemetryEnabled = false;
+
+    std::atomic<uint64_t>             m_sd865WorkUs     = { 0ull };
+    std::atomic<uint64_t>             m_sd865WaitUs     = { 0ull };
+    std::atomic<uint64_t>             m_sd865PeakWorkUs = { 0ull };
+    std::atomic<uint64_t>             m_sd865PeakWaitUs = { 0ull };
+    std::atomic<uint64_t>             m_sd865PeakPending = { 0ull };
 
     std::atomic<uint64_t>             m_tasksTotal     = { 0ull };
     std::atomic<uint64_t>             m_tasksCompleted = { 0ull };

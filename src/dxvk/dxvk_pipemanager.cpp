@@ -2,12 +2,22 @@
 
 #include "dxvk_device.h"
 #include "dxvk_pipemanager.h"
+#include "dxvk_sd865.h"
 
 namespace dxvk {
+
+  // C++17-compatible relaxed atomic peak tracker. Only exercised when
+  // opt-in profiling is enabled; does not affect compilation decisions.
+  static void updateSd865Peak(std::atomic<uint64_t>& peak, uint64_t value) {
+    uint64_t old = peak.load(std::memory_order_relaxed);
+    while (old < value && !peak.compare_exchange_weak(
+             old, value, std::memory_order_relaxed)) { }
+  }
   
   DxvkPipelineWorkers::DxvkPipelineWorkers(
           DxvkDevice*                     device)
-  : m_device(device) {
+  : m_device(device),
+    m_sd865TelemetryEnabled(device->isSd865ProfileActive() && device->config().sd865CompilerTelemetry) {
 
   }
 
@@ -26,6 +36,13 @@ namespace dxvk {
     m_tasksTotal += 1;
 
     m_buckets[uint32_t(priority)].queue.emplace(library);
+    if (m_sd865TelemetryEnabled) {
+      m_buckets[uint32_t(priority)].queue.back().queuedAt = std::chrono::steady_clock::now();
+      uint64_t queued = 0u;
+      for (const auto& bucket : m_buckets)
+        queued += bucket.queue.size();
+      updateSd865Peak(m_sd865PeakPending, queued);
+    }
     notifyWorkers(priority);
   }
 
@@ -41,6 +58,13 @@ namespace dxvk {
     m_tasksTotal += 1;
 
     m_buckets[uint32_t(priority)].queue.emplace(pipeline, state);
+    if (m_sd865TelemetryEnabled) {
+      m_buckets[uint32_t(priority)].queue.back().queuedAt = std::chrono::steady_clock::now();
+      uint64_t queued = 0u;
+      for (const auto& bucket : m_buckets)
+        queued += bucket.queue.size();
+      updateSd865Peak(m_sd865PeakPending, queued);
+    }
     notifyWorkers(priority);
   }
 
@@ -61,6 +85,18 @@ namespace dxvk {
       worker.join();
 
     m_workers.clear();
+
+    if (m_sd865TelemetryEnabled) {
+      uint64_t count = m_tasksCompleted.load(std::memory_order_relaxed);
+      Logger::info(str::format(
+        "DXVK-SD865 compiler totals: completed=", count,
+        " scheduled=", m_tasksTotal.load(std::memory_order_relaxed),
+        " queuedWaitUs=", m_sd865WaitUs.load(std::memory_order_relaxed),
+        " compileWorkUs=", m_sd865WorkUs.load(std::memory_order_relaxed),
+        " peakQueueWaitUs=", m_sd865PeakWaitUs.load(std::memory_order_relaxed),
+        " peakCompileUs=", m_sd865PeakWorkUs.load(std::memory_order_relaxed),
+        " peakPending=", m_sd865PeakPending.load(std::memory_order_relaxed)));
+    }
   }
 
 
@@ -84,11 +120,17 @@ namespace dxvk {
       // Determine number of available CPU cores, and clamp to a useful
       // range. DXVK is not tested on extremely high core counts, and
       // parallelism may be limited past a certain point.
-      uint32_t coreCount = dxvk::thread::hardware_concurrency();
-      coreCount = std::clamp(coreCount, 1u, 64u);
+      uint32_t coreCount = sd865::chooseCompilerWorkerCount(
+        dxvk::thread::hardware_concurrency(),
+        m_device->config().numCompilerThreads,
+        m_device->config().sd865CompilerThreads,
+        m_device->isSd865ProfileActive());
 
-      if (m_device->config().numCompilerThreads > 0)
-        coreCount = m_device->config().numCompilerThreads;
+      // Manual upstream override wins. SD865-specific worker tuning is opt-in.
+      if (m_device->isSd865ProfileActive()
+       && m_device->config().numCompilerThreads <= 0
+       && m_device->config().sd865CompilerThreads > 0)
+        Logger::info(str::format("DXVK-SD865: experimental compiler worker count=", coreCount));
 
       // Reduce worker count on 32-bit to save adderss space
       uint32_t workerCount = coreCount;
@@ -161,6 +203,10 @@ namespace dxvk {
           break;
       }
 
+      const auto begin = m_sd865TelemetryEnabled
+        ? std::chrono::steady_clock::now()
+        : std::chrono::steady_clock::time_point();
+
       if (entry.pipelineLibrary) {
         entry.pipelineLibrary->compilePipeline();
       } else if (entry.graphicsPipeline) {
@@ -168,7 +214,32 @@ namespace dxvk {
         entry.graphicsPipeline->releasePipeline();
       }
 
-      m_tasksCompleted += 1;
+      if (m_sd865TelemetryEnabled) {
+        const auto finish = std::chrono::steady_clock::now();
+        const uint64_t workUs = std::chrono::duration_cast<std::chrono::microseconds>(
+          finish - begin).count();
+        const uint64_t waitUs = std::chrono::duration_cast<std::chrono::microseconds>(
+          begin - entry.queuedAt).count();
+
+        m_sd865WorkUs.fetch_add(workUs, std::memory_order_relaxed);
+        m_sd865WaitUs.fetch_add(waitUs, std::memory_order_relaxed);
+        updateSd865Peak(m_sd865PeakWorkUs, workUs);
+        updateSd865Peak(m_sd865PeakWaitUs, waitUs);
+      }
+
+      uint64_t completed = m_tasksCompleted.fetch_add(1, std::memory_order_relaxed) + 1;
+
+      // Summary every 128 completed tasks: bounded log volume, no per-task I/O.
+      if (m_sd865TelemetryEnabled && !(completed % 128u)) {
+        Logger::info(str::format(
+          "DXVK-SD865 compiler sample: tasks=", completed,
+          " total=", m_tasksTotal.load(std::memory_order_relaxed),
+          " avgQueueWaitUs=", m_sd865WaitUs.load(std::memory_order_relaxed) / completed,
+          " avgCompileUs=", m_sd865WorkUs.load(std::memory_order_relaxed) / completed,
+          " maxQueueWaitUs=", m_sd865PeakWaitUs.load(std::memory_order_relaxed),
+          " maxCompileUs=", m_sd865PeakWorkUs.load(std::memory_order_relaxed),
+          " peakPending=", m_sd865PeakPending.load(std::memory_order_relaxed)));
+      }
     }
   }
 

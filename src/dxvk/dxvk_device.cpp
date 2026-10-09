@@ -4,6 +4,9 @@
 #include "dxvk_latency_reflex.h"
 #include "dxvk_shader_cache.h"
 #include "dxvk_shader_ir.h"
+#include "dxvk_sd865.h"
+
+#include <sstream>
 
 namespace dxvk {
   
@@ -22,6 +25,10 @@ namespace dxvk {
     m_queues            (queues),
     m_features          (caps.getFeatures()),
     m_properties        (caps.getProperties()),
+    m_sd865Active       (sd865::isProfileActive(
+      m_properties.core.properties.vendorID, m_properties.vk12.driverID,
+      VK_DRIVER_ID_MESA_TURNIP, m_properties.core.properties.deviceName,
+      int32_t(m_options.sd865Profile))),
     m_perfHints         (getPerfHints()),
     m_objects           (this),
     m_checkpoints       (this),
@@ -42,6 +49,44 @@ namespace dxvk {
       m_shaderCache = DxvkShaderCache::getInstance();
 
     logBindingModel();
+
+    // Only report on Qualcomm/Turnip. No new extensions or features are enabled.
+    const auto& gpu = m_properties.core.properties;
+    if (sd865::isTurnipQualcomm(gpu.vendorID, m_properties.vk12.driverID, VK_DRIVER_ID_MESA_TURNIP)) {
+      const bool identified = sd865::hasAdreno650Name(gpu.deviceName);
+      std::ostringstream info;
+      info << "DXVK-SD865: GPU=" << gpu.deviceName
+           << " vendor=0x" << std::hex << gpu.vendorID << " device=0x" << gpu.deviceID
+           << std::dec << " driver=" << m_properties.vk12.driverName
+           << " version=" << m_properties.driverVersion.toString()
+           << " Vulkan=" << VK_API_VERSION_MAJOR(gpu.apiVersion) << "."
+           << VK_API_VERSION_MINOR(gpu.apiVersion) << "."
+           << VK_API_VERSION_PATCH(gpu.apiVersion)
+           << " identified=" << identified
+           << " profile=" << (m_sd865Active ? "active" : "disabled");
+      if (m_sd865Active && !identified)
+        info << " (forced: device name unverified)";
+      Logger::info(info.str());
+
+      if (m_options.sd865Diagnostics) {
+        std::ostringstream features;
+        features << "DXVK-SD865 enabled Vulkan features:"
+                 << " dynamicRendering=" << bool(m_features.vk13.dynamicRendering)
+                 << " synchronization2=" << bool(m_features.vk13.synchronization2)
+                 << " descriptorBuffer=" << bool(m_features.extDescriptorBuffer.descriptorBuffer)
+                 << " descriptorHeap=" << bool(m_features.extDescriptorHeap.descriptorHeap)
+                 << " graphicsPipelineLibrary=" << bool(m_features.extGraphicsPipelineLibrary.graphicsPipelineLibrary)
+                 << " shaderFloat16=" << bool(m_features.vk12.shaderFloat16)
+                 << " memoryBudget=" << bool(m_features.extMemoryBudget)
+                 << " maintenance5=" << bool(m_features.khrMaintenance5.maintenance5)
+                 << " maintenance6=" << bool(m_features.khrMaintenance6.maintenance6)
+                 << " maxPushConstants=" << gpu.limits.maxPushConstantsSize
+                 << " subgroupSize=" << m_properties.vk13.minSubgroupSize
+                 << " unifiedMemory=" << m_adapter->isUnifiedMemoryArchitecture();
+        Logger::info(features.str());
+        Logger::info("DXVK-SD865: full queues, heaps, budgets and enabled extension list logged during device creation");
+      }
+    }
   }
   
   
@@ -621,8 +666,42 @@ namespace dxvk {
 
     m_submissionQueue.present(presentInfo, latencyInfo, status);
     
-    std::lock_guard<sync::Spinlock> statLock(m_statLock);
-    m_statCounters.addCtr(DxvkStatCounter::QueuePresentCount, 1);
+    // Sampling is restricted to the A650 profile and is disabled by
+    // default. These are CPU-submitted counters, not physical display time.
+    if (m_sd865Active && m_options.sd865StatsInterval) {
+      bool report = false;
+      DxvkStatCounters delta;
+
+      {
+        std::lock_guard<sync::Spinlock> statLock(m_statLock);
+        m_statCounters.addCtr(DxvkStatCounter::QueuePresentCount, 1);
+
+        uint64_t presents = m_statCounters.getCtr(DxvkStatCounter::QueuePresentCount);
+        if (!(presents % m_options.sd865StatsInterval)) {
+          delta = m_statCounters.diff(m_sd865PreviousStats);
+          m_sd865PreviousStats = m_statCounters;
+          report = true;
+        }
+      }
+
+      if (report) {
+        DxvkPipelineWorkerStats workers = m_objects.pipelineManager().getWorkerStats();
+        Logger::info(str::format(
+          "DXVK-SD865 counters over ", m_options.sd865StatsInterval,
+          " present requests: renderPasses=", delta.getCtr(DxvkStatCounter::CmdRenderPassCount),
+          " barriers=", delta.getCtr(DxvkStatCounter::CmdBarrierCount),
+          " draws=", delta.getCtr(DxvkStatCounter::CmdDrawCalls),
+          " dispatches=", delta.getCtr(DxvkStatCounter::CmdDispatchCalls),
+          " submits=", delta.getCtr(DxvkStatCounter::QueueSubmitCount),
+          " gpuSyncs=", delta.getCtr(DxvkStatCounter::GpuSyncCount),
+          " gpuWaitUs=", delta.getCtr(DxvkStatCounter::GpuSyncTicks),
+          " csWaitUs=", delta.getCtr(DxvkStatCounter::CsSyncTicks),
+          " shaderTasks=", workers.tasksCompleted, "/", workers.tasksTotal));
+      }
+    } else {
+      std::lock_guard<sync::Spinlock> statLock(m_statLock);
+      m_statCounters.addCtr(DxvkStatCounter::QueuePresentCount, 1);
+    }
   }
 
 
