@@ -3,6 +3,7 @@
 This fork includes an **opt-in measurement and tuning foundation** for Snapdragon 865 / Adreno 650 running current Mesa Turnip Vulkan drivers (including community forks). Standard upstream behaviour remains the default; no frame-rate gains are asserted without on-device A/B testing.
 
 - [SD865 profile options, benchmark instructions and log parser](docs/SD865-PROFILE.md)
+- [Step-by-step GameNative install and SD865 testing guide](docs/SD865-GAMENATIVE-TESTING.md)
 - [Optimization roadmap and current Turnip fork targets](docs/SD865-OPTIMIZATION-ROADMAP.md)
 - [Phase-1 draft pull request](https://github.com/Ragnarok93/dxvk-SD865/pull/1)
 
