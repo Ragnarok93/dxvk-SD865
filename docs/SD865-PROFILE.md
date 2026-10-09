@@ -57,3 +57,31 @@ Capture cold and warm compilation separately; median FPS, 1% low, 95th/99th-perc
 - Test compile/run locally if desired: `g++ -std=c++17 -Wall -Wextra -Werror -pedantic tests/sd865_policy.cpp -o /tmp/sd865-policy-tests && /tmp/sd865-policy-tests`.
 
 The `dxvk.sd865CompilerThreads` experiment is intentionally opt-in until measurements justify an automatic policy.
+
+## Profiling render passes and shader compilation (opt-in)
+
+The Phase-1 instrumentation has **two independent switches**. Both are disabled in normal use.
+
+```ini
+# 300 present requests per summary; 0 disables.
+# Values below 60 clamp to 60, values above 3600 clamp to 3600.
+dxvk.sd865StatsInterval = 300
+
+# Track compilation wait time, compile time and queue peaks.
+dxvk.sd865CompilerTelemetry = True
+```
+
+The device logs `DXVK-SD865 counters over ...` after each configured number of **CPU present requests**. Data includes draws, compute dispatches, render passes, pipeline barriers, queue submissions, CPU waits for GPU/CS synchronization and cumulative compiler task progress. CPU present requests are **not proof of physical frames delivered**. This is a scoped approximation for detecting unusually expensive rendering/queueing patterns, not a substitute for RenderDoc or Android SurfaceFlinger timestamps.
+
+The shader worker telemetry prints one summary per 128 completed shader compilation jobs and a final summary after worker shutdown, including aggregate queue wait, compile work and peak pending/latencies. This uses CPU wall-clock timings for individual jobs; concurrent compile work overlaps, so summed durations are **not** wall-clock duration for the whole run. Runs terminating abnormally may lack the final shutdown summary. It does not skip or reorder compilation work.
+
+### Parsing a DXVK log
+
+```shell
+python3 tools/sd865_telemetry.py /path/to/dxvk.log
+python3 tools/sd865_telemetry.py /path/to/dxvk.log --json > sd865-results.json
+```
+
+The parser produces totals per present request, latest compilation snapshot and an optional shutdown summary. Save a separate result for each game scene, driver/build, temperature regime and worker-count setting. For tests, use `python3 -m unittest discover -s tests -p "test_sd865_telemetry.py"`.
+
+Do **not** compare raw totals from runs with different numbers of presents; compare normalized per-present metrics and independent actual frametime/visual-correctness capture. The render-pass counters can identify a likely GMEM pressure cause, but cannot directly measure GMEM bandwidth or render-pass cache flush cost.
