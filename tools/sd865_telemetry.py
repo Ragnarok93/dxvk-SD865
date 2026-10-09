@@ -10,10 +10,10 @@ import json
 import re
 from pathlib import Path
 
-WINDOW_RE = re.compile(r"DXVK-SD865 counters over (\\d+) present requests: (.*)")
+WINDOW_RE = re.compile(r"DXVK-SD865 counters over (\d+) present requests: (.*)")
 SAMPLE_RE = re.compile(r"DXVK-SD865 compiler sample: (.*)")
 TOTAL_RE = re.compile(r"DXVK-SD865 compiler totals: (.*)")
-PAIR_RE = re.compile(r"([a-zA-Z][a-zA-Z0-9]*)=(\\d+(?:/\\d+)?)")
+PAIR_RE = re.compile(r"([a-zA-Z][a-zA-Z0-9]*)=(\d+(?:/\d+)?)")
 COLUMNS = (
     "renderPasses", "barriers", "draws", "dispatches", "submits",
     "gpuSyncs", "gpuWaitUs", "csWaitUs",
