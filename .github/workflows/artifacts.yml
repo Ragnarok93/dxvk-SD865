@@ -61,6 +61,32 @@ jobs:
           grep -qx 'x32/d3d11.dll' /tmp/dxvk-sd865-wcp-files.txt
           grep -qx 'x64/dxgi.dll' /tmp/dxvk-sd865-wcp-files.txt
           grep -qx 'x32/dxgi.dll' /tmp/dxvk-sd865-wcp-files.txt
+          # GameNative's Java tar extractor does not create file parent
+          # directories; the directory entries must precede their DLLs.
+          grep -Eq '^x32/?
+
+      # GitHub Actions automatically wraps all downloadable artifacts in ZIPs.
+      # The ONLY build payload within the download is this single .wcp.
+      - name: Upload GameNative WCP only
+        uses: actions/upload-artifact@v7
+        with:
+          name: gamenative-dxvk-${{ github.sha }}
+          path: dist/*.wcp
+          if-no-files-found: error
+          compression-level: 0
+ /tmp/dxvk-sd865-wcp-files.txt
+          grep -Eq '^x64/?
+
+      # GitHub Actions automatically wraps all downloadable artifacts in ZIPs.
+      # The ONLY build payload within the download is this single .wcp.
+      - name: Upload GameNative WCP only
+        uses: actions/upload-artifact@v7
+        with:
+          name: gamenative-dxvk-${{ github.sha }}
+          path: dist/*.wcp
+          if-no-files-found: error
+          compression-level: 0
+ /tmp/dxvk-sd865-wcp-files.txt
 
       # GitHub Actions automatically wraps all downloadable artifacts in ZIPs.
       # The ONLY build payload within the download is this single .wcp.

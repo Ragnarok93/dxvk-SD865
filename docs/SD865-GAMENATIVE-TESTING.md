@@ -26,6 +26,14 @@ zstd -dc ./dxvk-sd865-test.wcp | tar -tf - | head
 
 The decompressed archive should contain a root-level `profile.json` plus `x64/` and `x32/` DLLs. The CI download provides only this `.wcp` payload. GameNative's importer expects a **tar.xz/tar.zst WCP content profile**, not a renamed ZIP or normal DXVK release tarball. Our packager generates the `DXVK` profile and uses only GameNative's trusted `system32`/`syswow64` DLL targets.
 
+### Important: "File cannot be recognized" during import
+
+GameNative's `ContentsManager.extraContentFile()` reports this when **both its XZ and Zstandard tar extraction attempts fail**. Check that you're importing the **inner `.wcp`** (not GitHub's outer artifact ZIP); the inner file must decompress as `zstd` and contain root `profile.json`, explicit `x32/` and `x64/` directory entries, and the DLL files below them.
+
+**Packaging regression fixed:** Earlier DXVK-SD865 `.wcp` builds omitted `x32/` and `x64/` directory entries, but GameNative's `TarCompressorUtils` creates the files without making their parent directories. Those builds can trigger this exact message. **Use a WCP built after the explicit-directory-entry fix**; do not keep testing the older package. The packager now validates extraction order and the unit tests reproduce the old failure. Updating the GameNative APK is not required for this packaging correction.
+
+You can inspect a package on Linux/Termux using `zstd -dc dxvk-sd865-*.wcp | tar -tvf - | head -25`. Directory records should be identified as directories and occur before the contained DLL records.
+
 ## Part B — Install and select DXVK-SD865 in GameNative
 
 1. Open your GameNative APK, navigate to **Settings → Contents Manager → Import from device**, and select the extracted `.wcp`.

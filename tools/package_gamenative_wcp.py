@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 TRUSTED = ("d3d8.dll", "d3d9.dll", "d3d10.dll", "d3d10_1.dll",
            "d3d10core.dll", "d3d11.dll", "dxgi.dll")
@@ -45,6 +45,51 @@ def stage_dxvk(build: Path, stage: Path, version: str) -> dict:
     return profile
 
 
+def write_tar(stage: Path, archive: Path) -> None:
+    """Write explicit directory entries BEFORE their files.
+
+    GameNative's TarCompressorUtils extracts files using FileOutputStream
+    without creating the parent directories. Tar files that omit x32/ and
+    x64/ directory records therefore fail with ERROR_BADTAR.
+    """
+    with tarfile.open(archive, "w", format=tarfile.GNU_FORMAT) as tar:
+        # Sorting includes directories before their children, not just files.
+        # recursive=False prevents adding directory contents twice.
+        for item in sorted(stage.rglob("*")):
+            tar.add(item, arcname=item.relative_to(stage).as_posix(),
+                    recursive=False)
+    validate_gamenative_tar(archive)
+
+
+def validate_gamenative_tar(archive: Path) -> None:
+    """Model GameNative's single-pass tar extraction parent-directory rule."""
+    created_dirs = { "." }
+    required = { "profile.json", "x32/d3d11.dll", "x64/d3d11.dll",
+                 "x32/dxgi.dll", "x64/dxgi.dll" }
+    names = set()
+    with tarfile.open(archive, "r") as src:
+        for item in src:
+            name = item.name.rstrip("/")
+            path = PurePosixPath(name)
+            if not name or path.is_absolute() or ".." in path.parts:
+                raise ValueError(f"Unsafe tar member: {item.name}")
+            parent = path.parent.as_posix()
+            if item.isdir():
+                if parent not in created_dirs:
+                    raise ValueError(f"Missing parent directory for: {name}")
+                created_dirs.add(name)
+            elif item.isfile():
+                if parent not in created_dirs:
+                    raise ValueError(f"Missing parent directory entry before {name}")
+            else:
+                raise ValueError(f"Unexpected tar member type: {name}")
+            if name in names:
+                raise ValueError(f"Duplicate tar member: {name}")
+            names.add(name)
+    if not required.issubset(names):
+        raise ValueError(f"Incomplete GameNative WCP: {sorted(required - names)}")
+
+
 def package(build: Path, output: Path, version: str) -> dict:
     if shutil.which("zstd") is None:
         raise RuntimeError("Install zstd before packaging a .wcp")
@@ -56,10 +101,7 @@ def package(build: Path, output: Path, version: str) -> dict:
         stage.mkdir()
         profile = stage_dxvk(build.resolve(), stage, version)
         archive = folder / "archive.tar"
-        with tarfile.open(archive, "w") as tar:
-            for item in sorted(stage.rglob("*")):
-                if item.is_file():
-                    tar.add(item, arcname=item.relative_to(stage).as_posix())
+        write_tar(stage, archive)
         subprocess.run(["zstd", "-q", "-19", "-f", "-o",
                         str(output), str(archive)], check=True)
     return profile

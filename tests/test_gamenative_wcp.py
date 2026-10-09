@@ -1,11 +1,12 @@
 """Test GameNative content-profile paths before producing WCP packages."""
 import sys
 import tempfile
+import tarfile
 import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from package_gamenative_wcp import REQUIRED, stage_dxvk
+from package_gamenative_wcp import REQUIRED, stage_dxvk, write_tar, validate_gamenative_tar
 
 
 class PackageTests(unittest.TestCase):
@@ -40,6 +41,33 @@ class PackageTests(unittest.TestCase):
         (self.build / "x32" / "dxgi.dll").unlink()
         with self.assertRaisesRegex(ValueError, "Missing required x32"):
             stage_dxvk(self.build, self.stage, "sd865-x")
+
+    def test_archive_has_directories_before_dlls(self):
+        stage_dxvk(self.build, self.stage, "sd865-x")
+        tar_path = self.base / "valid.tar"
+        write_tar(self.stage, tar_path)
+        with tarfile.open(tar_path, "r") as tar:
+            members = list(tar)
+        names = [m.name.rstrip("/") for m in members]
+        self.assertEqual(names[0], "profile.json")
+        self.assertIn("x32", names)
+        self.assertIn("x64", names)
+        self.assertTrue(members[names.index("x32")].isdir())
+        self.assertTrue(members[names.index("x64")].isdir())
+        self.assertLess(names.index("x32"), names.index("x32/d3d11.dll"))
+        self.assertLess(names.index("x64"), names.index("x64/d3d11.dll"))
+
+    def test_missing_directory_entries_regression(self):
+        # Reproduce the old tar format: file entries but no x32/ or x64/
+        # entries. GameNative fails to create the DLLs' parent directories.
+        stage_dxvk(self.build, self.stage, "sd865-x")
+        broken = self.base / "broken.tar"
+        with tarfile.open(broken, "w") as tar:
+            for path in sorted(self.stage.rglob("*")):
+                if path.is_file():
+                    tar.add(path, arcname=path.relative_to(self.stage).as_posix())
+        with self.assertRaisesRegex(ValueError, "Missing parent directory entry"):
+            validate_gamenative_tar(broken)
 
     def test_traversal_invalid(self):
         with self.assertRaisesRegex(ValueError, "version"):
