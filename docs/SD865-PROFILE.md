@@ -7,8 +7,8 @@ Scope: current Mesa Turnip / Adreno 650 (Snapdragon 865), including community fo
 ## New `dxvk.conf` options
 
 ```ini
-# -1=auto, 0=disabled, 1=force on Qualcomm Turnip (diagnostic only).
-dxvk.sd865Profile = -1
+# Auto=detect, False=disabled, True=force on Qualcomm Turnip (diagnostic only).
+dxvk.sd865Profile = Auto
 
 # Log detected driver and selected core/extension capabilities (only Qualcomm Turnip).
 dxvk.sd865Diagnostics = True
