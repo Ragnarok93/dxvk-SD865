@@ -71,6 +71,40 @@ jobs:
         path: build/dxvk-native-${{ env.VERSION_NAME }}.tar.gz
         if-no-files-found: error
 
+
+  gamenative-wcp:
+    name: GameNative installable DXVK (.wcp)
+    needs: [artifacts-mingw-w64]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install zstd and derive artifact name
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zstd
+          echo "VERSION_NAME=${GITHUB_REF##*/}-${GITHUB_SHA##*/}" >> "$GITHUB_ENV"
+      - name: Download PE DLL build
+        uses: actions/download-artifact@v4
+        with:
+          name: dxvk-win-${{ env.VERSION_NAME }}
+          path: built-dxvk
+      - name: Package GameNative WCP
+        shell: bash
+        run: |
+          python3 tools/package_gamenative_wcp.py \
+            --input built-dxvk \
+            --output "dist/dxvk-sd865-${GITHUB_SHA}.wcp" \
+            --version-name "sd865-${GITHUB_SHA}"
+          zstd -t "dist/dxvk-sd865-${GITHUB_SHA}.wcp"
+          zstd -dc "dist/dxvk-sd865-${GITHUB_SHA}.wcp" | tar -tf - | grep -x 'profile.json'
+      - name: Upload GameNative component
+        uses: actions/upload-artifact@v7
+        with:
+          name: gamenative-dxvk-sd865-${{ github.sha }}
+          path: dist/*.wcp
+          if-no-files-found: error
+
   merge-artifacts:
     runs-on: ubuntu-latest
     needs: [artifacts-mingw-w64, artifacts-steamrt-sniper]
