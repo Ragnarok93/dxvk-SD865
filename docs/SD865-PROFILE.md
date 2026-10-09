@@ -53,7 +53,7 @@ Capture cold and warm compilation separately; median FPS, 1% low, 95th/99th-perc
 ## Build and tests
 
 - `.github/workflows/sd865-policy.yml` compiles `tests/sd865_policy.cpp` with C++17 and tests driver identity, opt-in/forced profile behavior, and worker-count precedence/limits.
-- Upstream `.github/workflows/artifacts.yml` packages the Windows PE and native Linux variants. These are **not** ARM64EC binaries nor validated `.wcp` files. Runtime tests on Adreno 650 remain required before release.
+- The customized `.github/workflows/artifacts.yml` compiles Windows x32/x64 PE DLLs **internally**, packages them into **one GameNative-installable `.wcp`**, validates the compressed archive/required DLLs, and uploads **only that `.wcp` build payload**. Linux-native and MSVC artifacts are no longer produced. GitHub wraps the downloadable WCP artifact in a ZIP; extract the inner `.wcp`. ARM64EC binaries are not yet built; on-device A650/Turnip runtime testing remains mandatory. See [GameNative testing](./SD865-GAMENATIVE-TESTING.md).
 - Test compile/run locally if desired: `g++ -std=c++17 -Wall -Wextra -Werror -pedantic tests/sd865_policy.cpp -o /tmp/sd865-policy-tests && /tmp/sd865-policy-tests`.
 
 The `dxvk.sd865CompilerThreads` experiment is intentionally opt-in until measurements justify an automatic policy.

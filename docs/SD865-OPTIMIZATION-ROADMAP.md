@@ -30,12 +30,12 @@ Primary environment: Android / Wine and Proton, including FEX-based x86/x64 tran
 - `src/dxvk/dxvk_barrier.cpp`: barrier and attachment batching; investigate render-pass churn with captured evidence.
 - `src/dxvk/dxvk_memory.cpp`: existing memory manager; tune only after tracing allocation churn/budget behavior.
 - `src/dxvk/dxvk_queue.cpp`, `dxvk_presenter.cpp` and swapchains: GPU-submission timing and frame delivery instrumentation before tweaking latency.
-- `.github/workflows/artifacts.yml`: upstream mingw-w64 (x86/x64 PE) and Steam Runtime native outputs; no SD865-specific ARM64EC/Android package validation yet.
+- `.github/workflows/artifacts.yml` is **GameNative WCP only**: it compiles Win32/Win64 DLLs as intermediate inputs, packages them into one validated `.wcp`, and uploads only the WCP. The Steam Runtime native packaging, standalone DLL artifacts, merged output and Windows MSVC build workflow were removed. ARM64EC is not included.
 
 ## Phase 0 — capability audit, instrumentation, reproducible baselines (P0)
 
 1. Add read-only Adreno 650 capability reporting: GPU/driver IDs, `driverVersion`, `apiVersion`, feature and extension presence, queue families, memory heap budget, limits, presentation support, and configuration identity. Avoid duplicate noisy logs and do not expose sensitive device data.
-2. Establish a host build and unit smoke-test CI on both 32- and 64-bit PE outputs, retaining upstream comparison artifacts. Record source SHA and toolchain revisions.
+2. Compile x32/x64 PE DLLs internally, then **publish only one GameNative-installable `.wcp` per build**. Keep the C++/Python smoke tests without separate binary outputs. Record SHA and toolchain revisions in job logs; upstream comparisons must also be delivered as `.wcp`.
 3. Define actual runtime combinations: Win32/Win64 PE and, only where supported by installed Wine/FEX, ARM64EC. A `.wcp` package is a separate launcher-specific deliverable with validated manifest/paths.
 4. Prioritize DXVK 3.1.x startup with Mesa 26.3-based Turnip/Adreno 6xx builds and current optimized forks; log the **first actual incompatible capability**, rather than treating the Vulkan version as a full compatibility guarantee.
 5. Capture cold/warm shader caches, 5+ runs per scene, fixed resolution and in-game settings, frametimes (median/p95/p99), 1% low FPS, GPU utilization/time if available, CPU utilization, alloc/VRAM budget, thermal state, crashes and visual hashes. Compare **DXVK upstream vs DXVK-SD865 on the same driver** before comparing driver forks.
@@ -78,8 +78,8 @@ Primary environment: Android / Wine and Proton, including FEX-based x86/x64 tran
 | Upstream baseline x86/x64 PE | Reference/control | Rebuilds and smoke-tests |
 | SD865 debug x86/x64 PE | Instrumentation | Unit/correctness and GPU logs |
 | SD865 release x86/x64 PE | Standard deployment | Identical output, no crashes, measurable gain |
-| SD865 ARM64EC PE (conditional) | FEX/Wine ABI-specific optimization | Correct loader, imports and Vulkan interop |
-| Launcher package (conditional) | GameNative/GameHub integration | Exact packaging spec, install/uninstall validation |
+| SD865 ARM64EC PE inside WCP (future/conditional) | FEX/Wine ABI-specific optimization | Include only if compatible with GameNative content metadata and validated with the actual runtime; no standalone ABI artifact |
+| GameNative WCP (sole output) | GameNative DXVK component | Root `profile.json`, x32/x64 DLLs, trusted targets, zstd/tar validation and install/uninstall tests |
 
 Each prerelease should preserve `source SHA`, DXVK base version, build flags, architecture, file checksums, driver minimums and known limitations. Test comparisons must match driver, launcher, translator, resolution, game settings and thermal conditions.
 
