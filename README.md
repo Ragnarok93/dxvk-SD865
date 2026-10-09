@@ -7,6 +7,8 @@ This fork includes an **opt-in measurement and tuning foundation** for Snapdrago
 - [Optimization roadmap and current Turnip fork targets](docs/SD865-OPTIMIZATION-ROADMAP.md)
 - [Phase-1 draft pull request](https://github.com/Ragnarok93/dxvk-SD865/pull/1)
 
+**Build outputs:** [GameNative DXVK WCP](https://github.com/Ragnarok93/dxvk-SD865/actions/workflows/artifacts.yml) now publishes **only a GameNative-installable `.wcp`**. PE DLLs are temporary build inputs, not separate CI artifacts. GitHub's artifact download ZIP contains one `.wcp` file. No Linux-native, raw DLL, merged or MSVC artifacts are produced.
+
 For unbiased comparisons, keep the Turnip build, FEX/Wine version, game scene, resolution and thermal state constant while changing **only** DXVK settings. The SD865-specific shader worker tuning and frame/compilation profiling are disabled by default.
 
 ---

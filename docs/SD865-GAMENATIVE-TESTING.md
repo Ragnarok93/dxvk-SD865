@@ -6,25 +6,25 @@ Updated 2026-10-09. Target: Galaxy S20+ (Snapdragon 865 / Adreno 650), the lates
 
 ## Part A — Download a GameNative-ready build
 
-1. Open [DXVK-SD865 Actions](https://github.com/Ragnarok93/dxvk-SD865/actions), choose the `Artifacts (Package)` workflow, and select a **successful** run on `feature/sd865-foundation-20261009`.
-2. Verify the Windows MinGW binary build completed. Download the separately named `gamenative-dxvk-sd865-<commit-sha>` artifact. The GameNative packaging job depends on the Windows DLL build; don't assume this artifact exists until the job succeeds.
-3. GitHub wraps artifacts in ZIP files. **Extract the actual `.wcp` from the ZIP**, and save its SHA/filename. Importing the ZIP directly will not work.
-4. The package contains **Windows x64 and x32 PE DXVK DLLs**, **not native ARM64EC DXVK DLLs**. This is intended for GameNative's Wine/FEX path; verify the chosen Proton loader accepts these binaries.
+1. Open [DXVK-SD865 Actions](https://github.com/Ragnarok93/dxvk-SD865/actions), select **GameNative DXVK WCP**, and choose a **successful** run on `feature/sd865-foundation-20261009` (or the current release branch).
+2. Download the **single** `gamenative-dxvk-<full-commit-sha>` GitHub Actions artifact. It contains **one** installable `dxvk-sd865-<short-commit-sha>.wcp`; this build no longer publishes raw DLLs, Linux/native tarballs, merged archives or MSVC build outputs.
+3. GitHub Actions automatically wraps artifacts in ZIP. **Extract the inner `.wcp`** before importing it into GameNative; the outer ZIP isn't an installable WCP.
+4. The package contains Windows **x64 and x32 PE DXVK DLLs**, **not native ARM64EC DXVK DLLs**. Confirm the selected GameNative Proton/FEX loader uses them.
 
 ### Manual WCP creation, if the Actions packaging job is unavailable
 
-Download/extract the normal `dxvk-win-*` build artifact, which contains `x64/` and `x32/` DLL directories. On a Linux PC or a Python-capable Android environment with `zstd`, from the DXVK-SD865 repository run:
+For local-only packaging, first compile with `./package-release.sh sd865-local build --no-package` using a matching MinGW toolchain. This creates **intermediate** `build/dxvk-sd865-local/x64/` and `x32/` DLL directories (not published CI downloads). On Linux or a Python-capable Android environment with `zstd`, run:
 
 ```sh
 python3 tools/package_gamenative_wcp.py \
-  --input /path/to/extracted-dxvk-build \
+  --input ./build/dxvk-sd865-local \
   --output ./dxvk-sd865-test.wcp \
   --version-name sd865-manual-test
 zstd -t ./dxvk-sd865-test.wcp
 zstd -dc ./dxvk-sd865-test.wcp | tar -tf - | head
 ```
 
-The decompressed archive should contain a root-level `profile.json` plus `x64/` and `x32/` DLLs. GameNative's importer expects a **tar.xz/tar.zst WCP content profile**, not a renamed ZIP or normal DXVK release tarball. Our packager generates the `DXVK` profile and uses only GameNative's trusted `system32`/`syswow64` DLL targets.
+The decompressed archive should contain a root-level `profile.json` plus `x64/` and `x32/` DLLs. The CI download provides only this `.wcp` payload. GameNative's importer expects a **tar.xz/tar.zst WCP content profile**, not a renamed ZIP or normal DXVK release tarball. Our packager generates the `DXVK` profile and uses only GameNative's trusted `system32`/`syswow64` DLL targets.
 
 ## Part B — Install and select DXVK-SD865 in GameNative
 
