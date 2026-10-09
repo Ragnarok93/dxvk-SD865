@@ -1,3 +1,15 @@
+## DXVK-SD865 experimental Adreno 650 profile
+
+This fork includes an **opt-in measurement and tuning foundation** for Snapdragon 865 / Adreno 650 running current Mesa Turnip Vulkan drivers (including community forks). Standard upstream behaviour remains the default; no frame-rate gains are asserted without on-device A/B testing.
+
+- [SD865 profile options, benchmark instructions and log parser](docs/SD865-PROFILE.md)
+- [Optimization roadmap and current Turnip fork targets](docs/SD865-OPTIMIZATION-ROADMAP.md)
+- [Phase-1 draft pull request](https://github.com/Ragnarok93/dxvk-SD865/pull/1)
+
+For unbiased comparisons, keep the Turnip build, FEX/Wine version, game scene, resolution and thermal state constant while changing **only** DXVK settings. The SD865-specific shader worker tuning and frame/compilation profiling are disabled by default.
+
+---
+
 # DXVK
 
 A Vulkan-based translation layer for Direct3D 8/9/10/11 which allows running 3D applications on Linux using Wine.
