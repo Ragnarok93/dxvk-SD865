@@ -9,6 +9,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
   group: gamenative-wcp-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -23,7 +26,7 @@ jobs:
       - name: Install compiler and packager dependencies
         run: |
           pacman -Syu --needed --noconfirm \
-            git meson ninja mingw-w64-gcc glslang python zstd
+            git meson ninja mingw-w64-gcc glslang python zstd github-cli
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Checkout DXVK and submodules
@@ -75,3 +78,23 @@ jobs:
           path: dist/*.wcp
           if-no-files-found: error
           compression-level: 0
+
+      - name: Publish FF7 Remake T30 prerelease
+        if: github.event_name != 'pull_request' && startsWith(github.ref, 'refs/heads/prerelease/ff7remake-t30-')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TAG="ff7remake-t30-sd865-${GITHUB_SHA:0:12}"
+          ASSET="dist/dxvk-${VERSION_NAME}.wcp"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ASSET" --clobber
+          else
+            gh release create "$TAG" "$ASSET" \
+              --target "$GITHUB_SHA" \
+              --title "FF7 Remake SD865 / Mr. Purple T30 — prerelease ${GITHUB_SHA:0:12}" \
+              --notes-file docs/FF7-REMAKE-T30-PRERELEASE.md \
+              --prerelease --latest=false
+          fi
