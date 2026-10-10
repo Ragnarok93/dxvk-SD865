@@ -77,6 +77,30 @@ namespace dxvk::sd865 {
         && (hasAdreno650Name(name) || mode > 0);
   }
 
+  // Exact game executable identity. Do not enable game-specific tuning for
+  // unrelated Unreal Engine titles, helper processes, or similarly named EXEs.
+  constexpr bool isFF7RemakeExecutable(std::string_view name) {
+    constexpr std::string_view original = "ff7remake_.exe";
+    constexpr std::string_view alternate = "ff7remake.exe";
+    const bool validSize = name.size() == original.size()
+                        || name.size() == alternate.size();
+    if (!validSize)
+      return false;
+
+    const auto target = name.size() == original.size() ? original : alternate;
+    return matchesAt(name, 0u, target);
+  }
+
+  // A conservative starting experiment for FEX translation on SD865.
+  // Never override the regular DXVK compiler setting or an explicit SD865
+  // override. The caller must confirm Adreno 650 Turnip and the game name.
+  constexpr uint32_t ff7RemakeWorkerOverride(
+      int32_t standardOverride, int32_t sd865Override,
+      bool deviceMatched, bool executableMatched, bool enabled) {
+    return enabled && deviceMatched && executableMatched
+        && standardOverride <= 0 && sd865Override <= 0 ? 2u : 0u;
+  }
+
   // Bound frame-based profiling cadence to prevent excessive log spam.
   // Zero leaves the per-frame fast path untouched.
   constexpr uint32_t sanitizeStatsInterval(int32_t interval) {
