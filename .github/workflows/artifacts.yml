@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - 'feature/sd865-*'
+      - 'prerelease/ff7remake-t30-*'
   pull_request:
   workflow_dispatch:
 

@@ -43,6 +43,21 @@ namespace dxvk {
         m_kmtLocal = create.hDevice;
     }
 
+    // The FF7 Remake T30 prerelease changes only shader worker scheduling:
+    // it does not advertise unsupported D3D11/Vulkan features, change
+    // rendering formats, synchronization or driver-specific capabilities.
+    // Explicit upstream and SD865 worker settings always win.
+    const auto exeName = env::getExeName();
+    const auto ff7WorkerOverride = sd865::ff7RemakeWorkerOverride(
+      m_options.numCompilerThreads, m_options.sd865CompilerThreads,
+      m_sd865Active, sd865::isFF7RemakeExecutable(exeName),
+      m_options.sd865FF7RemakeTuning);
+
+    if (ff7WorkerOverride) {
+      m_options.sd865CompilerThreads = ff7WorkerOverride;
+      Logger::info("DXVK-SD865 FF7 Remake T30 prerelease: using 2 shader compiler workers; set dxvk.sd865FF7RemakeTuning=False to disable");
+    }
+
     determineShaderOptions();
 
     if (env::getEnvVar("DXVK_SHADER_CACHE") != "0" && DxvkShader::getShaderDumpPath().empty())
@@ -59,6 +74,7 @@ namespace dxvk {
            << " vendor=0x" << std::hex << gpu.vendorID << " device=0x" << gpu.deviceID
            << std::dec << " driver=" << m_properties.vk12.driverName
            << " version=" << m_properties.driverVersion.toString()
+           << " driverInfo=" << m_properties.vk12.driverInfo
            << " Vulkan=" << VK_API_VERSION_MAJOR(gpu.apiVersion) << "."
            << VK_API_VERSION_MINOR(gpu.apiVersion) << "."
            << VK_API_VERSION_PATCH(gpu.apiVersion)
@@ -84,6 +100,16 @@ namespace dxvk {
                  << " subgroupSize=" << m_properties.vk13.minSubgroupSize
                  << " unifiedMemory=" << m_adapter->isUnifiedMemoryArchitecture();
         Logger::info(features.str());
+        if (sd865::isFF7RemakeExecutable(exeName) && m_sd865Active) {
+          Logger::info(str::format(
+            "DXVK-SD865 FF7 Remake Vulkan D3D11 prerequisites: drawIndirectFirstInstance=",
+            bool(m_features.core.features.drawIndirectFirstInstance),
+            " fragmentStoresAndAtomics=", bool(m_features.core.features.fragmentStoresAndAtomics),
+            " multiDrawIndirect=", bool(m_features.core.features.multiDrawIndirect),
+            " tessellationShader=", bool(m_features.core.features.tessellationShader),
+            " logicOp=", bool(m_features.core.features.logicOp),
+            " vertexPipelineStoresAndAtomics=", bool(m_features.core.features.vertexPipelineStoresAndAtomics)));
+        }
         Logger::info("DXVK-SD865: full queues, heaps, budgets and enabled extension list logged during device creation");
       }
     }

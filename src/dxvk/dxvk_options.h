@@ -38,6 +38,10 @@ namespace dxvk {
     /// Optional per-task compiler timing and queue-depth diagnostics.
     bool sd865CompilerTelemetry = false;
 
+    /// FF7 Remake SD865/T30 prerelease experiment, scoped to the actual
+    /// game executable on Adreno 650 Turnip. False disables automatic tuning.
+    bool sd865FF7RemakeTuning = true;
+
     /// Enable graphics pipeline library
     Tristate enableGraphicsPipelineLibrary = Tristate::Auto;
 
