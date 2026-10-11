@@ -16,7 +16,8 @@ DRIVER = (
     "requested_bytes=22369792 memory_type=1 heap=0 heap_size_bytes=4294967296 dedicated=0 "
     "dxvk_allocated_bytes=4110417920 dxvk_used_bytes=3913285632 "
     "dxvk_budget_bytes=5012193280 driver_allocated_bytes=3958376448 "
-    "driver_budget_bytes=5006950400"
+    "driver_budget_bytes=5006950400 pool_experiment=1 "
+    "empty_chunks_reclaimed=18 empty_bytes_reclaimed=67108864"
 )
 
 
@@ -28,6 +29,9 @@ class AllocTraceTests(unittest.TestCase):
         self.assertEqual(report["events"][0]["first_attempt_id"], 403)
         self.assertEqual(report["events"][0]["retry_attempt_id"], 404)
         self.assertEqual(report["events"][0]["heap_size_bytes"], 4294967296)
+        self.assertEqual(report["events"][0]["pool_experiment"], 1)
+        self.assertEqual(report["events"][0]["empty_chunks_reclaimed"], 18)
+        self.assertEqual(report["events"][0]["empty_bytes_reclaimed"], 67108864)
         self.assertEqual(report["events"][0]["first_name"], "VK_ERROR_OUT_OF_DEVICE_MEMORY")
         self.assertEqual(report["events"][0]["retry_vkresult"], 0)
         self.assertEqual(report["outcomes"]["recovered_after_retry"], 1)
