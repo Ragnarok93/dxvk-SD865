@@ -10,6 +10,7 @@ on:
       - 'src/d3d11/d3d11_main.cpp'
       - 'src/dxgi/dxgi_swapchain.cpp'
       - 'src/dxvk/dxvk_memory.cpp'
+      - 'package-release.sh'
       - 'tools/ff7r_alloc_trace_report.py'
       - 'tests/test_ff7r_alloc_trace_report.py'
       - 'tools/ff7r_phase0_report.py'
@@ -59,6 +60,9 @@ jobs:
         run: |
           set -euo pipefail
           grep -Fq 'DXVK_SD865_ALLOC_TRACE' src/dxvk/dxvk_memory.cpp
+          bash -n package-release.sh
+          grep -Fq 'DXVK_SD865_DIAG_WCP' package-release.sh
+          grep -Fq 'DXVK_SD865_ALLOC_DIAG_WCP' src/dxvk/dxvk_memory.cpp
           grep -Fq 'stage=driver_retry' src/dxvk/dxvk_memory.cpp
           grep -Fq 'retry_vkresult=' src/dxvk/dxvk_memory.cpp
           grep -Fq 'stage=pool_exhausted' src/dxvk/dxvk_memory.cpp
@@ -69,12 +73,18 @@ jobs:
           set -euo pipefail
           VERSION_NAME="ff7r-allocdiag-dxvk271-${GITHUB_SHA:0:12}"
           echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
-          ./package-release.sh "$VERSION_NAME" build --no-package
+          # Selecting this uniquely named diagnostic WCP is the opt-in.
+          # Compile with an explicit define, so regular WCP builds stay inert.
+          DXVK_SD865_DIAG_WCP=1 ./package-release.sh "$VERSION_NAME" build --no-package
           for arch in x32 x64; do
             for dll in d3d9.dll d3d10core.dll d3d11.dll dxgi.dll; do
               test -s "build/dxvk-$VERSION_NAME/$arch/$dll"
             done
+            grep -aFq 'DXVK-SD865-ALLOC state=diagnostic_wcp_loaded' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
+            grep -aFq 'DXVK-SD865-ALLOC stage=driver_retry' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
+            grep -aFq 'DXVK_SD865_ALLOC_TRACE' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
           done
+          echo "Verified embedded diagnostic bootstrap and real VkResult markers in PE x64 and x32"
 
       - name: Package only GameNative WCP
         shell: bash
