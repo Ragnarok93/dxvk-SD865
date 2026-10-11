@@ -158,30 +158,8 @@ jobs:
           # Never pipe tar into grep -q under pipefail: grep may close early,
           # causing tar to fail with "stdout: write error" on a valid archive.
           tar -tJf "$pkg" > "$stage/archive-files.txt"
-          grep -Eq '(^|/)profile.json
-          (cd "$out" && sha256sum "$(basename "$pkg")" >> SHA256SUMS)
-
-      - name: Upload experimental wrapper, diagnostic WCP and source patch
-        uses: actions/upload-artifact@v4
-        with:
-          name: FF7R-PurpleVK-raw-8bit-audit-aarch64
-          path: ff7r-wrapper8bit-artifact/*
-          if-no-files-found: error
-          retention-days: 30
-          compression-level: 0
- "$stage/archive-files.txt"
-          grep -Eq '(^|/)usr/lib/libvulkan_wrapper.so
-          (cd "$out" && sha256sum "$(basename "$pkg")" >> SHA256SUMS)
-
-      - name: Upload experimental wrapper, diagnostic WCP and source patch
-        uses: actions/upload-artifact@v4
-        with:
-          name: FF7R-PurpleVK-raw-8bit-audit-aarch64
-          path: ff7r-wrapper8bit-artifact/*
-          if-no-files-found: error
-          retention-days: 30
-          compression-level: 0
- "$stage/archive-files.txt"
+          grep -Eq '(^|/)profile.json$' "$stage/archive-files.txt"
+          grep -Eq '(^|/)usr/lib/libvulkan_wrapper.so$' "$stage/archive-files.txt"
           (cd "$out" && sha256sum "$(basename "$pkg")" >> SHA256SUMS)
 
       - name: Upload experimental wrapper, diagnostic WCP and source patch
