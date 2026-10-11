@@ -35,7 +35,8 @@ def summarize(lines):
         safe = {"stage": stage}
         for field in (
             "first_vkresult", "retry_vkresult", "recovered",
-            "requested_bytes", "memory_type", "heap", "dedicated",
+            "first_attempt_id", "retry_attempt_id",
+            "requested_bytes", "memory_type", "heap", "heap_size_bytes", "dedicated",
             "dxvk_allocated_bytes", "dxvk_used_bytes", "dxvk_budget_bytes",
             "driver_allocated_bytes", "driver_budget_bytes",
             "flags", "buffer_usage", "driver_call",
