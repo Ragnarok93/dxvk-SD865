@@ -32,6 +32,9 @@ class PoolExperimentTests(unittest.TestCase):
         self.assertRegex(s, r"(?s)static bool sd865PoolExperimentEnabled\(\).*?#else\s+return false;")
         self.assertIn('DXVK_SD865_POOL_WCP:-0', self.package)
         self.assertIn("-DDXVK_SD865_POOL_WCP=1", self.package)
+        self.assertIn("#if defined(DXVK_SD865_POOL_WCP) && !defined(DXVK_SD865_ALLOC_DIAG_WCP)", s)
+        self.assertIn("#define DXVK_SD865_ALLOC_DIAG_WCP 1", s)
+        self.assertNotIn("-DDXVK_SD865_ALLOC_DIAG_WCP=1,-DDXVK_SD865_POOL_WCP=1", self.package)
         self.assertIn("elif [", self.package)
         self.assertIn("DXVK_SD865_DIAG_WCP:-0", self.package)
 
