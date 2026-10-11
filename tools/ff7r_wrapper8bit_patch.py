@@ -54,10 +54,12 @@ PATCH = """      wrapper_setup_device_features(pdevice);
 
 INSTANCE_PATH = Path("src/vulkan/wrapper/wrapper_instance.c")
 INSTANCE_MARKER = "FF7R-8BIT: wrapper_instance_probe"
-INSTANCE_ANCHOR = """   VkResult result;
+INSTANCE_ANCHOR = """   struct wrapper_instance *instance;
+   VkResult result;
 
    result = wrapper_vulkan_init();"""
-INSTANCE_PATCH = """   VkResult result;
+INSTANCE_PATCH = """   struct wrapper_instance *instance;
+   VkResult result;
 
    /* FF7R-8BIT: early wrapper provenance, before ICD instance initialization.
     * Only this explicitly labeled diagnostic wrapper emits this once per
