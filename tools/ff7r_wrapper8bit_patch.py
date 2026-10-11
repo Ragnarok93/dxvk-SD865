@@ -65,7 +65,7 @@ INSTANCE_PATCH = """   struct wrapper_instance *instance;
     * Only this explicitly labeled diagnostic wrapper emits this once per
     * vkCreateInstance. It goes into GameNative's existing Wine log exporter.
     */
-   fprintf(stderr, "FF7R-8BIT: wrapper_instance_probe\\\\n");
+   fprintf(stderr, "FF7R-8BIT: wrapper_instance_probe\\n");
    fflush(stderr);
 
    result = wrapper_vulkan_init();"""
