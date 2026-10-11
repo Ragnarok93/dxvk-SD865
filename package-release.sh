@@ -66,6 +66,13 @@ function build_arch {
     opt_strip=--strip
   fi
 
+  # Special no-ADB allocator diagnostic WCPs are explicitly selected by
+  # users; regular DXVK builds do not compile with this opt-in define.
+  local diag_wcp_args=()
+  if [ "${DXVK_SD865_DIAG_WCP:-0}" = "1" ]; then
+    diag_wcp_args=("-Dcpp_args=-DDXVK_SD865_ALLOC_DIAG_WCP=1")
+  fi
+
   meson setup --cross-file "$DXVK_SRC_DIR/$crossfile$1.txt" \
         --buildtype "release"                               \
         --prefix "$DXVK_BUILD_DIR"                          \
@@ -74,6 +81,7 @@ function build_arch {
         --libdir "x$1"                                      \
         -Db_ndebug=if-release                               \
         -Dbuild_id=$opt_buildid                             \
+        "${diag_wcp_args[@]}"                             \
         "$DXVK_BUILD_DIR/build.$1"
 
   cd "$DXVK_BUILD_DIR/build.$1"
