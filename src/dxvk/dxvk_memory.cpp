@@ -2036,7 +2036,7 @@ namespace dxvk {
     // On the opt-in experiment, bound device pools to 64 MiB and mapped
     // pools to 32 MiB. Never enlarge a 32-bit host's smaller natural cap.
     if (sd865PoolExperimentEnabled())
-      size = std::min(size, mappable ? 32ull << 20 : 64ull << 20);
+      size = std::min<VkDeviceSize>(size, mappable ? VkDeviceSize(32ull << 20) : VkDeviceSize(64ull << 20));
 
     // Always use at least the minimum chunk size
     return std::max(size, DxvkMemoryPool::MinChunkSize);
