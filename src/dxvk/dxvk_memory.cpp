@@ -11,10 +11,16 @@
 
 namespace dxvk {
 
-  // FF7R A650 allocation diagnostics: strictly opt-in and failure-only.
-  // Keep the normal DXVK memory-allocation policy unchanged.
+  // FF7R A650 failure-only probe, never change the allocation policy.
+  // Selecting the explicitly labeled diagnostic WCP is itself the opt-in:
+  // it captures allocation failures unless explicitly disabled with =0.
+  // Ordinary DXVK builds remain opt-in with =1, and emit no startup marker.
   static bool sd865AllocTraceEnabled() {
+#ifdef DXVK_SD865_ALLOC_DIAG_WCP
+    static const bool enabled = env::getEnvVar("DXVK_SD865_ALLOC_TRACE") != "0";
+#else
     static const bool enabled = env::getEnvVar("DXVK_SD865_ALLOC_TRACE") == "1";
+#endif
     return enabled;
   }
 
@@ -676,9 +682,21 @@ namespace dxvk {
     determineBufferUsageFlagsPerMemoryType();
 
     updateMemoryHeapBudgets();
+
+#ifdef DXVK_SD865_ALLOC_DIAG_WCP
+    // One unmistakable marker per DXVK allocator creation, independent of
+    // failure events and log-level 'info'. It proves the selected WCP reached
+    // the game's DXVK Vulkan allocator and exposes the current capture mode.
+    Logger::err(str::format(
+      "DXVK-SD865-ALLOC state=diagnostic_wcp_loaded",
+      " capture_enabled=", sd865AllocTraceEnabled() ? 1 : 0,
+      " heap_count=", m_memHeapCount,
+      " heap0_size_bytes=", m_memHeapCount ? m_memHeaps[0].properties.size : 0,
+      " heap0_budget_bytes=", m_memHeapCount ? m_memHeaps[0].memoryBudget : 0));
+#endif
   }
-  
-  
+
+
   DxvkMemoryAllocator::~DxvkMemoryAllocator() {
     auto vk = m_device->vkd();
 
