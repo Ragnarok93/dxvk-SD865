@@ -54,6 +54,7 @@ jobs:
           grep -Fq 'FF7R-8BIT: direct driver feature audit' wrapper-src/src/vulkan/wrapper/wrapper_physical_device.c
           grep -Fq 'ff7r_raw_12.storageBuffer8BitAccess' wrapper-src/src/vulkan/wrapper/wrapper_physical_device.c
           grep -Fq 'FF7R-8BIT: wrapper_instance_probe' wrapper-src/src/vulkan/wrapper/wrapper_instance.c
+          grep -Fq 'FF7R-M5: raw_extension5=%u' wrapper-src/src/vulkan/wrapper/wrapper_physical_device.c
           grep -Fq 'FF7R-8BIT: wrapper_library_loaded' wrapper-src/src/vulkan/wrapper/wrapper_instance.c
           git -C wrapper-src diff --check
           git -C wrapper-src diff -- src/vulkan/wrapper/wrapper_physical_device.c src/vulkan/wrapper/wrapper_instance.c > "$GITHUB_WORKSPACE/ff7r-wrapper8bit.patch"
@@ -114,6 +115,7 @@ jobs:
           grep -aFq 'FF7R-8BIT: wrapper_library_loaded' "$raw"
           grep -aFq 'FF7R-8BIT: wrapper_instance_probe' "$raw"
           grep -aFq 'FF7R-8BIT: raw_storage8=%u' "$raw"
+          grep -aFq 'FF7R-M5: raw_extension5=%u' "$raw"
           cp "$raw" "$out/libvulkan_wrapper.debug.so"
           cp "$raw" "$out/libvulkan_wrapper.so"
           strip="$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
