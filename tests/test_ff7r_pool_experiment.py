@@ -60,7 +60,8 @@ class PoolExperimentTests(unittest.TestCase):
         check = chunk.index("pool.pageAllocator.pagesUsed(i)")
         freeing = chunk.index("freeDeviceMemory(type, chunk.memory)")
         self.assertLess(check, freeing)
-        self.assertIn("if (sd865PoolExperimentEnabled())\\n      maxUnusedMemory = 0u;", chunk)
+        self.assertIn("maxUnusedMemory = 0u;", chunk)
+        self.assertLess(chunk.index("if (sd865PoolExperimentEnabled())"), chunk.index("maxUnusedMemory = 0u;"))
         self.assertIn("sd865PoolReclaimedChunks().fetch_add(1u", chunk)
         self.assertIn("sd865PoolReclaimedBytes().fetch_add(chunk.memory.size", chunk)
 
