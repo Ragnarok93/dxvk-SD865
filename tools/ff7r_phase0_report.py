@@ -79,13 +79,14 @@ def main(argv=None):
     parser.add_argument("--require-api", choices=["d3d11", "d3d12"],
                         help="Exit nonzero unless this DXGI rendering path was observed")
     args = parser.parse_args(argv)
-    lines = []
-    for path in args.logs:
-        if not path.is_file():
-            parser.error(f"Log does not exist: {path}")
-        with path.open(encoding="utf-8", errors="replace") as stream:
-            lines.extend(stream)
-    report = classify(lines)
+    def session_lines():
+        for path in args.logs:
+            if not path.is_file():
+                parser.error(f"Log does not exist: {path}")
+            with path.open(encoding="utf-8", errors="replace") as stream:
+                yield from stream
+
+    report = classify(session_lines())
     payload = json.dumps(report, indent=2, sort_keys=True) + "\n"
     print(payload, end="")
     if args.json_out:
