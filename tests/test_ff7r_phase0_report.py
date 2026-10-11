@@ -38,6 +38,44 @@ class AttributionTests(unittest.TestCase):
     def test_mixed_sessions_fail_closed(self):
         self.assertEqual(classify([self.P11, self.P12, self.D])["api_evidence"], "mixed_or_ambiguous")
 
+    def test_pre_device_vulkan_feature_rejection_from_user_log_shape(self):
+        r = classify([
+            "info:  Game: ff7remake_.exe",
+            "info:  DXVK: 3.1.1",
+            "info:  Found device: Wrapper(PurpleVK-public Adreno (TM) 650)",
+            "info:    Skipping: Device does not support required feature 'storageBuffer8BitAccess'",
+            "warn:  DXVK: No adapters found.",
+            "err:   Failed to initialize DXVK.",
+            '0150:trace:loaddll:build_module Loaded L"C:\\\\windows\\\\system32\\\\libarm64ecfex.dll" at 0: builtin',
+            '0150:trace:loaddll:build_module Loaded L"C:\\\\windows\\\\system32\\\\d3d11.dll" at 0: native',
+        ])
+        self.assertEqual(r["api_evidence"], "dxvk_adapter_rejected_before_present")
+        self.assertEqual(r["dxvk_versions_in_logs"], ["3.1.1"])
+        self.assertEqual(r["dxvk_adapter_missing_features"], ["storageBuffer8BitAccess"])
+        self.assertTrue(r["dxvk_initialization_failed"])
+        self.assertEqual(r["wine_arm64ec_fex_load_events"], 1)
+        self.assertEqual(r["wine_d3d11_dll_load_events"], 1)
+        self.assertEqual(r["d3d11_device_events"], 0)
+
+    def test_no_false_rejection_without_actual_failure(self):
+        r = classify([
+            "info:  Game: ff7remake_.exe",
+            "info:  DXVK: 3.1.1",
+            "info:    Skipping: Device does not support required feature 'storageBuffer8BitAccess'",
+        ])
+        self.assertEqual(r["api_evidence"], "unverified")
+        self.assertFalse(r["dxvk_initialization_failed"])
+
+    def test_unrelated_failed_game_no_ff7r_attribution(self):
+        r = classify([
+            "info: Game: other_game.exe",
+            "info:  DXVK: 3.1.1",
+            "info:    Skipping: Device does not support required feature 'storageBuffer8BitAccess'",
+            "err: Failed to initialize DXVK.",
+        ])
+        self.assertEqual(r["api_evidence"], "unverified")
+        self.assertEqual(r["dxvk_adapter_missing_features"], [])
+
     def test_other_exe_ignored(self):
         r = classify([
             self.D.replace("FF7Remake_.exe", "Unrelated.exe"),
