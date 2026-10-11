@@ -52,6 +52,35 @@ PATCH = """      wrapper_setup_device_features(pdevice);
 
       pdevice->base_supported_features = *supported_features;"""
 
+M5_MARKER = "FF7R-M5: raw_extension5"
+M5_ANCHOR = """      /* VK_KHR_push_descriptor: vkd3d/DXVK effectively require it, but some"""
+M5_PATCH = """      /* FF7R-M5: read-only extension/feature audit, after existing DXVK
+       * conditional feature/extension adjustments. No feature spoofing.
+       * Base extension = raw underlying ICD's enumerated extension;
+       * raw feature queried directly with VkPhysicalDeviceFeatures2;
+       * wrapper extension/feature = wrapper's currently advertised table.
+       */
+      VkPhysicalDeviceMaintenance5Features ff7r_raw_m5 = {
+         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES,
+      };
+      VkPhysicalDeviceFeatures2 ff7r_m5_raw_query = {
+         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+         .pNext = &ff7r_raw_m5,
+      };
+      pdevice->dispatch_table.GetPhysicalDeviceFeatures2(
+         pdevice->dispatch_handle, &ff7r_m5_raw_query);
+      fprintf(stderr,
+         "FF7R-M5: raw_extension5=%u raw_feature5=%u "
+         "wrapper_extension5=%u wrapper_feature5=%u engine=%s\\n",
+         (unsigned)pdevice->base_supported_extensions.KHR_maintenance5,
+         (unsigned)ff7r_raw_m5.maintenance5,
+         (unsigned)pdevice->vk.supported_extensions.KHR_maintenance5,
+         (unsigned)pdevice->vk.supported_features.maintenance5,
+         engine_name);
+      fflush(stderr);
+
+      /* VK_KHR_push_descriptor: vkd3d/DXVK effectively require it, but some"""
+
 INSTANCE_PATH = Path("src/vulkan/wrapper/wrapper_instance.c")
 LOAD_MARKER = "FF7R-8BIT: wrapper_library_loaded"
 LOAD_ANCHOR = "static void *get_vulkan_handle()"
@@ -102,8 +131,8 @@ def patch_instance(source: str) -> tuple[str, str]:
 
 
 def patch(source: str) -> tuple[str, str]:
-    if MARKER in source:
-        if source.count(MARKER) != 1 or "ff7r_raw_12.storageBuffer8BitAccess" not in source:
+    if MARKER in source or M5_MARKER in source:
+        if source.count(MARKER) != 1 or source.count(M5_MARKER) != 1 or "ff7r_raw_12.storageBuffer8BitAccess" not in source:
             raise ValueError("Existing patch looks modified or incomplete")
         return source, "already-patched"
     if source.count(ANCHOR) != 1:
@@ -111,7 +140,12 @@ def patch(source: str) -> tuple[str, str]:
     # Reject unreviewed or structurally changed wrapper sources.
     if "wrapper_GetPhysicalDeviceFeatures2" not in source:
         raise ValueError("Wrapper feature-query entrypoint not present; inspect upstream changes")
+    if source.count(M5_ANCHOR) != 1:
+        raise ValueError("Expected maintenance5 audit insertion anchor absent or ambiguous")
     updated = source.replace(ANCHOR, PATCH, 1)
+    updated = updated.replace(M5_ANCHOR, M5_PATCH, 1)
+    assert updated.count(M5_MARKER) == 1
+    assert "ff7r_raw_m5.maintenance5" in updated
     assert updated.count("pdevice->base_supported_features = *supported_features;") == 1
     assert updated.index("pdevice->dispatch_table.GetPhysicalDeviceFeatures2(") < updated.index(
         "pdevice->base_supported_features = *supported_features;")
