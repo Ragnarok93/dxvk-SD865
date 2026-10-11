@@ -29,7 +29,7 @@ class PoolExperimentTests(unittest.TestCase):
         s = self.source
         self.assertIn("#ifdef DXVK_SD865_POOL_WCP", s)
         self.assertIn('env::getEnvVar("DXVK_SD865_POOL_EXPERIMENT") == "1"', s)
-        self.assertRegex(s, r"(?s)static bool sd865PoolExperimentEnabled\\(\\).*?#else\\s+return false;")
+        self.assertRegex(s, r"(?s)static bool sd865PoolExperimentEnabled\(\).*?#else\s+return false;")
         self.assertIn('DXVK_SD865_POOL_WCP:-0', self.package)
         self.assertIn("-DDXVK_SD865_POOL_WCP=1", self.package)
         self.assertIn("elif [", self.package)
