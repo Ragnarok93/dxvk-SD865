@@ -32,3 +32,21 @@ The new D3D11 log has **128 opt-in `DXVK-SD865-ALLOC` events (bounded log cap)**
 5. A later *experimental* WCP can reduce global/mappable DXVK pool chunk size and empty-chunk retention without ever disabling required Vulkan buffer device addresses, and should A/B track minimum rejected chunk, OOM memory level, game progression and visual correctness.
 
 **Code state:** This document is diagnosis only. No Vulkan heap spoof changes, allocator mitigation patches, or new runtime WCP have been applied from this upload. Do not present a new build without successful CI and on-device validation.
+
+## Confirmed by user and GameNative source — root of the 2048 MiB Vulkan heap report
+
+At 2026-10-11 23:31 UTC, the user confirmed: **“Yes I had set Max Device Memory under graphics settings to 2048 for that run.”**
+
+The GameNative `master` implementation independently confirms the entire path:
+
+- [`GraphicsTab.kt` around lines 134–148](https://github.com/Ragnarok93/GameNative/blob/master/app/src/main/java/app/gamenative/ui/component/dialog/GraphicsTab.kt) offers “Max Device Memory” options `0`, `512`, `1024`, `2048`, `4096` MB and saves the selected value to the graphics configuration as `maxDeviceMemory`.
+- [`XServerScreen.kt` around lines 6108–6110](https://github.com/Ragnarok93/GameNative/blob/master/app/src/main/java/app/gamenative/ui/screen/xserver/XServerScreen.kt) directly translates positive `graphicsDriverConfig.get("maxDeviceMemory", "0")` into the guest environment `WRAPPER_VMEM_MAX_SIZE=<value>`.
+- [`leegao/mesa-wrapper-CI` `wrapper_physical_device.c`](https://github.com/leegao/mesa-wrapper-CI/blob/gn_wrapper2/src/vulkan/wrapper/wrapper_physical_device.c) exposes `WRAPPER_VMEM_MAX_SIZE` via `getenv` in both `vkGetPhysicalDeviceMemoryProperties` and `vkGetPhysicalDeviceMemoryProperties2`, overriding the first `VkMemoryHeap.size` to `value * 1048576`.
+
+**Conclusion:** The user's intentional UI selection of 2048 MB **caused the DXVK-visible Vulkan heap size to be 2048 MiB**, to the extent that the selected PurpleVK wrapper implements the pinned source behavior; there is no longer a need to hypothesize an unrelated new 2-GiB hardware cap to explain this report.
+
+This UI setting does **not** behave like a physical Turnip allocation limit, as seen directly: DXVK logged nearly 4 GiB allocated while its `VkMemoryHeap.size` was 2 GiB. It is a report/override and can create misleading `heapBudget > heapSize` combinations due to passthrough of `VK_EXT_memory_budget`.
+
+**Correct controlled next test:** In GameNative graphics settings choose **Max Device Memory = 0 MB** (zero means “don't set `WRAPPER_VMEM_MAX_SIZE`”, not “zero GPU memory”). Do not set that variable manually elsewhere. Keep the same driver, DXVK and FEX. For a separate DXGI game-facing memory-advertisement test, use **name `DXVK_CONFIG`**, **value `dxgi.maxDeviceMemory = 3072`**, not standalone `dxgi.maxDeviceMemory` env var. This setting affects DXGI adapter description only; it does not directly change Vulkan's memory heap. Export low-noise DXVK log and check reported heap has returned to the original size. The original Turnip `VK_ERROR_OUT_OF_DEVICE_MEMORY` issue was already present in runs without 2048 MB override; removal is a diagnostic hygiene measure, **not an established fix**.
+
+**Potential GameNative product improvement (not implemented):** Rename the ambiguous selector to “Reported Vulkan Heap Size Override (MB)” with “Auto / No Override” for 0; warn that it does not allocate or cap physical GPU RAM, can disagree with `VK_EXT_memory_budget`, and can influence DXVK memory-eviction heuristics. Separate this from game-visible `dxgi.maxDeviceMemory` to avoid user confusion.
