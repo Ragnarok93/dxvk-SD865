@@ -40,7 +40,7 @@ jobs:
           test "$(git -C wrapper-src rev-parse HEAD)" = "$WRAPPER_SOURCE_SHA"
           test -s wrapper-src/src/vulkan/wrapper/wrapper_physical_device.c
 
-      - name: Restore underlying-driver 8-bit capabilities and attest patch
+      - name: Instrument underlying-driver feature audit and attest patch
         shell: bash
         run: |
           set -euo pipefail
@@ -117,7 +117,7 @@ jobs:
           PY
           cp "$GITHUB_WORKSPACE/ff7r-wrapper8bit.patch" "$out/"
           {
-            echo "purpose=FF7R real raw-ICD Vulkan 8-bit feature propagation; experimental wrapper"
+            echo "purpose=FF7R read-only raw-ICD Vulkan 8-bit feature comparison; experimental wrapper"
             echo "source_repository=$WRAPPER_REPO"
             echo "source_sha=$WRAPPER_SOURCE_SHA"
             echo "patch_source_commit=$GITHUB_SHA"
@@ -143,7 +143,7 @@ jobs:
               "type": "Wrapper",
               "versionName": "FF7R-RawICD8-" + sha[:12],
               "versionCode": 261011,
-              "description": "EXPERIMENTAL partial wrapper overlay: real-ICD 8-bit feature query; existing GameNative wrapper hook libraries REQUIRED",
+              "description": "EXPERIMENTAL read-only raw ICD feature audit; existing GameNative wrapper hook libraries REQUIRED",
               "files": [
                   {"source": "usr/lib/libvulkan_wrapper.so",
                    "target": "${libdir}/libvulkan_wrapper.so"}
@@ -154,27 +154,12 @@ jobs:
           PY
           pkg="$out/FF7R-RawICD8-${GITHUB_SHA:0:12}.wcp"
           tar -C "$stage" -cJf "$pkg" .
-          tar -tJf "$pkg" | grep -Eq '(^|/)profile.json
-        uses: actions/upload-artifact@v4
-        with:
-          name: FF7R-PurpleVK-raw-8bit-audit-aarch64
-          path: ff7r-wrapper8bit-artifact/*
-          if-no-files-found: error
-          retention-days: 30
-          compression-level: 0
-
-          tar -tJf "$pkg" | grep -Eq '(^|/)usr/lib/libvulkan_wrapper.so
-        uses: actions/upload-artifact@v4
-        with:
-          name: FF7R-PurpleVK-raw-8bit-audit-aarch64
-          path: ff7r-wrapper8bit-artifact/*
-          if-no-files-found: error
-          retention-days: 30
-          compression-level: 0
-
+          test -s "$pkg"
+          tar -tJf "$pkg" | grep -Eq '(^|/)profile.json$'
+          tar -tJf "$pkg" | grep -Eq '(^|/)usr/lib/libvulkan_wrapper.so$'
           (cd "$out" && sha256sum "$(basename "$pkg")" >> SHA256SUMS)
 
-      - name: Upload experimental wrapper and source patch
+      - name: Upload experimental wrapper, diagnostic WCP and source patch
         uses: actions/upload-artifact@v4
         with:
           name: FF7R-PurpleVK-raw-8bit-audit-aarch64
