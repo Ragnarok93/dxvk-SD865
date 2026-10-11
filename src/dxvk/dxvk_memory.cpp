@@ -19,6 +19,13 @@ namespace dxvk {
   }
 
 
+  static uint64_t sd865AllocTraceNextAttempt() {
+    static std::atomic<uint64_t> attempts { 0u };
+    return sd865AllocTraceEnabled()
+      ? attempts.fetch_add(1u, std::memory_order_relaxed) + 1u : 0u;
+  }
+
+
   static bool sd865AllocTraceAllowEvent() {
     // Multiple memory types and retry loops can fail during a single OOM.
     // Cap costly log operations rather than flood Wine's stderr channel.
@@ -1269,6 +1276,7 @@ namespace dxvk {
           " requested_bytes=", size,
           " memory_type=", type.index,
           " heap=", type.heap->index,
+          " heap_size_bytes=", type.heap->properties.size,
           " dedicated=", (next != nullptr),
           " buffer_usage=", uint64_t(type.bufferUsage),
           " dxvk_allocated_bytes=", heapStats.memoryAllocated,
@@ -1318,11 +1326,13 @@ namespace dxvk {
     DxvkDeviceMemory result = { };
     result.size = size;
 
+    const uint64_t firstAttemptId = sd865AllocTraceNextAttempt();
     VkResult firstResult = vk->vkAllocateMemory(vk->device(), &memoryInfo, nullptr, &result.memory);
 
     if (firstResult != VK_SUCCESS) {
       freeEmptyChunksInHeap(*type.heap, VkDeviceSize(-1), high_resolution_clock::time_point());
 
+      const uint64_t retryAttemptId = sd865AllocTraceNextAttempt();
       VkResult retryResult = vk->vkAllocateMemory(vk->device(), &memoryInfo, nullptr, &result.memory);
 
       if (sd865AllocTraceEnabled() && sd865AllocTraceAllowEvent()) {
@@ -1334,6 +1344,8 @@ namespace dxvk {
 
         Logger::err(str::format(
           "DXVK-SD865-ALLOC stage=driver_retry",
+          " first_attempt_id=", firstAttemptId,
+          " retry_attempt_id=", retryAttemptId,
           " first_vkresult=", int32_t(firstResult),
           " first_name=", sd865AllocTraceResultName(firstResult),
           " retry_vkresult=", int32_t(retryResult),
@@ -1342,6 +1354,7 @@ namespace dxvk {
           " requested_bytes=", size,
           " memory_type=", type.index,
           " heap=", type.heap->index,
+          " heap_size_bytes=", type.heap->properties.size,
           " dedicated=", (next != nullptr),
           " buffer_usage=", uint64_t(type.bufferUsage),
           " flags=", uint32_t(memoryFlags.flags),
