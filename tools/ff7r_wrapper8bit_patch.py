@@ -72,8 +72,8 @@ def patch(source: str) -> tuple[str, str]:
     if source.count(ANCHOR) != 1:
         raise ValueError("Expected wrapper initialization anchor was not found exactly once; inspect upstream")
     # Reject unreviewed or structurally changed wrapper sources.
-    if "pdevice->dispatch_table.GetPhysicalDeviceFeatures2" not in source:
-        raise ValueError("This wrapper source lacks direct Vulkan 1.2 feature-query support")
+    if "wrapper_GetPhysicalDeviceFeatures2" not in source:
+        raise ValueError("Wrapper feature-query entrypoint not present; inspect upstream changes")
     updated = source.replace(ANCHOR, PATCH, 1)
     assert updated.count("pdevice->base_supported_features = *supported_features;") == 1
     assert updated.index("ff7r_raw_12.storageBuffer8BitAccess") < updated.index(
