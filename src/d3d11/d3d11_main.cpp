@@ -4,6 +4,8 @@
 
 #include "../dxvk/dxvk_instance.h"
 
+#include "../util/util_env.h"
+
 #include "d3d11_device.h"
 #include "d3d11_enums.h"
 #include "d3d11_interop.h"
@@ -96,9 +98,18 @@ extern "C" {
         dxvkInstance, dxvkAdapter, dxvkDevice,
         devFeatureLevel, Flags);
 
-      return device->QueryInterface(
+      HRESULT hr = device->QueryInterface(
         __uuidof(ID3D11Device),
         reinterpret_cast<void**>(ppDevice));
+
+      // Phase 0 only: confirm real D3D11 device creation, not merely DLL load.
+      // Intentionally startup-only; no driver capability override.
+      if (SUCCEEDED(hr) && env::getEnvVar("DXVK_FF7R_PHASE0") == "1") {
+        Logger::info(str::format(
+          "DXVK-FF7R-PHASE0: d3d11_device_created exe=", env::getExeName(),
+          " feature_level=", devFeatureLevel));
+      }
+      return hr;
     } catch (const DxvkError& e) {
       Logger::err("D3D11InternalCreateDevice: Failed to create D3D11 device");
       return E_FAIL;
