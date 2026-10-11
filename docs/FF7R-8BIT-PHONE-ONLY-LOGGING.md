@@ -2,6 +2,8 @@
 
 **As of 2026-10-11:** Diagnostic Wrapper WCP source emits early and capability markers directly to **stderr**, which GameNative's existing `ProcessHelper.createDebugThread(process.getErrorStream())` appends to its own Wine debug log when **Enable Wine Debug Logs** is enabled. This requires **no new GameNative code, Shizuku, root, ADB, shell commands, manually accessible Android/data paths, WRAPPER_LOG_FILE, WRAPPER_DIAG, or WRAPPER_LOG_LEVEL**.
 
+**Verified CI build:** [GitHub Actions run 38137851393](https://github.com/Ragnarok93/dxvk-SD865/actions/runs/38137851393) is successful. Source SHA `c05eb99bb904ad33de6e0bbd43533f4df5f38225`. The extracted `FF7R-RawICD8-c05eb99bb904.wcp` is an XZ/TAR package with the `Wrapper` profile at the archive root and has verified SHA-256 `76a9582a96b6c5dfc815294283045a922f5da2d328d580dd6122f379c210ab4e`. It is build-verified, **not** device-runtime-verified.
+
 ## Phone-only workflow
 
 1. Back up existing GameNative **Wrapper** profile (the Wrapper library is shared) and keep a known-working DXVK **2.7.1** WCP. The new experiment is a wrapper, **not** a replacement DXVK package.
