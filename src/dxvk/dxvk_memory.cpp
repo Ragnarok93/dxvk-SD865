@@ -703,9 +703,10 @@ namespace dxvk {
     Logger::err(str::format(
       "DXVK-SD865-POOL state=init",
       " enabled=", sd865PoolExperimentEnabled() ? 1 : 0,
-      " device_pool_cap_bytes=", 64ull << 20,
-      " mapped_pool_cap_bytes=", 32ull << 20,
-      " empty_chunk_retention_bytes=", sd865PoolExperimentEnabled() ? 0ull : ~0ull,
+      " device_pool_cap_bytes=", sd865PoolExperimentEnabled() ? (64ull << 20) : (256ull << 20),
+      " mapped_pool_cap_bytes=", sd865PoolExperimentEnabled() ? (32ull << 20)
+        : (env::is32BitHostPlatform() ? (16ull << 20) : (64ull << 20)),
+      " empty_chunk_policy=", sd865PoolExperimentEnabled() ? "reclaim_all_wholly_empty" : "dxvk_default",
       " initial_heap0_size_bytes=", m_memHeapCount ? m_memHeaps[0].properties.size : 0));
 #endif
 
