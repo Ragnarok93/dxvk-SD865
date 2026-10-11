@@ -46,7 +46,7 @@ class WrapperRawCapabilitiesTest(unittest.TestCase):
     def test_original_feature_snapshot_is_after_driver_query(self):
         patched, _ = patch(FIXTURE)
         self.assertLess(
-            patched.index("GetPhysicalDeviceFeatures2("),
+            patched.index("pdevice->dispatch_table.GetPhysicalDeviceFeatures2("),
             patched.index("pdevice->base_supported_features = *supported_features;"),
         )
 
