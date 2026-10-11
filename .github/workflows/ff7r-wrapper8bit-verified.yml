@@ -128,6 +128,52 @@ jobs:
           cat "$out/provenance.txt"
           cat "$out/SHA256SUMS"
 
+      - name: Package opt-in GameNative Wrapper overlay WCP
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$GITHUB_WORKSPACE/ff7r-wrapper8bit-artifact"
+          stage="$RUNNER_TEMP/ff7r-wrapper-wcp"
+          mkdir -p "$stage/usr/lib"
+          cp "$out/libvulkan_wrapper.so" "$stage/usr/lib/libvulkan_wrapper.so"
+          python3 - "$stage/profile.json" "$GITHUB_SHA" <<'PY'
+          import json, pathlib, sys
+          path, sha = pathlib.Path(sys.argv[1]), sys.argv[2]
+          profile = {
+              "type": "Wrapper",
+              "versionName": "FF7R-RawICD8-" + sha[:12],
+              "versionCode": 261011,
+              "description": "EXPERIMENTAL partial wrapper overlay: real-ICD 8-bit feature query; existing GameNative wrapper hook libraries REQUIRED",
+              "files": [
+                  {"source": "usr/lib/libvulkan_wrapper.so",
+                   "target": "${libdir}/libvulkan_wrapper.so"}
+              ]
+          }
+          path.write_text(json.dumps(profile, indent=2) + "\n")
+          assert profile["files"][0]["target"] == "${libdir}/libvulkan_wrapper.so"
+          PY
+          pkg="$out/FF7R-RawICD8-${GITHUB_SHA:0:12}.wcp"
+          tar -C "$stage" -cJf "$pkg" .
+          tar -tJf "$pkg" | grep -Eq '(^|/)profile.json
+        uses: actions/upload-artifact@v4
+        with:
+          name: FF7R-PurpleVK-raw-8bit-audit-aarch64
+          path: ff7r-wrapper8bit-artifact/*
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+          tar -tJf "$pkg" | grep -Eq '(^|/)usr/lib/libvulkan_wrapper.so
+        uses: actions/upload-artifact@v4
+        with:
+          name: FF7R-PurpleVK-raw-8bit-audit-aarch64
+          path: ff7r-wrapper8bit-artifact/*
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+          (cd "$out" && sha256sum "$(basename "$pkg")" >> SHA256SUMS)
+
       - name: Upload experimental wrapper and source patch
         uses: actions/upload-artifact@v4
         with:
