@@ -40,6 +40,31 @@ namespace dxvk {
   }
 
 
+  // Compiled into the explicitly named pool-experiment WCP only. Runtime
+  // selection is additionally gated so the same DLLs provide a true A/B
+  // baseline without touching the device's Vulkan memory capabilities.
+  static bool sd865PoolExperimentEnabled() {
+#ifdef DXVK_SD865_POOL_WCP
+    static const bool enabled = env::getEnvVar("DXVK_SD865_POOL_EXPERIMENT") == "1";
+    return enabled;
+#else
+    return false;
+#endif
+  }
+
+
+  static std::atomic<uint64_t>& sd865PoolReclaimedChunks() {
+    static std::atomic<uint64_t> counter { 0u };
+    return counter;
+  }
+
+
+  static std::atomic<uint64_t>& sd865PoolReclaimedBytes() {
+    static std::atomic<uint64_t> counter { 0u };
+    return counter;
+  }
+
+
   static const char* sd865AllocTraceResultName(VkResult result) {
     switch (result) {
       case VK_SUCCESS:                    return "VK_SUCCESS";
@@ -674,6 +699,16 @@ namespace dxvk {
         type.mappedPool.nextChunkSize = type.mappedPool.maxChunkSize;
     }
 
+#ifdef DXVK_SD865_POOL_WCP
+    Logger::err(str::format(
+      "DXVK-SD865-POOL state=init",
+      " enabled=", sd865PoolExperimentEnabled() ? 1 : 0,
+      " device_pool_cap_bytes=", 64ull << 20,
+      " mapped_pool_cap_bytes=", 32ull << 20,
+      " empty_chunk_retention_bytes=", sd865PoolExperimentEnabled() ? 0ull : ~0ull,
+      " initial_heap0_size_bytes=", m_memHeapCount ? m_memHeaps[0].properties.size : 0));
+#endif
+
     determineMemoryTypesWithPropertyFlags();
 
     if (device->features().core.features.sparseBinding)
@@ -789,6 +824,12 @@ namespace dxvk {
           maxChunkSize = std::min(maxChunkSize, type.heap->properties.size / MinAllocationsPerHeap);
           maxChunkSize = std::max(maxChunkSize, selectedPool.maxChunkSize);
 
+          // HVV ordinarily widens the chunk size back to 256 MiB, bypassing
+          // mappedPool.maxChunkSize. Honor the same test cap here; otherwise
+          // the FF7R 256/128/64-MiB fallback sequence would remain unchanged.
+          if (sd865PoolExperimentEnabled())
+            maxChunkSize = selectedPool.maxChunkSize;
+
           // Unlike on system memory heaps, we want to try and fit in multiple
           // allocations into one chunk because these tend to get discarded often.
           minResourcesPerChunk = std::clamp(uint32_t(maxChunkSize / size), 1u, 3u);
@@ -831,7 +872,10 @@ namespace dxvk {
         " requested_memory_types_mask=", requirements.memoryTypeBits,
         " eligible_memory_types_mask=", memoryTypeMask,
         " property_flags=", uint32_t(allocationInfo.properties),
-        " no_allocation_mode=", allocationInfo.mode.test(DxvkAllocationMode::NoAllocation) ? 1 : 0));
+        " no_allocation_mode=", allocationInfo.mode.test(DxvkAllocationMode::NoAllocation) ? 1 : 0,
+        " pool_experiment=", sd865PoolExperimentEnabled() ? 1 : 0,
+        " empty_chunks_reclaimed=", sd865PoolReclaimedChunks().load(std::memory_order_relaxed),
+        " empty_bytes_reclaimed=", sd865PoolReclaimedBytes().load(std::memory_order_relaxed)));
     }
 
     return nullptr;
@@ -1380,7 +1424,10 @@ namespace dxvk {
           " dxvk_used_bytes=", heapStats.memoryUsed,
           " dxvk_budget_bytes=", type.heap->memoryBudget,
           " driver_allocated_bytes=", driverHeap.memoryAllocated,
-          " driver_budget_bytes=", driverHeap.memoryBudget));
+          " driver_budget_bytes=", driverHeap.memoryBudget,
+          " pool_experiment=", sd865PoolExperimentEnabled() ? 1 : 0,
+          " empty_chunks_reclaimed=", sd865PoolReclaimedChunks().load(std::memory_order_relaxed),
+          " empty_bytes_reclaimed=", sd865PoolReclaimedBytes().load(std::memory_order_relaxed)));
       }
 
       if (retryResult != VK_SUCCESS)
@@ -1740,6 +1787,11 @@ namespace dxvk {
     if (&pool == &type.mappedPool)
       maxUnusedMemory *= 4u;
 
+    // Reclaim only completely unoccupied chunks (pagesUsed == 0). This
+    // never invalidates live resources, buffer addresses or mapped pointers.
+    if (sd865PoolExperimentEnabled())
+      maxUnusedMemory = 0u;
+
     // Factor current memory allocation into the decision to free chunks
     VkDeviceSize heapBudget = type.heap->memoryBudget;
     VkDeviceSize heapAllocated = getMemoryStats(type.heap->index).memoryAllocated;
@@ -1779,6 +1831,10 @@ namespace dxvk {
       }
 
       if (shouldFree) {
+        if (sd865PoolExperimentEnabled()) {
+          sd865PoolReclaimedChunks().fetch_add(1u, std::memory_order_relaxed);
+          sd865PoolReclaimedBytes().fetch_add(chunk.memory.size, std::memory_order_relaxed);
+        }
         freeDeviceMemory(type, chunk.memory);
         heapAllocated -= chunk.memory.size;
 
@@ -1976,6 +2032,11 @@ namespace dxvk {
     // the heap. Might be useful on systems with small BAR.
     while (MinAllocationsPerHeap * size > type.heap->properties.size)
       size /= 2u;
+
+    // On the opt-in experiment, bound device pools to 64 MiB and mapped
+    // pools to 32 MiB. Never enlarge a 32-bit host's smaller natural cap.
+    if (sd865PoolExperimentEnabled())
+      size = std::min(size, mappable ? 32ull << 20 : 64ull << 20);
 
     // Always use at least the minimum chunk size
     return std::max(size, DxvkMemoryPool::MinChunkSize);
