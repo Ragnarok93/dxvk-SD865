@@ -66,6 +66,12 @@ class AllocTraceTests(unittest.TestCase):
     def test_cpp_feature_gate_and_retry_preserved(self):
         source = SOURCE.read_text(encoding="utf-8")
         self.assertIn('env::getEnvVar("DXVK_SD865_ALLOC_TRACE") == "1"', source)
+        self.assertIn('env::getEnvVar("DXVK_SD865_ALLOC_TRACE") != "0"', source)
+        self.assertIn('#ifdef DXVK_SD865_ALLOC_DIAG_WCP', source)
+        self.assertIn('DXVK-SD865-ALLOC state=diagnostic_wcp_loaded', source)
+        script = (SOURCE.parents[2] / "package-release.sh").read_text(encoding="utf-8")
+        self.assertIn("DXVK_SD865_DIAG_WCP", script)
+        self.assertIn("-Dcpp_args=-DDXVK_SD865_ALLOC_DIAG_WCP=1", script)
         self.assertIn('sd865AllocTraceNextAttempt()', source)
         self.assertIn('" heap_size_bytes="', source)
         self.assertIn('" first_attempt_id="', source)
