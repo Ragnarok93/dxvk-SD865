@@ -69,7 +69,11 @@ function build_arch {
   # Special no-ADB allocator diagnostic WCPs are explicitly selected by
   # users; regular DXVK builds do not compile with this opt-in define.
   local diag_wcp_args=()
-  if [ "${DXVK_SD865_DIAG_WCP:-0}" = "1" ]; then
+  if [ "${DXVK_SD865_POOL_WCP:-0}" = "1" ]; then
+    # A separate GameNative WCP; runtime still requires
+    # DXVK_SD865_POOL_EXPERIMENT=1. Include the diagnostic bootstrap too.
+    diag_wcp_args=("-Dcpp_args=-DDXVK_SD865_ALLOC_DIAG_WCP=1,-DDXVK_SD865_POOL_WCP=1")
+  elif [ "${DXVK_SD865_DIAG_WCP:-0}" = "1" ]; then
     diag_wcp_args=("-Dcpp_args=-DDXVK_SD865_ALLOC_DIAG_WCP=1")
   fi
 
