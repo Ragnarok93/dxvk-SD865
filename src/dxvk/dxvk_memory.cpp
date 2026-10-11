@@ -9,6 +9,12 @@
 #include "dxvk_memory.h"
 #include "dxvk_sparse.h"
 
+// The pool A/B WCP inherits the existing error-level allocation diagnostics,
+// but uses a single unambiguous -D flag in Meson for reliable PE packaging.
+#if defined(DXVK_SD865_POOL_WCP) && !defined(DXVK_SD865_ALLOC_DIAG_WCP)
+#define DXVK_SD865_ALLOC_DIAG_WCP 1
+#endif
+
 namespace dxvk {
 
   // FF7R A650 failure-only probe, never change the allocation policy.
