@@ -72,7 +72,10 @@ function build_arch {
   if [ "${DXVK_SD865_POOL_WCP:-0}" = "1" ]; then
     # A separate GameNative WCP; runtime still requires
     # DXVK_SD865_POOL_EXPERIMENT=1. Include the diagnostic bootstrap too.
-    diag_wcp_args=("-Dcpp_args=-DDXVK_SD865_ALLOC_DIAG_WCP=1,-DDXVK_SD865_POOL_WCP=1")
+    # Use exactly one Meson define: its array option otherwise treats the
+    # comma-separated pair as a single C preprocessor macro value.
+    # The C++ translation unit derives its diagnostic bootstrap from POOL_WCP.
+    diag_wcp_args=("-Dcpp_args=-DDXVK_SD865_POOL_WCP=1")
   elif [ "${DXVK_SD865_DIAG_WCP:-0}" = "1" ]; then
     diag_wcp_args=("-Dcpp_args=-DDXVK_SD865_ALLOC_DIAG_WCP=1")
   fi
