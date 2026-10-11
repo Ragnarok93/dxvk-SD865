@@ -1,0 +1,99 @@
+name: FF7 Remake SD865 DXVK 2.7.1 compatible WCP
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - compat/ff7remake-dxvk271-sd865-20261010
+    paths:
+      - '.github/workflows/compat-dxvk271-wcp.yml'
+      - 'tools/package_gamenative_wcp.py'
+      - 'tests/test_gamenative_wcp.py'
+      - 'docs/FF7-REMAKE-DXVK271-COMPAT.md'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build 2.7.1 x64 and x32 WCP
+    runs-on: ubuntu-latest
+    container: archlinux/archlinux:base-devel
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --needed --noconfirm \
+            git meson ninja mingw-w64-gcc glslang python zstd github-cli
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Checkout pinned 2.7.1 source
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Verify exact DXVK 2.7.1 ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show c3dd74be6baec53786d4e064a572185b70347a17:meson.build >/dev/null
+          grep -q 'DXVK 2.7.1' meson.build || true
+          python3 -m unittest discover -s tests -p test_gamenative_wcp.py -v
+
+      - name: Cross-compile PE x64 and x32
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION_NAME="sd865-271-compat-${GITHUB_SHA:0:12}"
+          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          ./package-release.sh "$VERSION_NAME" build --no-package
+          for arch in x32 x64; do
+            for dll in d3d9.dll d3d10core.dll d3d11.dll dxgi.dll; do
+              test -s "build/dxvk-$VERSION_NAME/$arch/$dll"
+            done
+          done
+
+      - name: Package only GameNative WCP
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          python3 tools/package_gamenative_wcp.py \
+            --input "build/dxvk-$VERSION_NAME" \
+            --output "dist/dxvk-$VERSION_NAME.wcp" \
+            --version-name "$VERSION_NAME"
+          test "$(find dist -maxdepth 1 -name '*.wcp' -type f | wc -l)" -eq 1
+          zstd -t "dist/dxvk-$VERSION_NAME.wcp"
+          zstd -dc "dist/dxvk-$VERSION_NAME.wcp" | tar -tf - > /tmp/wcp-contents.txt
+          grep -qx 'profile.json' /tmp/wcp-contents.txt
+          grep -Eq '^x32/?$' /tmp/wcp-contents.txt
+          grep -Eq '^x64/?$' /tmp/wcp-contents.txt
+          for dll in 'x32/d3d11.dll' 'x64/d3d11.dll' 'x32/dxgi.dll' 'x64/dxgi.dll'; do
+            grep -qx "$dll" /tmp/wcp-contents.txt
+          done
+          sha256sum "dist/dxvk-$VERSION_NAME.wcp" > "dist/SHA256SUMS"
+
+      - name: Upload WCP artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: dxvk-271-sd865-gamenative
+          path: dist/*.wcp
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Publish compatible experimental prerelease
+        if: github.event_name != 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag="dxvk271-ff7remake-sd865-${GITHUB_SHA:0:12}"
+          gh release create "$tag" \
+            "dist/dxvk-$VERSION_NAME.wcp" \
+            "dist/SHA256SUMS" \
+            --target "$GITHUB_SHA" \
+            --title "FF7 Remake SD865 — DXVK 2.7.1 compatibility WCP" \
+            --notes-file docs/FF7-REMAKE-DXVK271-COMPAT.md \
+            --prerelease --latest=false
