@@ -52,3 +52,30 @@ No usable `VK_ERROR_OUT_OF_DEVICE_MEMORY`, `VK_ERROR_OUT_OF_HOST_MEMORY` or Vulk
 Implement a **feature-gated, low-noise failure-only diagnostic in the DXVK-SD865 fork**, not a general per-frame trace: after `vkAllocateMemory` returns non-success, include numeric/symbolic `VkResult`, requested bytes, memory type index and flags, total driver-requested allocation attempt count, DXVK heap allocated/used, current queried `VK_EXT_memory_budget` budget/usage, and an indication of fallback/retry. Wrap with e.g. `DXVK_SD865_ALLOC_TRACE=1`. Record exactly one line per failed allocation/retry, not every successful allocation. Ensure the diagnostic gets into GameNative's existing Wine log export or the user-visible DXVK logging export without ADB. Test on mocked failing allocations before WCP distribution. Do not spoof 8-bit storage, maintenance5 or memory-heap limits, and do not raise the published driver memory budget artificially.
 
 A second trial should isolate whether the issue appears in direct Turnip versus diagnostic Wrapper/other Vulkan layers, **changing only one component at a time**.
+
+## 2026-10-11 follow-up: raw DXVK per-module logs and 1,035,177-line Wine trace
+
+The user supplied `ff7remake__d3d11.log`, `ff7remake__dxgi.log`, `wine_debug.log (2).txt` and an **older 2026-10-06 GameNative crash report**. No originals were committed. Source-derived findings below must not be conflated with older runs.
+
+**Confirmed later FF7 Remake DXVK failures:** The new dedicated D3D11 log records exactly four final allocation failures (all memory types 0/1/2), then **`Exception on CS thread!`** and **`DxvkCommandList: Failed to end secondary command buffer`**. The full Wine trace agrees (allocation errors at lines 841041, 847205, 847634, 857145; command-stream exception at 951097–951098).
+
+| New request | Alignment | Reported Vulkan heap size | DXVK allocated | Used | Reserved | Reported budget |
+|---:|---:|---:|---:|---:|---:|---:|
+| 22,437,888 bytes (~21.4 MiB) | 4096 | **4096 MiB** | 3988 MiB | 3765 MiB | 3775 MiB | 4702 MiB |
+| 11,218,944 bytes (~10.7 MiB) | 4096 | 4096 MiB | 3988 MiB | 3739 MiB | 3775 MiB | 4656 MiB |
+| 22,437,888 bytes (~21.4 MiB) | 4096 | 4096 MiB | 3988 MiB | 3739 MiB | 3775 MiB | 4696 MiB |
+| 2,830,336 bytes (~2.7 MiB) | 4096 | 4096 MiB | 3992 MiB | 3765 MiB | 3779 MiB | 4571 MiB |
+
+This new driver/wrapper reports an **exact 4-GiB heap**, compared with **7951 MiB** in the prior user capture. The reported budget *exceeds* reported heap capacity even as Vulkan allocations fail. DXVK's own tracked allocated memory is within ~104–108 MiB of that reported heap size. This makes a heap-size cap or mismatched memory accounting credible, **but not proven**: 2.7-MiB requests also fail, and no actual `VkResult` is present to distinguish driver OOM from another limit.
+
+The DXGI companion log contains four copies of **EDID read/parse fallback** only. It has no memory errors and does not indicate the fatal cause.
+
+**Different / older crash report:** `pluvia_crash_2026-10-06_06-51-57.txt` is from **2026-10-06**, app build `upgradeable-debug-c074383577c6`, and separately documents a **Java `UnsatisfiedLinkError`** from missing JNI implementation of `GPUImage.isHardwareBufferConfigurationSupported(short,short)` during `VulkanRenderer.onSurfaceCreated`. It is **not a stack trace from this current FF7 Remake DXVK allocator crash**; investigate separately in GameNative if it still reproduces. In that earlier trace GameNative had selected bundled `wrapper-gamenative`, Turnip v26.2.0 R4, DXVK 1.11.1 Sarek, and LSFG Native 4x, none of which proves the current DXVK 2.7.1 setup was the same.
+
+### Diagnostic code status
+
+On the FF7R research branch, `src/dxvk/dxvk_memory.cpp` has an **opt-in** `DXVK_SD865_ALLOC_TRACE=1` failure-only probe for *actual* first/retry VkResult, retry recovery, DXVK allocator budget guard, pooled/dedicated allocation exhaustion, selected memory type, allocation size, relevant DXVK/driver budget and usage. It retains normal retry semantics and caps probes at 128 lines per process. Source parser `tools/ff7r_alloc_trace_report.py` and tests `tests/test_ff7r_alloc_trace_report.py` were committed, as was `.github/workflows/ff7r-alloc-trace-dxvk271-wcp.yml` to build a DXVK (not Wrapper) WCP. Building on GitHub Actions **must pass before any download is presented as usable**.
+
+Test `DXVK_SD865_ALLOC_TRACE=1` only in the *new* WCP; keep GameNative Wine debug log capture on and `DXVK_LOG_LEVEL=error` for low-noise capture. DXVK logs to its configured `DXVK_LOG_PATH` per module and also through Wine debug output. **Do not activate +vulkan tracing**. Export both GameNative Wine debug log and DXVK `d3d11.log` with the normal UI/file-manager workflow. **No ADB**.
+
+An important follow-up beyond VkResult is reconciling `VkPhysicalDeviceMemoryProperties2.memoryHeaps[0].size` (4 GiB in newer run, 7.76 GiB earlier) against `VkPhysicalDeviceMemoryBudgetPropertiesEXT.heapBudget[0]`, across the *same driver/wrapper build*. Do not force higher `heap.size` or artificial budgets until we have the driver return code and validation.
