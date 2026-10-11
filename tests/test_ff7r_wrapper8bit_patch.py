@@ -1,6 +1,5 @@
-"""Guard the FF7R wrapper feature-repair against blind capability spoofing."""
+"""Regression coverage: read-only Vulkan wrapper feature audit and source drift."""
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -19,51 +18,53 @@ FIXTURE = (
 
 
 class WrapperRawCapabilitiesTest(unittest.TestCase):
-    def test_patch_is_exact_and_idempotent(self):
+    def test_exact_anchor_and_idempotence(self):
         patched, status = patch(FIXTURE)
         self.assertEqual(status, "patched")
         self.assertIn(MARKER, patched)
-        twice, second_status = patch(patched)
-        self.assertEqual(second_status, "already-patched")
+        twice, second = patch(patched)
+        self.assertEqual(second, "already-patched")
         self.assertEqual(twice, patched)
 
-    def test_gates_on_real_driver_feature_query(self):
+    def test_direct_icd_query_only_when_opted_in(self):
         patched, _ = patch(FIXTURE)
-        self.assertIn("pdevice->dispatch_table.GetPhysicalDeviceFeatures2(", patched)
+        guard = patched.index('getenv("WRAPPER_FF7R_FEATURE_AUDIT")')
+        raw_query = patched.index("pdevice->dispatch_table.GetPhysicalDeviceFeatures2(")
+        self.assertLess(guard, raw_query)
         self.assertIn("pdevice->dispatch_handle, &ff7r_raw_features", patched)
-        for feature in (
-            "storageBuffer8BitAccess",
-            "uniformAndStorageBuffer8BitAccess",
-            "storagePushConstant8",
-            "shaderInt8",
-        ):
-            self.assertIn(
-                f"supported_features->{feature} = ff7r_raw_12.{feature};",
-                patched,
-            )
-            self.assertNotIn(f"supported_features->{feature} = true;", patched)
+        self.assertIn('raw_storage8=%u wrapper_storage8=%u', patched)
 
-    def test_original_feature_snapshot_is_after_driver_query(self):
+    def test_capabilities_are_never_changed_by_probe(self):
+        patched, _ = patch(FIXTURE)
+        for name in (
+            "storageBuffer8BitAccess", "uniformAndStorageBuffer8BitAccess",
+            "storagePushConstant8", "shaderInt8",
+        ):
+            self.assertIn("ff7r_raw_12." + name, patched)
+            self.assertIn("supported_features->" + name, patched)
+            self.assertNotIn("supported_features->" + name + " =", patched)
+        self.assertEqual(patched.count("pdevice->base_supported_features = *supported_features;"), 1)
+
+    def test_feature_snapshot_preserved_after_audit(self):
         patched, _ = patch(FIXTURE)
         self.assertLess(
             patched.index("pdevice->dispatch_table.GetPhysicalDeviceFeatures2("),
             patched.index("pdevice->base_supported_features = *supported_features;"),
         )
 
-    def test_rejects_moved_anchor_or_unreviewed_source(self):
+    def test_refuses_drifted_or_ambiguous_sources(self):
         with self.assertRaisesRegex(ValueError, "anchor"):
             patch(FIXTURE.replace("wrapper_setup_device_features(pdevice);", "changed();"))
         with self.assertRaisesRegex(ValueError, "entrypoint"):
             patch(FIXTURE.replace("wrapper_GetPhysicalDeviceFeatures2", "removed"))
-
-    def test_rejects_ambiguous_multiple_anchors(self):
         with self.assertRaisesRegex(ValueError, "anchor"):
             patch(FIXTURE + FIXTURE)
 
-    def test_diagnostics_opt_in_is_explicit(self):
+    def test_log_contains_full_8bit_comparison(self):
         patched, _ = patch(FIXTURE)
-        self.assertIn('WRAPPER_FF7R_FEATURE_AUDIT', patched)
-        self.assertIn("host_storage8=%u wrapper_previous_storage8=%u", patched)
+        for name in ("storage8", "shaderInt8", "uniform8", "pushConstant8"):
+            self.assertIn("raw_" + name + "=%u", patched)
+            self.assertIn("wrapper_" + name + "=%u", patched)
 
 
 if __name__ == "__main__":
