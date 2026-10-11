@@ -42,7 +42,7 @@ class PoolExperimentTests(unittest.TestCase):
         self.assertEqual(effective_chunk_max(256, True, 64, True), 32)
         self.assertEqual(effective_chunk_max(256, True, 32, False), 16)
         self.assertEqual(effective_chunk_max(256, True, 32, True), 16)
-        self.assertIn("size = std::min(size, mappable ? 32ull << 20 : 64ull << 20)", self.source)
+        self.assertIn("size = std::min<VkDeviceSize>(size, mappable ? VkDeviceSize(32ull << 20) : VkDeviceSize(64ull << 20))", self.source)
 
     def test_hvv_special_path_cannot_bypass_test_cap(self):
         s = self.source
