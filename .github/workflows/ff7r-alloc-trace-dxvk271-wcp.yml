@@ -60,7 +60,8 @@ jobs:
         run: |
           set -euo pipefail
           grep -Fq 'DXVK_SD865_ALLOC_TRACE' src/dxvk/dxvk_memory.cpp
-          bash -n package-release.sh
+          # package-release.sh uses Bash extglob patterns; enable during parsing.
+          bash -O extglob -n package-release.sh
           grep -Fq 'DXVK_SD865_DIAG_WCP' package-release.sh
           grep -Fq 'DXVK_SD865_ALLOC_DIAG_WCP' src/dxvk/dxvk_memory.cpp
           grep -Fq 'stage=driver_retry' src/dxvk/dxvk_memory.cpp
