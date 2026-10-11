@@ -53,6 +53,20 @@ PATCH = """      wrapper_setup_device_features(pdevice);
       pdevice->base_supported_features = *supported_features;"""
 
 INSTANCE_PATH = Path("src/vulkan/wrapper/wrapper_instance.c")
+LOAD_MARKER = "FF7R-8BIT: wrapper_library_loaded"
+LOAD_ANCHOR = "static void *get_vulkan_handle()"
+LOAD_PATCH = """/* FF7R-8BIT: diagnostic library-load marker, before Vulkan API entrypoints.
+ * Logs once per actual .so load even if the game never calls vkCreateInstance.
+ * Does not initialize the ICD or change any runtime Vulkan feature.
+ */
+__attribute__((constructor))
+static void ff7r_wrapper_library_probe(void)
+{
+   fprintf(stderr, "FF7R-8BIT: wrapper_library_loaded\\n");
+   fflush(stderr);
+}
+
+static void *get_vulkan_handle()"""
 INSTANCE_MARKER = "FF7R-8BIT: wrapper_instance_probe"
 INSTANCE_ANCHOR = """   struct wrapper_instance *instance;
    VkResult result;
@@ -72,13 +86,19 @@ INSTANCE_PATCH = """   struct wrapper_instance *instance;
 
 
 def patch_instance(source: str) -> tuple[str, str]:
-    if INSTANCE_MARKER in source:
-        if source.count(INSTANCE_MARKER) != 1:
-            raise ValueError("Duplicate or altered instance audit marker")
+    if INSTANCE_MARKER in source or LOAD_MARKER in source:
+        if source.count(INSTANCE_MARKER) != 1 or source.count(LOAD_MARKER) != 1:
+            raise ValueError("Missing, duplicate or altered instance/library audit marker")
         return source, "already-patched"
     if source.count(INSTANCE_ANCHOR) != 1:
         raise ValueError("Expected Vulkan instance anchor not found exactly once")
-    return source.replace(INSTANCE_ANCHOR, INSTANCE_PATCH, 1), "patched"
+    if source.count(LOAD_ANCHOR) != 1:
+        raise ValueError("Expected wrapper-library load anchor not found exactly once")
+    updated = source.replace(LOAD_ANCHOR, LOAD_PATCH, 1)
+    updated = updated.replace(INSTANCE_ANCHOR, INSTANCE_PATCH, 1)
+    assert updated.count(LOAD_MARKER) == 1
+    assert updated.count(INSTANCE_MARKER) == 1
+    return updated, "patched"
 
 
 def patch(source: str) -> tuple[str, str]:
