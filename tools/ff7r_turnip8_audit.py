@@ -10,10 +10,10 @@ import re
 from pathlib import Path
 
 FIELDS = ("storage8", "shaderInt8", "uniform8", "pushConstant8")
-MARKER = re.compile(r"FF7R-8BIT:\\s+(.*)")
-TOKEN = re.compile(r"\\b(raw|wrapper)_(storage8|shaderInt8|uniform8|pushConstant8)=(\\d+)\\b")
-DXVK_MISSING = re.compile(r"Device does not support required feature ['\\\"]([^'\\\"]+)['\\\"]")
-DEVICE = re.compile(r"Found device:\\s*(.*)", re.I)
+MARKER = re.compile(r"FF7R-8BIT:\s+(.*)")
+TOKEN = re.compile(r"\b(raw|wrapper)_(storage8|shaderInt8|uniform8|pushConstant8)=(\d+)\b")
+DXVK_MISSING = re.compile(r"Device does not support required feature ['\"]([^'\"]+)['\"]")
+DEVICE = re.compile(r"Found device:\s*(.*)", re.I)
 
 
 def analyze(lines):
