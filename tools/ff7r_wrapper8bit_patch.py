@@ -19,7 +19,7 @@ PATCH = """      wrapper_setup_device_features(pdevice);
 
       struct vk_features *supported_features = &pdevice->vk.supported_features;
 
-      /* FF7R-8BIT: read-only direct ICD feature audit. The wrapper's normal
+      /* FF7R-8BIT: direct driver feature audit (read-only). The wrapper's normal
        * Mesa-generated wrapper_setup_device_features already queries the ICD.
        * Compare its result with a second raw query, without changing the
        * advertised feature table, extension table or CreateDevice flags.
