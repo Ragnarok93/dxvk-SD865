@@ -3,6 +3,7 @@
 #include "dxgi_swapchain.h"
 
 #include "../util/util_misc.h"
+#include "../util/util_env.h"
 
 #include <d3d12.h>
 
@@ -370,6 +371,15 @@ namespace dxvk {
       return hr == S_OK && occluded ? DXGI_STATUS_OCCLUDED : hr;
 
     if (hr == S_OK) {
+
+      // One-shot attribution: DXGI may also present for a VKD3D D3D12 queue.
+      // A DXGI log alone never establishes D3D11 as the rendering API.
+      if (m_presentId == 0 && env::getEnvVar("DXVK_FF7R_PHASE0") == "1") {
+        Logger::info(str::format(
+          "DXVK-FF7R-PHASE0: first_dxgi_present exe=", env::getExeName(),
+          " d3d12_queue=", m_is_d3d12 ? 1 : 0,
+          " sync_interval=", SyncInterval));
+      }
 
       m_presentId += 1;
 
