@@ -46,3 +46,17 @@ The October 6 `pluvia_crash` file is an unrelated historical `GPUImage.isHardwar
 5. Do not spoof 8-bit storage, BDA support, heap size, maintenance5, or claim the reported budget can be allocated in one call.
 
 The older and current devices logs prove real Vulkan driver OOM, not merely DXVK's self-imposed budget guard. More diagnostics must focus on **how to reduce live/pooled GPU BO demand**, not inflate the reported GPU memory budget.
+
+## 2026-10-11 configuration clarification: 3072-MiB test was not applied as intended
+
+The user clarified: “I set it as an environment variable.” In **DXVK-SD865 source**, `src/dxgi/dxgi_options.cpp` obtains `dxgi.maxDeviceMemory` using `config.getOption<int32_t>("dxgi.maxDeviceMemory", 0)`, and `src/util/config/config.cpp` reads configuration options through the **`DXVK_CONFIG`** environment variable or a `dxvk.conf` file selected by `DXVK_CONFIG_FILE`. There is **no automatic standalone `dxgi.maxDeviceMemory` environment-variable lookup**. Thus, if the user set a variable with that exact name, it would be ignored. If they used `DXVK_CONFIG` with the key/value inside it, it *would* be parsed; confirm exact variable name before declaring the experiment invalid.
+
+**GameNative no-ADB setup for actual retest:**
+
+```ini
+DXVK_CONFIG=dxgi.maxDeviceMemory = 3072
+```
+
+In GameNative's two-field environment-variable editor: **Name** = `DXVK_CONFIG`, **Value** = `dxgi.maxDeviceMemory = 3072`. If `DXVK_CONFIG` already has a value, append `; dxgi.maxDeviceMemory = 3072`; do not overwrite any other options. Alternative file-based configuration: put `dxgi.maxDeviceMemory = 3072` into `dxvk.conf` and ensure its path is known to DXVK. This affects *reported DXGI video memory*, **not the real Vulkan allocation budget or driver memory cap**, and FFVII Remake may or may not alter texture/streaming behavior accordingly.
+
+**Experimental-status correction:** The two 2026-10-11 allocator logs confirm driver OOM, but by themselves do **not** demonstrate that 3072 MiB reporting changed streaming behavior, because the exact environment-variable name has not been recorded. Do not claim that experiment failed until configured through one of the verified input mechanisms.
