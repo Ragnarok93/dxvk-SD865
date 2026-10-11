@@ -158,14 +158,52 @@ jobs:
           assert profile["files"][0]["target"] == "${libdir}/libvulkan_wrapper.so"
           PY
           pkg="$out/FF7R-RawICD8-${GITHUB_SHA:0:12}.wcp"
-          tar -C "$stage" -cJf "$pkg" .
+          # Root entries are explicit. GitHub Actions wraps this .wcp in a ZIP;
+          # GameNative imports the .wcp only, not the outer artifact ZIP.
+          tar -C "$stage" -cJf "$pkg" profile.json usr
           test -s "$pkg"
           # Never pipe tar into grep -q under pipefail: grep may close early,
           # causing tar to fail with "stdout: write error" on a valid archive.
           tar -tJf "$pkg" > "$stage/archive-files.txt"
           grep -Eq '(^|/)profile.json$' "$stage/archive-files.txt"
-          grep -Eq '(^|/)usr/lib/libvulkan_wrapper.so$' "$stage/archive-files.txt"
+          grep -Eq '(^|/)usr/lib/libvulkan_wrapper.so
+
+      - name: Upload experimental wrapper, diagnostic WCP and source patch
+        uses: actions/upload-artifact@v4
+        with:
+          name: FF7R-PurpleVK-raw-8bit-audit-aarch64
+          path: ff7r-wrapper8bit-artifact/*
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+ "$stage/archive-files.txt"
+          # Check GameNative's expected content metadata at the TAR root.
+          mkdir -p "$RUNNER_TEMP/ff7r-wcp-verify"
+          tar -xJf "$pkg" -C "$RUNNER_TEMP/ff7r-wcp-verify"
+          python3 - "$RUNNER_TEMP/ff7r-wcp-verify/profile.json" "$RUNNER_TEMP/ff7r-wcp-verify" <<'PY'
+          import json, pathlib, sys
+          profile = json.loads(pathlib.Path(sys.argv[1]).read_text())
+          root = pathlib.Path(sys.argv[2])
+          assert profile['type'] == 'Wrapper'
+          assert profile['versionName'].startswith('FF7R-RawICD8-')
+          assert isinstance(profile['versionCode'], int)
+          assert len(profile['files']) == 1
+          src = root / profile['files'][0]['source']
+          assert src.is_file() and src.read_bytes()[:4] == b'\\x7fELF'
+          assert profile['files'][0]['target'] == '${libdir}/libvulkan_wrapper.so'
+          PY
           (cd "$out" && sha256sum "$(basename "$pkg")" >> SHA256SUMS)
+          cat > "$out/IMPORT_THIS_WCP_FIRST.txt" <<EOF
+          GitHub Actions downloads are ZIP archives containing several files.
+          DO NOT import this outer ZIP into GameNative Contents Manager.
+          Extract the ZIP using Android Files / ZArchiver / another extractor.
+          Import the extracted file:
+            FF7R-RawICD8-${GITHUB_SHA:0:12}.wcp
+          GameNative Contents Manager > Wrapper > Install Content.
+          Do NOT import the .so files or the .patch file.
+          Back up your working Wrapper before installing. This is experimental,
+          read-only diagnostics, NOT a 3.x compatibility or performance fix.
+          EOF
 
       - name: Upload experimental wrapper, diagnostic WCP and source patch
         uses: actions/upload-artifact@v4
