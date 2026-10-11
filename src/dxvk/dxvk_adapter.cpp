@@ -96,6 +96,11 @@ namespace dxvk {
       return true;
 
     error = std::string(message.data());
+    // Explicit opt-in; regular DXVK device admission remains unchanged.
+    // This runs during adapter filtering, before D3D11 device creation, so
+    // the game's generic Feature Level 10 error cannot hide the actual cause.
+    if (env::getEnvVar("DXVK_SD865_DIAGNOSE") == "1")
+      m_capabilities.logMissingRequiredFeatures();
     return false;
   }
 

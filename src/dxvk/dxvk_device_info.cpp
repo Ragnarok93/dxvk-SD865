@@ -311,6 +311,43 @@ namespace dxvk {
   }
 
 
+  void DxvkDeviceCapabilities::logMissingRequiredFeatures() {
+    std::stringstream stream;
+    const auto& props = m_properties.core.properties;
+    stream << "DXVK-SD865 compatibility audit: GPU=" << props.deviceName
+           << " Vulkan=" << VK_API_VERSION_MAJOR(props.apiVersion)
+           << "." << VK_API_VERSION_MINOR(props.apiVersion)
+           << " DXVK requires=" << VK_API_VERSION_MAJOR(DxvkVulkanApiVersion)
+           << "." << VK_API_VERSION_MINOR(DxvkVulkanApiVersion);
+
+    if (props.apiVersion < DxvkVulkanApiVersion)
+      stream << "\n  INCOMPATIBLE: Vulkan API level below minimum";
+
+    if (m_queueMapping.graphics.family == VK_QUEUE_FAMILY_IGNORED)
+      stream << "\n  INCOMPATIBLE: No graphics+compute queue";
+
+    size_t missing = 0;
+    for (const auto& feature : getFeatureList()) {
+      if (feature.featureRequired && !(*feature.featureEnabled)) {
+        stream << "\n  MISSING required Vulkan feature: " << feature.readableName;
+        if (feature.extensionEnabled)
+          stream << " (extension " << feature.extensionEnabled->extensionName << ")";
+        ++missing;
+      }
+    }
+
+    if (!m_featuresEnabled.extDescriptorHeap.descriptorHeap
+     && props.limits.maxPushConstantsSize < MaxTotalPushDataSize) {
+      stream << "\n  INCOMPATIBLE: push constants=" << props.limits.maxPushConstantsSize
+             << " required=" << MaxTotalPushDataSize;
+      ++missing;
+    }
+    stream << "\n  total_missing_features_and_limits=" << missing
+           << " (no Vulkan features spoofed)";
+    Logger::warn(stream.str());
+  }
+
+
   void DxvkDeviceCapabilities::initSupportedExtensions(
     const DxvkInstance&               instance,
           VkPhysicalDevice            adapter,

@@ -365,6 +365,14 @@ namespace dxvk {
     void logDeviceInfo();
 
     /**
+     * \brief Lists all failed Vulkan prerequisites for diagnostics only.
+     *
+     * Does not modify the required-feature policy, enable any unsupported
+     * feature, or turn an incompatible device into an accepted adapter.
+     */
+    void logMissingRequiredFeatures();
+
+    /**
      * \brief Decodes vendor-specific driver version into something readable
      *
      * \param [in] driverId Driver ID
