@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-"""Patch the pinned GameNative Vulkan wrapper to preserve *real* driver 8-bit features.
+"""Instrument pinned Android Vulkan wrapper to compare raw ICD and wrapper features.
 
-Unlike unconditional DXVK capability fakes, this reads vkGetPhysicalDeviceFeatures2
-from the underlying Vulkan ICD. It only advertises flags the underlying driver
-actually returns. Maintains native base_supported_features before wrapper overrides.
-
-Source family: leegao/mesa-wrapper-CI@gn_wrapper2, pinned in the CI workflow.
-This file is a source patcher, NOT a runtime feature override for DXVK itself.
+Read only: never rewrite or force any Vulkan feature. Diagnostics execute only
+when WRAPPER_FF7R_FEATURE_AUDIT=1. This compares the actual loaded underlying
+ICD against the wrapper's existing Mesa-generated feature-table translation.
+The reference source is pinned and source-anchored in the CI workflow.
 """
 import argparse
 from pathlib import Path
@@ -21,44 +19,36 @@ PATCH = """      wrapper_setup_device_features(pdevice);
 
       struct vk_features *supported_features = &pdevice->vk.supported_features;
 
-      /* FF7R-8BIT: direct driver feature audit. Mesa wrapper feature copying
-       * can omit Vulkan 1.2 / VK_KHR_8bit_storage fields even when the host
-       * Turnip ICD supports them. Ask the underlying ICD, NOT the wrapper
-       * feature table. Never invent a shader/storage capability.
-       *
-       * The wrapper's base_supported_features MUST capture these real bits:
-       * the underlying vkCreateDevice request receives them unchanged.
+      /* FF7R-8BIT: read-only direct ICD feature audit. The wrapper's normal
+       * Mesa-generated wrapper_setup_device_features already queries the ICD.
+       * Compare its result with a second raw query, without changing the
+       * advertised feature table, extension table or CreateDevice flags.
        */
-      VkPhysicalDeviceVulkan12Features ff7r_raw_12 = {
-         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-      };
-      VkPhysicalDeviceFeatures2 ff7r_raw_features = {
-         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-         .pNext = &ff7r_raw_12,
-      };
-      pdevice->dispatch_table.GetPhysicalDeviceFeatures2(
-         pdevice->dispatch_handle, &ff7r_raw_features);
-
-      const VkBool32 ff7r_pre_storage = supported_features->storageBuffer8BitAccess;
-      const VkBool32 ff7r_pre_shader = supported_features->shaderInt8;
-      supported_features->storageBuffer8BitAccess = ff7r_raw_12.storageBuffer8BitAccess;
-      supported_features->uniformAndStorageBuffer8BitAccess =
-         ff7r_raw_12.uniformAndStorageBuffer8BitAccess;
-      supported_features->storagePushConstant8 = ff7r_raw_12.storagePushConstant8;
-      supported_features->shaderInt8 = ff7r_raw_12.shaderInt8;
-
       if (getenv("WRAPPER_FF7R_FEATURE_AUDIT") &&
           atoi(getenv("WRAPPER_FF7R_FEATURE_AUDIT")) == 1) {
+         VkPhysicalDeviceVulkan12Features ff7r_raw_12 = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+         };
+         VkPhysicalDeviceFeatures2 ff7r_raw_features = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+            .pNext = &ff7r_raw_12,
+         };
+         pdevice->dispatch_table.GetPhysicalDeviceFeatures2(
+            pdevice->dispatch_handle, &ff7r_raw_features);
+
          WRAPPER_LOG(info,
-            "FF7R-8BIT: host_storage8=%u wrapper_previous_storage8=%u "
-            "host_shaderInt8=%u wrapper_previous_shaderInt8=%u "
-            "host_uniform8=%u host_pushConstant8=%u",
+            "FF7R-8BIT: raw_storage8=%u wrapper_storage8=%u "
+            "raw_shaderInt8=%u wrapper_shaderInt8=%u "
+            "raw_uniform8=%u wrapper_uniform8=%u "
+            "raw_pushConstant8=%u wrapper_pushConstant8=%u",
             (unsigned)ff7r_raw_12.storageBuffer8BitAccess,
-            (unsigned)ff7r_pre_storage,
+            (unsigned)supported_features->storageBuffer8BitAccess,
             (unsigned)ff7r_raw_12.shaderInt8,
-            (unsigned)ff7r_pre_shader,
+            (unsigned)supported_features->shaderInt8,
             (unsigned)ff7r_raw_12.uniformAndStorageBuffer8BitAccess,
-            (unsigned)ff7r_raw_12.storagePushConstant8);
+            (unsigned)supported_features->uniformAndStorageBuffer8BitAccess,
+            (unsigned)ff7r_raw_12.storagePushConstant8,
+            (unsigned)supported_features->storagePushConstant8);
       }
 
       pdevice->base_supported_features = *supported_features;"""
@@ -76,8 +66,16 @@ def patch(source: str) -> tuple[str, str]:
         raise ValueError("Wrapper feature-query entrypoint not present; inspect upstream changes")
     updated = source.replace(ANCHOR, PATCH, 1)
     assert updated.count("pdevice->base_supported_features = *supported_features;") == 1
-    assert updated.index("ff7r_raw_12.storageBuffer8BitAccess") < updated.index(
+    assert updated.index("pdevice->dispatch_table.GetPhysicalDeviceFeatures2(") < updated.index(
         "pdevice->base_supported_features = *supported_features;")
+    assert not any(
+        f"supported_features->{name} =" in PATCH for name in (
+            "storageBuffer8BitAccess",
+            "uniformAndStorageBuffer8BitAccess",
+            "storagePushConstant8",
+            "shaderInt8",
+        )
+    )
     return updated, "patched"
 
 
