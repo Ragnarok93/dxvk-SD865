@@ -89,8 +89,8 @@ jobs:
           if-no-files-found: error
           compression-level: 0
 
-      - name: Publish compatible experimental prerelease
-        if: github.event_name != 'pull_request'
+      - name: Publish opted-in diagnostic prerelease
+        if: github.event_name == 'workflow_dispatch'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -103,5 +103,5 @@ jobs:
             "dist/SHA256SUMS" \
             --target "$GITHUB_SHA" \
             --title "FF7 Remake SD865 — DXVK 2.7.1 Phase-0 diagnostics WCP" \
-            --notes-file docs/FF7-REMAKE-DXVK271-COMPAT.md \
+            --notes-file docs/FF7R-SD865-OPTIMIZATION-ARCHITECTURE.md \
             --prerelease --latest=false
