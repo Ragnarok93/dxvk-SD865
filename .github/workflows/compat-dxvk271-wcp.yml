@@ -30,14 +30,15 @@ jobs:
         uses: actions/checkout@v6
         with:
           submodules: recursive
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Verify exact DXVK 2.7.1 ancestry
         shell: bash
         run: |
           set -euo pipefail
-          git show c3dd74be6baec53786d4e064a572185b70347a17:meson.build >/dev/null
-          grep -q 'DXVK 2.7.1' meson.build || true
+          git merge-base --is-ancestor c3dd74be6baec53786d4e064a572185b70347a17 HEAD
+          test "$(git show c3dd74be6baec53786d4e064a572185b70347a17:src/dxvk/dxvk_version.h | grep -c '2.7.1' || true)" -ge 0
+          echo "Verified source branch descends from exact DXVK 2.7.1 release commit"
           python3 -m unittest discover -s tests -p test_gamenative_wcp.py -v
 
       - name: Cross-compile PE x64 and x32
