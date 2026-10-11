@@ -2,6 +2,8 @@
 
 **Scope:** Opt-in diagnostics for the DXVK 2.7.1-derived `dxvk-SD865` fork. No Vulkan feature spoofing, memory-size changes, forced 4-GiB override, eviction tweaks, or modified allocation/retry policy.
 
+**2026-10-11 revision:** The user's latest 732-line Wine log and six-line D3D11 log again contained the ~21.33-MiB allocation failure at `heap.size=4096 MiB`, `DXVK allocated=3972 MiB`, `driver budget=4751 MiB`, but zero `DXVK-SD865-ALLOC` markers. The initial released WCP contains marker strings in its compiled PE DLLs, so the run could have used another DXVK or not propagated `DXVK_SD865_ALLOC_TRACE=1`. The self-identifying diagnostic WCP eliminates the latter prerequisite and confirms activation with an unconditional single startup marker. The later critical-section 60-second timeout and X-server shutdown do not independently prove a driver error code.
+
 ## Confirm artifact before installation
 
 Only import a successful `FF7R SD865 DXVK 2.7.1 allocation trace WCP` [GitHub Actions artifact](https://github.com/Ragnarok93/dxvk-SD865/actions/workflows/ff7r-alloc-trace-dxvk271-wcp.yml). GitHub wraps artifact contents in a ZIP; **extract ZIP first** and import the inner `dxvk-ff7r-allocdiag-dxvk271-<commit>.wcp` into GameNative as a **DXVK** content package. Do not import as Wrapper or Graphics Driver. A unique version name avoids reusing a cached selected DLL set. Keep working DXVK 2.7.1 available for immediate rollback.
@@ -12,17 +14,23 @@ The WCP includes both Win64 (`x64`) and Win32 (`x32`) DXVK DLLs. It is not a Tur
 
 1. In GameNative Contents Manager import the inner `.wcp` file, and select `ff7r-allocdiag-dxvk271-...` in the container's **DXVK Version** selector.
 2. Keep the same Turnip T30 and FEX2610 settings as a single-variable test. Disable LSFG and vkBasalt/CAS for the first baseline if possible.
-3. In container environment variables add:
+3. **No allocator-specific environment variable is required in the updated self-identifying WCP.** Selecting the uniquely named diagnostic DXVK version enables failure-only capture. You may retain:
    ```ini
-   DXVK_SD865_ALLOC_TRACE=1
    DXVK_LOG_LEVEL=error
    ```
-   `DXVK_LOG_PATH` may remain directed to an accessible Downloads directory. DXVK's existing Wine debug transport also emits its error-level messages to the GameNative process capture.
+   `DXVK_SD865_ALLOC_TRACE=0` disables allocator tracing if you want to test a control run, but leave it unset otherwise. `DXVK_LOG_PATH` may remain directed to an accessible Downloads directory. DXVK's existing Wine debug transport also emits error-level messages to GameNative's process capture.
 4. In **Settings → Debug**, enable **Enable Wine Debug Logs**. Disable Wine `+vulkan`, `+loaddll`, etc. trace channels; they are not required to capture `DXVK-SD865-ALLOC` and otherwise generate million-line logs.
 5. Launch FFVII Remake **once**, reproduce the allocation failure, export **Settings → Debug → View game debug log → Save**, and collect `ff7remake__d3d11.log` if easily accessible in your DXVK log directory. Upload both files in ChatGPT. **No ADB**, logcat commands, rooting or Android/data browsing.
 6. Revert to working DXVK version after the test if gameplay stability worsens. Remove the diagnostic variable for normal use.
 
 ## Expected output
+
+The updated diagnostic WCP prints this **one-time build/activation proof** when its allocator is initialized. If absent, the WCP has not loaded the running game or its stdout/stderr logging is not captured:
+```text
+err: DXVK-SD865-ALLOC state=diagnostic_wcp_loaded capture_enabled=1 heap_count=1 heap0_size_bytes=4294967296 ...
+```
+
+The numbers in this example are **illustrative**, not observed by the new WCP. Then, only when an allocation attempt fails, the driver emits an event:
 
 ```text
 err: DXVK-SD865-ALLOC stage=driver_retry first_attempt_id=403 retry_attempt_id=404 first_vkresult=-2 first_name=VK_ERROR_OUT_OF_DEVICE_MEMORY retry_vkresult=-2 retry_name=VK_ERROR_OUT_OF_DEVICE_MEMORY recovered=0 requested_bytes=22369792 memory_type=1 heap=0 heap_size_bytes=4294967296 ...
