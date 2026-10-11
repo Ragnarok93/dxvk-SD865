@@ -1,6 +1,6 @@
 # FFVII Remake — raw Turnip / Vulkan-wrapper 8-bit feature audit
 
-**Status (2026-10-11):** The FF7R-specific GitHub Actions workflow was repaired and has passed Python unit tests and its pinned source-patch step; the latest CI wrapper build and Android device test require separate successful completion. No evidence of genuine Adreno 650 8-bit storage support has been obtained.
+**Status (2026-10-11):** **GitHub CI successful**: [run 38135202601](https://github.com/Ragnarok93/dxvk-SD865/actions/runs/38135202601), commit `cb7132c475714de7f23a3dd99be8b4a88fb6615d`. Source patch tests **6/6**, raw feature-log classifier tests **8/8**, pinned-source Android ARM64 compilation, ELF check, `.wcp` packaging and Actions artifact upload all passed. Artifact ID **11700263688**, expected package `FF7R-RawICD8-cb7132c47571.wcp`. CI does **not** establish device compatibility, actual S20+ execution or genuine A650 8-bit support.
 
 ## What this test proves—and does not prove
 
@@ -10,7 +10,7 @@ The experimental wrapper is compiled from **pinned** `leegao/mesa-wrapper-CI` so
 
 ## Install only after successful CI
 
-1. Open [FF7R PurpleVK real 8-bit storage audit wrapper workflow](https://github.com/Ragnarok93/dxvk-SD865/actions/workflows/ff7r-wrapper8bit-verified.yml) and confirm the **latest** run has **success** in all steps, particularly `Unit tests`, `Build Vulkan wrapper`, `Package opt-in GameNative Wrapper overlay WCP`, and `Upload experimental wrapper`. On failure, **do not install** a file from an older run.
+1. Open [FF7R PurpleVK real 8-bit storage audit wrapper workflow](https://github.com/Ragnarok93/dxvk-SD865/actions/workflows/ff7r-wrapper8bit-verified.yml) and confirm the chosen run has **success** in all steps, particularly `Unit tests`, `Build Vulkan wrapper`, `Package opt-in GameNative Wrapper overlay WCP`, and `Upload experimental wrapper`. On failure, **do not install** a file from an older run.
 2. Download the `FF7R-PurpleVK-raw-8bit-audit-aarch64` artifact, extract it, verify `SHA256SUMS` and install `FF7R-RawICD8-<sha>.wcp` via GameNative **Contents** as **Wrapper**, not as Turnip or DXVK. This is only a partial replacement for the wrapper's `libvulkan_wrapper.so` and relies on existing hook libraries and an ICD.
 3. **Back up your working GameNative wrapper profile and know how to restore it.** GameNative's `ContentsManager.applyContent` copies the selected component into a shared `imagefs/usr/lib/libvulkan_wrapper.so` target. This is **not guaranteed to be isolated to FF7 Remake or a single container**. A third-party wrapper ABI may differ. If switching to the diagnostic build causes a crash or non-boot, immediately reselect/reapply the original wrapper profile (or reinstall it) before testing other games. Do not alter the system/vendor Vulkan driver, root, or flash firmware for this test.
 4. Keep original *Mr. Purple T30* Turnip/ICD version selected, record its SHA/build string, and test only FF7 Remake. Keep DXVK 2.7.1 WCP available for rollback; using DXVK 3.1.1 only diagnoses the startup check. Disable LSFG. Ensure GameNative Wine debug log capture is on.
