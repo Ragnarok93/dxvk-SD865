@@ -39,6 +39,7 @@ def summarize(lines):
             "requested_bytes", "memory_type", "heap", "heap_size_bytes", "dedicated",
             "dxvk_allocated_bytes", "dxvk_used_bytes", "dxvk_budget_bytes",
             "driver_allocated_bytes", "driver_budget_bytes",
+            "pool_experiment", "empty_chunks_reclaimed", "empty_bytes_reclaimed",
             "flags", "buffer_usage", "driver_call",
             "requested_memory_types_mask", "eligible_memory_types_mask",
             "property_flags", "alignment", "has_dedicated_info",
