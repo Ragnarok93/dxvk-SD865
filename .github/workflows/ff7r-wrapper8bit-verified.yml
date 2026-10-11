@@ -1,0 +1,138 @@
+name: FF7R PurpleVK real 8-bit storage audit wrapper
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/ff7r-sd865-architecture-20261011
+    paths:
+      - '.github/workflows/ff7r-wrapper8bit-verified.yml'
+      - 'tools/ff7r_wrapper8bit_patch.py'
+      - 'tests/test_ff7r_wrapper8bit_patch.py'
+
+permissions:
+  contents: read
+
+jobs:
+  audit-wrapper:
+    name: Build experimental Android AArch64 Vulkan wrapper
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    env:
+      # Exact reviewed upstream commit. NEVER build an unpinned moving branch.
+      WRAPPER_REPO: https://github.com/leegao/mesa-wrapper-CI.git
+      WRAPPER_SOURCE_SHA: 417776cc61eb137f0f22f24292f528d396c7189a
+    steps:
+      - name: Checkout FF7R source patch
+        uses: actions/checkout@v4
+        with:
+          path: patch-repo
+
+      - name: Unit tests — don't fake unsupported Vulkan features
+        run: python3 -m unittest discover -s patch-repo/tests -p 'test_ff7r_wrapper8bit_patch.py' -v
+
+      - name: Obtain exact reviewed wrapper source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none --no-checkout "$WRAPPER_REPO" wrapper-src
+          git -C wrapper-src checkout --detach "$WRAPPER_SOURCE_SHA"
+          test "$(git -C wrapper-src rev-parse HEAD)" = "$WRAPPER_SOURCE_SHA"
+          test -s wrapper-src/src/vulkan/wrapper/wrapper_physical_device.c
+
+      - name: Restore underlying-driver 8-bit capabilities and attest patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 patch-repo/tools/ff7r_wrapper8bit_patch.py --source-root wrapper-src
+          python3 patch-repo/tools/ff7r_wrapper8bit_patch.py --source-root wrapper-src --check
+          grep -Fq 'FF7R-8BIT: direct driver feature audit' wrapper-src/src/vulkan/wrapper/wrapper_physical_device.c
+          grep -Fq 'ff7r_raw_12.storageBuffer8BitAccess' wrapper-src/src/vulkan/wrapper/wrapper_physical_device.c
+          git -C wrapper-src diff --check
+          git -C wrapper-src diff -- src/vulkan/wrapper/wrapper_physical_device.c > "$GITHUB_WORKSPACE/ff7r-wrapper8bit.patch"
+          test -s "$GITHUB_WORKSPACE/ff7r-wrapper8bit.patch"
+
+      - name: Resolve Android NDK and build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${ANDROID_NDK_LATEST_HOME:?GitHub runner must provide the Android NDK}"
+          test -d "$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          python3 -m pip install --upgrade --break-system-packages meson ninja mako PyYAML packaging
+          command -v envsubst >/dev/null || { sudo apt-get update -qq; sudo apt-get install -y -qq gettext-base; }
+
+      - name: Apply upstream Android compatibility build fixes
+        shell: bash
+        working-directory: wrapper-src
+        run: |
+          set -euo pipefail
+          sed -i 's/#if defined(HAVE_MEMFD_CREATE) \&\& !defined __TERMUX__/#if defined(HAVE_MEMFD_CREATE)/' src/util/anon_file.c
+          sed -i "s/dep_libudev = dependency('libudev', required : false)/dep_libudev = null_dep/g" meson.build
+
+      - name: Configure pinned source for arm64 Bionic
+        shell: bash
+        working-directory: wrapper-src
+        run: |
+          set -euo pipefail
+          export ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME"
+          export MESON_WORKING_DIR="$PWD"
+          envsubst < android.toml > android-cross.toml
+          CLANG_VER="$(basename "$(find "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/lib/clang" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)")"
+          test -n "$CLANG_VER"
+          sed -i "s|lib/clang/18|lib/clang/$CLANG_VER|g" android-cross.toml
+          meson setup _build \
+            --cross-file android-cross.toml \
+            -Dbuildtype=debugoptimized \
+            -Dplatforms=android,x11 \
+            -Dandroid-stub=true \
+            -Dandroid-libbacktrace=disabled \
+            -Dplatform-sdk-version=30 \
+            -Dglx=disabled -Dgbm=disabled -Degl=disabled \
+            -Dopengl=false -Dgles1=disabled -Dgles2=disabled \
+            -Dglvnd=disabled -Dllvm=disabled -Dvalgrind=disabled \
+            -Dgallium-drivers= -Dshared-glapi=disabled -Dzstd=disabled \
+            -Dvulkan-drivers=wrapper
+
+      - name: Build Vulkan wrapper (no DXVK/FEX code modifications)
+        run: meson compile -C wrapper-src/_build
+
+      - name: Verify AArch64 shared object and produce forensic artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$GITHUB_WORKSPACE/ff7r-wrapper8bit-artifact"
+          mkdir -p "$out"
+          raw="$GITHUB_WORKSPACE/wrapper-src/_build/src/vulkan/wrapper/libvulkan_wrapper.so"
+          test -s "$raw"
+          cp "$raw" "$out/libvulkan_wrapper.debug.so"
+          cp "$raw" "$out/libvulkan_wrapper.so"
+          strip="$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
+          "$strip" "$out/libvulkan_wrapper.so"
+          python3 - "$out/libvulkan_wrapper.so" <<'PY'
+          import pathlib, sys
+          data = pathlib.Path(sys.argv[1]).read_bytes()[:20]
+          assert data[:4] == b'\x7fELF', 'not an ELF image'
+          assert data[4] == 2 and data[5] == 1, 'not 64-bit little-endian'
+          assert int.from_bytes(data[18:20], 'little') == 183, 'not AArch64 ELF'
+          PY
+          cp "$GITHUB_WORKSPACE/ff7r-wrapper8bit.patch" "$out/"
+          {
+            echo "purpose=FF7R real raw-ICD Vulkan 8-bit feature propagation; experimental wrapper"
+            echo "source_repository=$WRAPPER_REPO"
+            echo "source_sha=$WRAPPER_SOURCE_SHA"
+            echo "patch_source_commit=$GITHUB_SHA"
+            echo "game_device=SM-G986U1 Adreno650; runtime feature compatibility NOT verified"
+            echo "status=build artifact only; NOT a standalone .wcp; no device tests yet"
+          } > "$out/provenance.txt"
+          (cd "$out" && sha256sum libvulkan_wrapper*.so ff7r-wrapper8bit.patch > SHA256SUMS)
+          cat "$out/provenance.txt"
+          cat "$out/SHA256SUMS"
+
+      - name: Upload experimental wrapper and source patch
+        uses: actions/upload-artifact@v4
+        with:
+          name: FF7R-PurpleVK-raw-8bit-audit-aarch64
+          path: ff7r-wrapper8bit-artifact/*
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
