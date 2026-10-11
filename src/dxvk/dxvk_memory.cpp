@@ -798,6 +798,17 @@ namespace dxvk {
       }
     }
 
+    if (sd865AllocTraceEnabled() && sd865AllocTraceAllowEvent()) {
+      Logger::err(str::format(
+        "DXVK-SD865-ALLOC stage=pool_exhausted",
+        " requested_bytes=", requirements.size,
+        " alignment=", requirements.alignment,
+        " requested_memory_types_mask=", requirements.memoryTypeBits,
+        " eligible_memory_types_mask=", memoryTypeMask,
+        " property_flags=", uint32_t(allocationInfo.properties),
+        " no_allocation_mode=", allocationInfo.mode.test(DxvkAllocationMode::NoAllocation) ? 1 : 0));
+    }
+
     return nullptr;
   }
 
@@ -818,6 +829,16 @@ namespace dxvk {
         mapDeviceMemory(memory, allocationInfo.properties);
         return createAllocation(type, memory, allocationInfo);
       }
+    }
+
+    if (sd865AllocTraceEnabled() && sd865AllocTraceAllowEvent()) {
+      Logger::err(str::format(
+        "DXVK-SD865-ALLOC stage=dedicated_exhausted",
+        " requested_bytes=", requirements.size,
+        " alignment=", requirements.alignment,
+        " requested_memory_types_mask=", requirements.memoryTypeBits,
+        " property_flags=", uint32_t(allocationInfo.properties),
+        " has_dedicated_info=", next != nullptr ? 1 : 0));
     }
 
     return nullptr;
