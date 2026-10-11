@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <atomic>
 #include <iomanip>
 #include <sstream>
 
@@ -9,6 +10,35 @@
 #include "dxvk_sparse.h"
 
 namespace dxvk {
+
+  // FF7R A650 allocation diagnostics: strictly opt-in and failure-only.
+  // Keep the normal DXVK memory-allocation policy unchanged.
+  static bool sd865AllocTraceEnabled() {
+    static const bool enabled = env::getEnvVar("DXVK_SD865_ALLOC_TRACE") == "1";
+    return enabled;
+  }
+
+
+  static bool sd865AllocTraceAllowEvent() {
+    // Multiple memory types and retry loops can fail during a single OOM.
+    // Cap costly log operations rather than flood Wine's stderr channel.
+    static std::atomic<uint32_t> emitted { 0u };
+    return emitted.fetch_add(1u, std::memory_order_relaxed) < 128u;
+  }
+
+
+  static const char* sd865AllocTraceResultName(VkResult result) {
+    switch (result) {
+      case VK_SUCCESS:                    return "VK_SUCCESS";
+      case VK_ERROR_OUT_OF_HOST_MEMORY:   return "VK_ERROR_OUT_OF_HOST_MEMORY";
+      case VK_ERROR_OUT_OF_DEVICE_MEMORY: return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+      case VK_ERROR_TOO_MANY_OBJECTS:     return "VK_ERROR_TOO_MANY_OBJECTS";
+      case VK_ERROR_INITIALIZATION_FAILED:return "VK_ERROR_INITIALIZATION_FAILED";
+      case VK_ERROR_UNKNOWN:              return "VK_ERROR_UNKNOWN";
+      default:                            return "OTHER_VK_RESULT";
+    }
+  }
+
 
   void DxvkMemoryChunk::addAllocation(DxvkResourceAllocation* allocation) {
     allocation->m_nextInChunk = allocationList;
@@ -1210,6 +1240,20 @@ namespace dxvk {
 
     // If we're exceeding vram budget on a dedicated GPU, fall back to system memory.
     if (!next && type.heap->enforceBudget && (getMemoryStats(type.heap->index).memoryAllocated + size > type.heap->memoryBudget)) {
+      // This is DXVK's own budget guard, not a Vulkan driver allocation error.
+      if (sd865AllocTraceEnabled() && sd865AllocTraceAllowEvent()) {
+        auto heapStats = getMemoryStats(type.heap->index);
+        Logger::err(str::format(
+          "DXVK-SD865-ALLOC stage=budget_guard driver_call=0",
+          " requested_bytes=", size,
+          " memory_type=", type.index,
+          " heap=", type.heap->index,
+          " dedicated=", (next != nullptr),
+          " buffer_usage=", uint64_t(type.bufferUsage),
+          " dxvk_allocated_bytes=", heapStats.memoryAllocated,
+          " dxvk_used_bytes=", heapStats.memoryUsed,
+          " dxvk_budget_bytes=", type.heap->memoryBudget));
+      }
       type.heap->enableEviction = true;
       return DxvkDeviceMemory();
     }
@@ -1253,10 +1297,41 @@ namespace dxvk {
     DxvkDeviceMemory result = { };
     result.size = size;
 
-    if (vk->vkAllocateMemory(vk->device(), &memoryInfo, nullptr, &result.memory)) {
+    VkResult firstResult = vk->vkAllocateMemory(vk->device(), &memoryInfo, nullptr, &result.memory);
+
+    if (firstResult != VK_SUCCESS) {
       freeEmptyChunksInHeap(*type.heap, VkDeviceSize(-1), high_resolution_clock::time_point());
 
-      if (vk->vkAllocateMemory(vk->device(), &memoryInfo, nullptr, &result.memory))
+      VkResult retryResult = vk->vkAllocateMemory(vk->device(), &memoryInfo, nullptr, &result.memory);
+
+      if (sd865AllocTraceEnabled() && sd865AllocTraceAllowEvent()) {
+        const auto heapStats = getMemoryStats(type.heap->index);
+        // Capture the driver's actual allocation budget after the failed call,
+        // without modifying DXVK's policy or the size of the memory request.
+        const auto driverStats = m_device->adapter()->getMemoryHeapInfo();
+        const auto& driverHeap = driverStats.heaps[type.heap->index];
+
+        Logger::err(str::format(
+          "DXVK-SD865-ALLOC stage=driver_retry",
+          " first_vkresult=", int32_t(firstResult),
+          " first_name=", sd865AllocTraceResultName(firstResult),
+          " retry_vkresult=", int32_t(retryResult),
+          " retry_name=", sd865AllocTraceResultName(retryResult),
+          " recovered=", (retryResult == VK_SUCCESS ? 1 : 0),
+          " requested_bytes=", size,
+          " memory_type=", type.index,
+          " heap=", type.heap->index,
+          " dedicated=", (next != nullptr),
+          " buffer_usage=", uint64_t(type.bufferUsage),
+          " flags=", uint32_t(memoryFlags.flags),
+          " dxvk_allocated_bytes=", heapStats.memoryAllocated,
+          " dxvk_used_bytes=", heapStats.memoryUsed,
+          " dxvk_budget_bytes=", type.heap->memoryBudget,
+          " driver_allocated_bytes=", driverHeap.memoryAllocated,
+          " driver_budget_bytes=", driverHeap.memoryBudget));
+      }
+
+      if (retryResult != VK_SUCCESS)
         return DxvkDeviceMemory();
     }
 
