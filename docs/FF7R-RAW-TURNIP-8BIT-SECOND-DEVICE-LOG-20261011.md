@@ -21,15 +21,15 @@
    WRAPPER_FF7R_FEATURE_AUDIT=1
    WRAPPER_LOG_LEVEL=info
    WRAPPER_DIAG=1
-   WRAPPER_LOG_FILE=/sdcard/wrapper/logs/ff7r-8bit.log
+   WRAPPER_LOG_FILE=/storage/emulated/0/Android/data/app.gamenative/files/ff7r-8bit.log
    GN_DXVK_DIAGNOSTICS=1
    DXVK_LOG_LEVEL=info
    ```
-   The examined reference wrapper `src/vulkan/wrapper/wrapper_log.c` uses `WRAPPER_LOG_FILE` as an absolute filename, and `init_wrapper_logging()` creates `/sdcard/wrapper/logs`. This environment syntax is native Linux/Android, not the Wine D: path. Capturing this separate file avoids treating Wine stdout suppression as absence of wrapper execution.
+   The examined reference wrapper `src/vulkan/wrapper/wrapper_log.c` uses `WRAPPER_LOG_FILE` as an absolute filename. Its *default* log directory `/sdcard/wrapper/logs` may be blocked by Android 13 scoped storage; the GameNative app-specific external files directory is preferable because it is normally writable by the app. This environment syntax is native Linux/Android, not the Wine D: path. Capturing this separate file avoids treating Wine stdout suppression as absence of wrapper execution.
 4. After a *single* launch, **do not relaunch before exporting**. On USB ADB:
    ```bash
-   adb shell ls -la /sdcard/wrapper/logs
-   adb pull /sdcard/wrapper/logs/ff7r-8bit.log .
+   adb shell ls -l /sdcard/Android/data/app.gamenative/files/ff7r-8bit.log
+   adb pull /sdcard/Android/data/app.gamenative/files/ff7r-8bit.log .
    ```
    If file does not exist, the test is **not** evidence of no hardware support: wrapper may not have loaded, its logger may not have initialized, or storage permissions may block it. Collect GameNative app logs/logcat and check that selected Wrapper profile is actually applied.
 5. If 2.7.1 runs but still no `FF7R-8BIT`, distinguish an inactive test wrapper from missing environment/log capture before changing Turnip. If marker appears, classify with `python3 tools/ff7r_turnip8_audit.py <wrapper-log>`. If raw bit 0, DXVK 3.1.1 remains unsupported on that driver regardless of wrapper. If raw bit 1, proceed to shader conformance and all DXVK 3.1.1 feature checks.
