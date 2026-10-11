@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Instrument pinned Android Vulkan wrapper to compare raw ICD and wrapper features.
 
-Read only: never rewrite or force any Vulkan feature. Diagnostics execute only
-when WRAPPER_FF7R_FEATURE_AUDIT=1. This compares the actual loaded underlying
-ICD against the wrapper's existing Mesa-generated feature-table translation.
+Read only: never rewrite or force a Vulkan feature. This explicitly labeled
+experimental WCP emits early-startup and actual raw-versus-wrapper feature
+markers to stderr, which GameNative's built-in Wine log captures on Android.
 The reference source is pinned and source-anchored in the CI workflow.
 """
 import argparse
@@ -19,39 +19,64 @@ PATCH = """      wrapper_setup_device_features(pdevice);
 
       struct vk_features *supported_features = &pdevice->vk.supported_features;
 
-      /* FF7R-8BIT: direct driver feature audit (read-only). The wrapper's normal
-       * Mesa-generated wrapper_setup_device_features already queries the ICD.
-       * Compare its result with a second raw query, without changing the
-       * advertised feature table, extension table or CreateDevice flags.
+      /* FF7R-8BIT: direct driver feature audit (read-only). This specialized
+       * diagnostic WCP emits exactly one line per physical device directly
+       * to stderr: GameNative captures stderr in its built-in Wine debug log.
+       * No special WRAPPER_* variables, ADB, root or log-file permissions.
+       * Do not modify the normal feature table, extensions or CreateDevice.
        */
-      if (getenv("WRAPPER_FF7R_FEATURE_AUDIT") &&
-          atoi(getenv("WRAPPER_FF7R_FEATURE_AUDIT")) == 1) {
-         VkPhysicalDeviceVulkan12Features ff7r_raw_12 = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-         };
-         VkPhysicalDeviceFeatures2 ff7r_raw_features = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-            .pNext = &ff7r_raw_12,
-         };
-         pdevice->dispatch_table.GetPhysicalDeviceFeatures2(
-            pdevice->dispatch_handle, &ff7r_raw_features);
+      VkPhysicalDeviceVulkan12Features ff7r_raw_12 = {
+         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+      };
+      VkPhysicalDeviceFeatures2 ff7r_raw_features = {
+         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+         .pNext = &ff7r_raw_12,
+      };
+      pdevice->dispatch_table.GetPhysicalDeviceFeatures2(
+         pdevice->dispatch_handle, &ff7r_raw_features);
 
-         WRAPPER_LOG(info,
-            "FF7R-8BIT: raw_storage8=%u wrapper_storage8=%u "
-            "raw_shaderInt8=%u wrapper_shaderInt8=%u "
-            "raw_uniform8=%u wrapper_uniform8=%u "
-            "raw_pushConstant8=%u wrapper_pushConstant8=%u",
-            (unsigned)ff7r_raw_12.storageBuffer8BitAccess,
-            (unsigned)supported_features->storageBuffer8BitAccess,
-            (unsigned)ff7r_raw_12.shaderInt8,
-            (unsigned)supported_features->shaderInt8,
-            (unsigned)ff7r_raw_12.uniformAndStorageBuffer8BitAccess,
-            (unsigned)supported_features->uniformAndStorageBuffer8BitAccess,
-            (unsigned)ff7r_raw_12.storagePushConstant8,
-            (unsigned)supported_features->storagePushConstant8);
-      }
+      fprintf(stderr,
+         "FF7R-8BIT: raw_storage8=%u wrapper_storage8=%u "
+         "raw_shaderInt8=%u wrapper_shaderInt8=%u "
+         "raw_uniform8=%u wrapper_uniform8=%u "
+         "raw_pushConstant8=%u wrapper_pushConstant8=%u\\n",
+         (unsigned)ff7r_raw_12.storageBuffer8BitAccess,
+         (unsigned)supported_features->storageBuffer8BitAccess,
+         (unsigned)ff7r_raw_12.shaderInt8,
+         (unsigned)supported_features->shaderInt8,
+         (unsigned)ff7r_raw_12.uniformAndStorageBuffer8BitAccess,
+         (unsigned)supported_features->uniformAndStorageBuffer8BitAccess,
+         (unsigned)ff7r_raw_12.storagePushConstant8,
+         (unsigned)supported_features->storagePushConstant8);
+      fflush(stderr);
 
       pdevice->base_supported_features = *supported_features;"""
+
+INSTANCE_PATH = Path("src/vulkan/wrapper/wrapper_instance.c")
+INSTANCE_MARKER = "FF7R-8BIT: wrapper_instance_probe"
+INSTANCE_ANCHOR = """   VkResult result;
+
+   result = wrapper_vulkan_init();"""
+INSTANCE_PATCH = """   VkResult result;
+
+   /* FF7R-8BIT: early wrapper provenance, before ICD instance initialization.
+    * Only this explicitly labeled diagnostic wrapper emits this once per
+    * vkCreateInstance. It goes into GameNative's existing Wine log exporter.
+    */
+   fprintf(stderr, "FF7R-8BIT: wrapper_instance_probe\\\\n");
+   fflush(stderr);
+
+   result = wrapper_vulkan_init();"""
+
+
+def patch_instance(source: str) -> tuple[str, str]:
+    if INSTANCE_MARKER in source:
+        if source.count(INSTANCE_MARKER) != 1:
+            raise ValueError("Duplicate or altered instance audit marker")
+        return source, "already-patched"
+    if source.count(INSTANCE_ANCHOR) != 1:
+        raise ValueError("Expected Vulkan instance anchor not found exactly once")
+    return source.replace(INSTANCE_ANCHOR, INSTANCE_PATCH, 1), "patched"
 
 
 def patch(source: str) -> tuple[str, str]:
@@ -76,6 +101,8 @@ def patch(source: str) -> tuple[str, str]:
             "shaderInt8",
         )
     )
+    assert 'fprintf(stderr,' in PATCH
+    assert 'fflush(stderr);' in PATCH
     return updated, "patched"
 
 
@@ -84,12 +111,16 @@ def main() -> int:
     parser.add_argument("--source-root", type=Path, default=Path("."))
     parser.add_argument("--check", action="store_true", help="Validate without modifying files")
     args = parser.parse_args()
-    path = args.source_root / RELATIVE_SOURCE
-    original = path.read_text(encoding="utf-8")
-    updated, status = patch(original)
-    if not args.check and updated != original:
-        path.write_text(updated, encoding="utf-8")
-    print(f"{status}: {path}; {'unchanged (check)' if args.check else 'written or already-patched'}")
+    for relative, patcher in (
+        (RELATIVE_SOURCE, patch),
+        (INSTANCE_PATH, patch_instance),
+    ):
+        path = args.source_root / relative
+        original = path.read_text(encoding="utf-8")
+        updated, status = patcher(original)
+        if not args.check and updated != original:
+            path.write_text(updated, encoding="utf-8")
+        print(f"{status}: {path}; {'unchanged (check)' if args.check else 'written or already-patched'}")
     return 0
 
 
