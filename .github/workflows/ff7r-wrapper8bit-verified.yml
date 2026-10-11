@@ -9,6 +9,8 @@ on:
       - '.github/workflows/ff7r-wrapper8bit-verified.yml'
       - 'tools/ff7r_wrapper8bit_patch.py'
       - 'tests/test_ff7r_wrapper8bit_patch.py'
+      - 'tools/ff7r_turnip8_audit.py'
+      - 'tests/test_ff7r_turnip8_audit.py'
 
 permissions:
   contents: read
@@ -30,6 +32,9 @@ jobs:
 
       - name: Unit tests — don't fake unsupported Vulkan features
         run: python3 -m unittest discover -s patch-repo/tests -p 'test_ff7r_wrapper8bit_patch.py' -v
+
+      - name: Unit tests — raw ICD log audit parser
+        run: python3 -m unittest discover -s patch-repo/tests -p 'test_ff7r_turnip8_audit.py' -v
 
       - name: Obtain exact reviewed wrapper source
         shell: bash
