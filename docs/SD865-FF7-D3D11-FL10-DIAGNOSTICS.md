@@ -61,5 +61,38 @@ If the audit is absent:
 4. Avoid changing frame pacing/LSFG, async shaders, graphics driver
    and translation runtime during this regression isolation.
 
-No on-device logs have been collected during the branch implementation,
-and no success running DXVK 3.1.1 on the Adreno 650 is claimed.
+## First captured on-device evidence (2026-10-11)
+
+The user supplied a 22-line DXGI log and a 938-line Wine log from the S20+.
+**DXVK 3.1.1 really did load and attempt Vulkan adapter selection, but failed
+before creating a rendering device**:
+
+```text
+DXVK: 3.1.1
+Found device: Wrapper(PurpleVK-public Adreno (TM) 650 (git-62ac221a33)/unknown) (Wrapper driver 26.2.99)
+Skipping: Device does not support required feature 'storageBuffer8BitAccess'
+DXVK: No adapters found.
+Failed to initialize DXVK.
+```
+
+Wine also recorded native `d3d11.dll` and `dxgi.dll`, plus `libarm64ecfex.dll`
+in the FF7 game process. No `d3d12.dll`, successful D3D11/DXGI present,
+`DXVK-SD865 compatibility audit:`, or `FEX-FF7R-PHASE0` marker was seen.
+The Vulkan feature audit was not enabled or its marker was not captured in
+these logs, so other missing features remain unknown.
+
+**Action:** The *first identified incompatibility* is a reported Vulkan feature,
+not a demonstrated D3D11 FL10 emulation bug. Compare raw Turnip
+`VkPhysicalDeviceVulkan12Features.storageBuffer8BitAccess` against the
+PurpleVK wrapper report. If underlying Turnip advertises support but PurpleVK
+does not, fix wrapper propagation; if unsupported, investigate a compliant
+driver/implementation. Never spoof the feature at DXVK level. A
+[similar wrapper project](https://github.com/jtiberius9-spec/vili-wrapper-build)
+reports the same symptom on Adreno 660, but that does not establish that our
+wrapper has the identical defect. Vulkan 1.4 mandates 8-bit buffer storage,
+while earlier Vulkan versions can have different requirements.
+
+Use `DXVK_SD865_DIAGNOSE=1` with this branch's diagnostic WCP to enumerate
+*all* missing requirements after the first blocker. Keep DXVK 2.7.1 for the
+separate working-renderer performance baseline. No 3.1.1 success or FPS
+improvement is established.
