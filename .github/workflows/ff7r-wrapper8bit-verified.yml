@@ -53,8 +53,9 @@ jobs:
           python3 patch-repo/tools/ff7r_wrapper8bit_patch.py --source-root wrapper-src --check
           grep -Fq 'FF7R-8BIT: direct driver feature audit' wrapper-src/src/vulkan/wrapper/wrapper_physical_device.c
           grep -Fq 'ff7r_raw_12.storageBuffer8BitAccess' wrapper-src/src/vulkan/wrapper/wrapper_physical_device.c
+          grep -Fq 'FF7R-8BIT: wrapper_instance_probe' wrapper-src/src/vulkan/wrapper/wrapper_instance.c
           git -C wrapper-src diff --check
-          git -C wrapper-src diff -- src/vulkan/wrapper/wrapper_physical_device.c > "$GITHUB_WORKSPACE/ff7r-wrapper8bit.patch"
+          git -C wrapper-src diff -- src/vulkan/wrapper/wrapper_physical_device.c src/vulkan/wrapper/wrapper_instance.c > "$GITHUB_WORKSPACE/ff7r-wrapper8bit.patch"
           test -s "$GITHUB_WORKSPACE/ff7r-wrapper8bit.patch"
 
       - name: Resolve Android NDK and build dependencies
@@ -127,7 +128,7 @@ jobs:
             echo "source_sha=$WRAPPER_SOURCE_SHA"
             echo "patch_source_commit=$GITHUB_SHA"
             echo "game_device=SM-G986U1 Adreno650; runtime feature compatibility NOT verified"
-            echo "status=build artifact only; NOT a standalone .wcp; no device tests yet"
+            echo "status=build-only; on-device capture pending; WCP archive included below"
           } > "$out/provenance.txt"
           (cd "$out" && sha256sum libvulkan_wrapper*.so ff7r-wrapper8bit.patch > SHA256SUMS)
           cat "$out/provenance.txt"
@@ -184,6 +185,10 @@ jobs:
           PY
           (cd "$out" && sha256sum "$(basename "$pkg")" >> SHA256SUMS)
           cat > "$out/IMPORT_THIS_WCP_FIRST.txt" <<EOF
+          Wine logs contain FF7R-8BIT automatically if the audit Wrapper loads.
+          In GameNative enable Settings > Debug > Enable Wine Debug Logs.
+          Launch FF7 Remake, then Settings > Debug > View game debug log > Save.
+          NO ADB or extra wrapper environment variables are required.
           GitHub Actions downloads are ZIP archives containing several files.
           DO NOT import this outer ZIP into GameNative Contents Manager.
           Extract the ZIP using Android Files / ZArchiver / another extractor.
