@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+"""Classify an FF7 Remake Phase-0 DXVK/FEX session without guessing the API.
+
+Input logs must come from ONE launch. A first DXGI present is not the same as
+a confirmed display scan-out or a native frame-time measurement.
+"""
+import argparse
+import json
+import re
+from pathlib import Path
+
+GAME_EXE = "ff7remake_.exe"
+DEVICE = re.compile(r"DXVK-FF7R-PHASE0: d3d11_device_created exe=(\S+) feature_level=(\S+)", re.I)
+PRESENT = re.compile(r"DXVK-FF7R-PHASE0: first_dxgi_present exe=(\S+) d3d12_queue=([01]) sync_interval=(\d+)", re.I)
+FEX = re.compile(r"FEX-FF7R-PHASE0: backend=(ARM64EC|WoW64) app=(\S+) pid=(\d+) wine=([01])", re.I)
+
+
+def is_game(exe):
+    return exe.replace("\\", "/").rsplit("/", 1)[-1].lower() == GAME_EXE
+
+
+def classify(lines):
+    devices = []
+    presents = []
+    translators = []
+    for line in lines:
+        match = DEVICE.search(line)
+        if match and is_game(match.group(1)):
+            devices.append(match.group(2))
+        match = PRESENT.search(line)
+        if match and is_game(match.group(1)):
+            presents.append({"d3d12_queue": match.group(2) == "1",
+                             "sync_interval": int(match.group(3))})
+        match = FEX.search(line)
+        if match and is_game(match.group(2)):
+            translators.append({"backend": match.group(1).upper(),
+                                "wine": match.group(4) == "1"})
+
+    queue_types = {p["d3d12_queue"] for p in presents}
+    if len(queue_types) > 1:
+        api = "mixed_or_ambiguous"
+    elif queue_types == {True}:
+        api = "d3d12_dxgi_present_path"
+    elif queue_types == {False} and devices:
+        api = "d3d11_dxvk_present_path"
+    elif queue_types == {False}:
+        api = "dxgi_present_no_d3d11_device_evidence"
+    elif devices:
+        api = "d3d11_device_only_no_present"
+    else:
+        api = "unverified"
+
+    warnings = []
+    if not presents:
+        warnings.append("No successful DXGI Present observed; do not infer rendering API from DLL loading.")
+    if presents and not devices and queue_types == {False}:
+        warnings.append("DXGI Present without DXVK D3D11 device marker; another API may own rendering.")
+    if len(queue_types) > 1:
+        warnings.append("Mixed presentation paths: separate process/session logs before analysis.")
+    if not translators:
+        warnings.append("No FEX Phase-0 process marker. Logging may be suppressed or the probe may not be loaded.")
+    warnings.append("DXGI Present success does not establish on-screen display timing or real FPS.")
+    return {
+        "api_evidence": api,
+        "d3d11_device_events": len(devices),
+        "d3d11_feature_levels": sorted(set(devices)),
+        "dxgi_first_present_events": len(presents),
+        "dxgi_d3d12_queue_events": sum(p["d3d12_queue"] for p in presents),
+        "fex_backends": sorted({t["backend"] for t in translators}),
+        "fex_wine_processes": sum(t["wine"] for t in translators),
+        "warnings": warnings,
+    }
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("logs", nargs="+", type=Path, help="DXVK, FEX or GameNative text logs from one session")
+    parser.add_argument("--json-out", type=Path, help="Write a portable, path-free JSON report")
+    parser.add_argument("--require-api", choices=["d3d11", "d3d12"],
+                        help="Exit nonzero unless this DXGI rendering path was observed")
+    args = parser.parse_args(argv)
+    lines = []
+    for path in args.logs:
+        if not path.is_file():
+            parser.error(f"Log does not exist: {path}")
+        with path.open(encoding="utf-8", errors="replace") as stream:
+            lines.extend(stream)
+    report = classify(lines)
+    payload = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    print(payload, end="")
+    if args.json_out:
+        args.json_out.write_text(payload, encoding="utf-8")
+    expected = {"d3d11": "d3d11_dxvk_present_path", "d3d12": "d3d12_dxgi_present_path"}
+    return 2 if args.require_api and report["api_evidence"] != expected[args.require_api] else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
