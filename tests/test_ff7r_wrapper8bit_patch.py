@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from ff7r_wrapper8bit_patch import patch, patch_instance, MARKER, INSTANCE_MARKER, LOAD_MARKER
+from ff7r_wrapper8bit_patch import patch, patch_instance, MARKER, INSTANCE_MARKER, LOAD_MARKER, M5_MARKER
 
 FIXTURE = (
     "void wrapper_GetPhysicalDeviceFeatures2(void) {}\n"
@@ -13,6 +13,8 @@ FIXTURE = (
     "\n"
     "      struct vk_features *supported_features = &pdevice->vk.supported_features;\n"
     "      pdevice->base_supported_features = *supported_features;\n"
+    "      /* VK_KHR_push_descriptor: vkd3d/DXVK effectively require it, but some\n"
+    "       * drivers. */\n"
     "}\n"
 )
 
@@ -25,6 +27,18 @@ class WrapperRawCapabilitiesTest(unittest.TestCase):
         twice, second = patch(patched)
         self.assertEqual(second, "already-patched")
         self.assertEqual(twice, patched)
+
+    def test_raw_and_wrapper_maintenance5_compare_is_read_only(self):
+        patched, _ = patch(FIXTURE)
+        self.assertIn(M5_MARKER, patched)
+        self.assertIn("pdevice->base_supported_extensions.KHR_maintenance5", patched)
+        self.assertIn("pdevice->vk.supported_extensions.KHR_maintenance5", patched)
+        self.assertIn("pdevice->vk.supported_features.maintenance5", patched)
+        self.assertIn("pdevice->dispatch_handle, &ff7r_m5_raw_query", patched)
+        self.assertIn("ff7r_raw_m5.maintenance5", patched)
+        self.assertIn("engine_name);", patched)
+        self.assertNotIn("supported_features->maintenance5 =", patched)
+        self.assertNotIn("supported_extensions.KHR_maintenance5 = true", patched)
 
     def test_real_icd_query_streams_to_existing_wine_log(self):
         patched, _ = patch(FIXTURE)
