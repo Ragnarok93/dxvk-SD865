@@ -42,3 +42,9 @@ This third run again shows roughly **4 GiB DXVK allocated** and Turnip rejecting
 2. Check DXGI config with `DXVK_LOG_LEVEL=info` and proper exact field value; game-facing VRAM reporting may affect UE4 texture streaming, but it is not a hard cap.
 3. With matched save/resolution/driver/FEX, test actual texture/streaming demand (Low textures, conservative UE4 pool) and measure peak allocations. Consider wrapper BCn expanded-texture memory.
 4. Investigate Turnip/Adreno GPU memory allocation and BDA failure path; **do not spoof Vulkan heap or disable required Vulkan features**.
+
+## 2026-10-12 user clarification — screenshot timing resolves the apparent mismatch
+
+The user explicitly clarified: **"The screenshot was before I set pool_experiment to 0 like you asked."** Therefore the screenshots documenting `DXVK_SD865_POOL_EXPERIMENT=1` were captured **before** the intentional control run with `DXVK_SD865_POOL_EXPERIMENT=0`. The subsequent D3D11 and Wine markers `enabled=0` are **correct and expected** for that run. There is **no evidenced GameNative environment-variable propagation defect**, and no need to re-test this specific flag to resolve the screenshot/log discrepancy.
+
+The genuine A/B outcome is: enabled experiment reclaimed **47 fully empty chunks / 1,452 MiB cumulatively**, yet still returned OOM near **4,002 MiB DXVK allocated**; deliberate disabled control reclaimed no chunks and still returned OOM near **4,008 MiB**. Conditions are not proven identical, so do not treat the ~6 MiB difference as a statistically supported regression or improvement. Next work should focus on verifying the *separate* `DXVK_CONFIG=dxgi.maxDeviceMemory = 3072` setting and on reducing live GPU resource demand / investigating the driver OOM condition, not on GameNative env flag propagation.
