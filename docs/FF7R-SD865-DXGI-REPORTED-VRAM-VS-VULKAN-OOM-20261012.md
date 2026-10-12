@@ -31,3 +31,9 @@ Cross-repository references:
 - [FEX 2610 bounded evidence report](https://github.com/Ragnarok93/FEX/blob/research/ff7r-memory-triage-20261012/docs/investigations/FF7R-SD865-FEX2610-NONCAUSAL-TRIAGE-20261012.md)
 
 **Conclusions are from DXVK and GameNative source and user logs, not proof of a specific private Mr Purple T30 KGSL implementation.**
+
+## Turnip repository routing confirmed (2026-10-12)
+
+User identified the designated Turnip fork as [`Ragnarok93/Banners-Turnip`](https://github.com/Ragnarok93/Banners-Turnip). The driver-specific investigation is now committed at [`docs/investigations/FF7R-SD865-KGSL-VULKAN-OOM-20261012.md`](https://github.com/Ragnarok93/Banners-Turnip/blob/research/ff7r-a650-kgsl-oom-20261012/docs/investigations/FF7R-SD865-KGSL-VULKAN-OOM-20261012.md), commit `a1f89412d024`.
+
+**Provenance qualification:** Banners-Turnip's Standard A6xx driver is built from pinned/upstream Mesa, whereas the user's currently tested driver is Mr Purple T30 / PurpleVK; source/binary equivalence has **not** been confirmed. Turnip build, KGSL ioctl failures, driver errno and GPU virtual-memory questions belong to the linked driver report, not this subsystem's patch queue.
