@@ -81,7 +81,7 @@ jobs:
             for dll in d3d9.dll d3d10core.dll d3d11.dll dxgi.dll; do
               test -s "build/dxvk-$VERSION_NAME/$arch/$dll"
             done
-            grep -aFq 'DXVK-SD865-ALLOC state=diagnostic_wcp_loaded' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
+            grep -aFq 'DXVK-SD865-ALLOC state=ready' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
             grep -aFq 'DXVK-SD865-ALLOC stage=driver_retry' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
             grep -aFq 'DXVK_SD865_ALLOC_TRACE' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
           done
