@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <optional>
 #include <chrono>
 #include <string>
