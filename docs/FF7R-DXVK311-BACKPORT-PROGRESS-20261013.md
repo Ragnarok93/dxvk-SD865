@@ -32,6 +32,7 @@ or unavailable private repository.
 | `b1ef9e7c` | Skip fence waits already satisfied | Existing Vulkan 1.2 timeline semaphore query; unsatisfied waits retained |
 | `3c6a6ff1` | Preserve imported resource cookies | Host bookkeeping; fixes imported-resource lookup |
 | `662b5068` | Omit empty pipeline flags2 structures | Reduces unnecessary maintenance5 pNext use; nonzero flags remain on existing supported extension path |
+| `0aea8528` + `64542839` | Handle unavailable display refresh rates without division by zero | Host frame statistics only; regression reproduced SIGFPE, fixed code passes 60/120/fractional/zero-rate tests |
 
 ## Deferred or already equivalent
 
@@ -45,6 +46,12 @@ or unavailable private repository.
 Each retained change must pass cross-compilation and existing tests. Device
 startup, image correctness and frame-time improvements remain unverified
 until measured on the S20+. No speedup is claimed from source review alone.
+
+Checkpoint `bc93bd59`: six upstream commits applied, existing 48 tests and
+one compiled refresh arithmetic regression pass. Dedicated WCP CI now
+watches all source changes and runs the full test suite: the previous narrow
+path filter omitted DXVK core backports, so it could silently leave the
+benchmark artifact stale. Source and shader compiler requirements unchanged.
 
 Keep LSFG and vkBasalt enabled in the container between runs. LSFG frame
 generation is disabled in-game. Keep textures Low (the user's established

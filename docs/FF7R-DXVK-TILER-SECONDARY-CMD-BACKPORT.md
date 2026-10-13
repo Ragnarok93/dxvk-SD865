@@ -18,6 +18,6 @@ The surveyed Star Engine / Vegas patch set is based on DXVK 2.7.1 and includes e
 - [x] `git diff --check` passes.
 - [ ] DXVK 32-bit and 64-bit build CI.
 - [ ] Install and smoke-test on the S20+ Turnip/T30 path.
-- [ ] Compare against the unchanged 2.7.1 control in the same FFVII Remake scene: at least three matched runs, shader cache warmed equally, LSFG off; record median and p95/p99 frametimes plus visual correctness.
+- [ ] Compare against the unchanged 2.7.1 control in the same FFVII Remake scene: at least three matched runs, shader cache warmed equally, LSFG and vkBasalt enabled in-container, LSFG frame generation disabled in-game; record median and p95/p99 real-frame times plus visual correctness.
 
 The change may add CPU command-buffer overhead on trivial passes. Keep it only if the matched GameNative test shows no correctness regression and improves or preserves FFVII Remake frame pacing.

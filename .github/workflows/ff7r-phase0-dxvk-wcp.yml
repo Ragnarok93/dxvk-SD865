@@ -7,8 +7,13 @@ on:
       - feature/ff7r-sd865-architecture-20261011
     paths:
       - '.github/workflows/ff7r-phase0-dxvk-wcp.yml'
-      - 'src/d3d11/d3d11_main.cpp'
-      - 'src/dxgi/dxgi_swapchain.cpp'
+      - 'src/**'
+      - 'include/**'
+      - 'meson.build'
+      - 'meson_options.txt'
+      - 'package-release.sh'
+      - 'build-win*.txt'
+      - 'tests/test_refresh_statistics.py'
       - 'tools/ff7r_phase0_report.py'
       - 'tests/test_ff7r_phase0_report.py'
       - 'tools/package_gamenative_wcp.py'
@@ -46,7 +51,7 @@ jobs:
           python3 -m unittest discover -s tests -p test_gamenative_wcp.py -v
 
       - name: Verify attribution tests
-        run: python3 -m unittest discover -s tests -p 'test_ff7r_phase0_report.py' -v
+        run: python3 -m unittest discover -s tests -v
 
       - name: Cross-compile PE x64 and x32
         shell: bash
