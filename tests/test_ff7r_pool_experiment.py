@@ -85,7 +85,7 @@ class PoolExperimentTests(unittest.TestCase):
         self.assertIn('" empty_chunks_reclaimed="', s)
         self.assertIn('" empty_bytes_reclaimed="', s)
         self.assertIn('emitted.fetch_add(1u, std::memory_order_relaxed) < 128u', s)
-        self.assertIn("DXVK-SD865-ALLOC state=diagnostic_wcp_loaded", s)
+        self.assertIn("DXVK-SD865-ALLOC state=ready", s)
 
     def test_early_pressure_threshold_remains_driver_owned(self):
         s = self.source
