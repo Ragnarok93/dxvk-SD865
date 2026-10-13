@@ -1,9 +1,11 @@
 #include <optional>
 #include <chrono>
+#include <string>
 
 #include "dxvk_device.h"
 #include "dxvk_pipemanager.h"
 #include "../util/util_ff7r_timing.h"
+#include "../util/util_ff7r_build_stamp.h"
 
 namespace dxvk {
   
@@ -93,8 +95,39 @@ namespace dxvk {
       if (env::is32BitHostPlatform())
         workerCount = std::min(workerCount, 16u);
 
-      if (m_device->config().numCompilerThreads > 0)
-        workerCount = m_device->config().numCompilerThreads;
+      // Prefer an explicit GameNative-safe override, but preserve DXVK_CONFIG.
+      std::string countSource = "hardware";
+      if (m_device->config().numCompilerThreads > 0) {
+        workerCount = uint32_t(m_device->config().numCompilerThreads);
+        countSource = "dxvk-config";
+      }
+
+      const bool isFf7r = env::getExeName() == "ff7remake_.exe";
+      const std::string requested = env::getEnvVar("DXVK_FF7R_COMPILER_THREADS");
+      if (isFf7r) {
+        // Diagnostic default for FF7R only. This is a controlled experiment,
+        // not a claim that four threads is faster than eight.
+        if (m_device->config().numCompilerThreads <= 0) {
+          workerCount = 4;
+          countSource = "ff7r-experiment-default";
+        }
+        if (requested.size() == 1 && requested[0] >= '1' && requested[0] <= '8') {
+          workerCount = uint32_t(requested[0] - '0');
+          countSource = "ff7r-env-override";
+        } else if (!requested.empty()) {
+          Logger::warn(str::format("DXVK-SD865-CONFIG: invalid_compiler_override=",
+            requested, " valid_range=1..8"));
+        }
+      }
+      workerCount = std::clamp(workerCount, 1u, 64u);
+      Logger::warn(str::format("DXVK-SD865-CONFIG: sha=", DXVK_SD865_BUILD_SHA,
+        " exe=", env::getExeName(),
+        " compiler_threads=", workerCount,
+        " source=", countSource,
+        " dxvk_config_present=", env::getEnvVar("DXVK_CONFIG").empty() ? 0 : 1,
+        " override_present=", requested.empty() ? 0 : 1,
+        " metrics_enabled=", env::getEnvVar("DXVK_FF7R_METRICS") == "1" ? 1 : 0,
+        " alloc_trace_enabled=", env::getEnvVar("DXVK_SD865_ALLOC_TRACE") == "0" ? 0 : 1));
 
       // Number of workers that can process pipeline pipelines with normal
       // priority. Any other workers can only build high-priority pipelines.
@@ -218,6 +251,8 @@ namespace dxvk {
           DxvkDevice*         device)
   : m_device    (device),
     m_workers   (device) {
+    Logger::warn(str::format("DXVK-SD865-BUILD: component=d3d11 sha=", DXVK_SD865_BUILD_SHA,
+      " exe=", env::getExeName(), " contract=queue-sync-alloc-v2"));
     Logger::info(str::format("DXVK: Graphics pipeline libraries ",
       (m_device->canUseGraphicsPipelineLibrary() ? "supported" : "not supported")));
 
