@@ -1,5 +1,6 @@
 #include "dxvk_device.h"
 #include "dxvk_queue.h"
+#include "../util/util_ff7r_timing.h"
 
 namespace dxvk {
   
@@ -46,6 +47,10 @@ namespace dxvk {
           DxvkSubmitInfo            submitInfo,
           DxvkLatencyInfo           latencyInfo,
           DxvkSubmitStatus*         status) {
+    static const bool ff7rMetrics = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    static Ff7rTimingCounter enqueueStats;
+    auto begin = ff7rMetrics ? Ff7rTimingCounter::Clock::now()
+                             : Ff7rTimingCounter::Clock::time_point { };
     std::unique_lock<dxvk::mutex> lock(m_mutex);
 
     m_finishCond.wait(lock, [this] {
@@ -59,6 +64,21 @@ namespace dxvk {
 
     m_submitQueue.push(std::move(entry));
     m_appendCond.notify_all();
+    lock.unlock();
+
+    // Includes queue backpressure; shows if FEX/game blocks while the
+    // asynchronous submit/retirement queues fill.
+    if (ff7rMetrics) {
+      auto done = Ff7rTimingCounter::Clock::now();
+      auto elapsedUs = uint64_t(std::chrono::duration_cast<std::chrono::microseconds>(
+        done - begin).count());
+      if (enqueueStats.record(elapsedUs)) {
+        auto stats = enqueueStats.snapshot();
+        Logger::info(str::format("DXVK-FF7R-ENQUEUE: ts_us=", Ff7rTimingCounter::timeUs(done),
+          " samples=", stats.count, " mean_us=", stats.meanUs, " max_us=", stats.maxUs,
+          " over_10ms=", stats.over10ms, " over_33ms=", stats.over33ms));
+      }
+    }
   }
 
 
@@ -132,6 +152,9 @@ namespace dxvk {
     uint64_t trackedSubmitId = 0u;
     uint64_t trackedPresentId = 0u;
 
+    static const bool ff7rMetrics = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    static Ff7rTimingCounter queueSubmitStats, queuePresentStats;
+
     while (!m_stopped.load()) {
       DxvkSubmitEntry entry;
 
@@ -146,6 +169,14 @@ namespace dxvk {
 
         entry = std::move(m_submitQueue.front());
       }
+
+      // Includes device queue mutex, native Vulkan submit or present,
+      // and active Vulkan presentation layers. Never interpreted as GPU
+      // execution time or as an actual displayed frame timestamp.
+      bool isSubmit = entry.submit.cmdList != nullptr;
+      bool isPresent = entry.present.presenter != nullptr;
+      auto begin = ff7rMetrics ? Ff7rTimingCounter::Clock::now()
+                               : Ff7rTimingCounter::Clock::time_point { };
 
       // Submit command buffer to device
       if (m_lastError != VK_ERROR_DEVICE_LOST) {
@@ -189,6 +220,21 @@ namespace dxvk {
         entry.result = VK_ERROR_DEVICE_LOST;
       }
 
+      if (ff7rMetrics && entry.result == VK_SUCCESS && (isSubmit || isPresent)) {
+        auto done = Ff7rTimingCounter::Clock::now();
+        auto elapsedUs = uint64_t(std::chrono::duration_cast<std::chrono::microseconds>(
+          done - begin).count());
+        auto& counters = isSubmit ? queueSubmitStats : queuePresentStats;
+        if (counters.record(elapsedUs)) {
+          auto stats = counters.snapshot();
+          Logger::info(str::format(
+            isSubmit ? "DXVK-FF7R-QUEUE-SUBMIT: ts_us=" : "DXVK-FF7R-QUEUE-PRESENT: ts_us=",
+            Ff7rTimingCounter::timeUs(done), " samples=", stats.count,
+            " mean_us=", stats.meanUs, " max_us=", stats.maxUs,
+            " over_10ms=", stats.over10ms, " over_33ms=", stats.over33ms));
+        }
+      }
+
       if (entry.status)
         entry.status->result = entry.result;
       
@@ -223,6 +269,9 @@ namespace dxvk {
     env::setThreadName("dxvk-queue");
 
     auto vk = m_device->vkd();
+
+    static const bool ff7rMetrics = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    static Ff7rTimingCounter gpuWaitStats;
 
     while (!m_stopped.load()) {
       std::unique_lock<dxvk::mutex> lock(m_mutex);
@@ -259,7 +308,22 @@ namespace dxvk {
           waitInfo.pSemaphores = semaphores.data();
           waitInfo.pValues = timelines.data();
 
+          auto begin = ff7rMetrics ? Ff7rTimingCounter::Clock::now()
+                                   : Ff7rTimingCounter::Clock::time_point { };
           status = vk->vkWaitSemaphores(vk->device(), &waitInfo, ~0ull);
+
+          if (ff7rMetrics && status == VK_SUCCESS) {
+            auto done = Ff7rTimingCounter::Clock::now();
+            auto elapsedUs = uint64_t(std::chrono::duration_cast<std::chrono::microseconds>(
+              done - begin).count());
+            if (gpuWaitStats.record(elapsedUs)) {
+              auto stats = gpuWaitStats.snapshot();
+              Logger::info(str::format("DXVK-FF7R-GPU-WAIT: ts_us=",
+                Ff7rTimingCounter::timeUs(done), " samples=", stats.count,
+                " mean_us=", stats.meanUs, " max_us=", stats.maxUs,
+                " over_10ms=", stats.over10ms, " over_33ms=", stats.over33ms));
+            }
+          }
 
           if (entry.latency.tracker && status == VK_SUCCESS)
             entry.latency.tracker->notifyGpuExecutionEnd(entry.latency.frameId);
