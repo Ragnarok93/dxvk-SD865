@@ -27,7 +27,7 @@ Refreshed public histories on 2026-10-13:
 | npark2860-cyber/DXVK_Adreno | empty search result repository | No source available to review. |
 
 Coverage is the identified relevant public fork set, not every unindexed/private
-repository. The existing GPLAsync source is also rechecked separately.
+repository. GPLAsync source rechecked at 04e50ed2 (2026-09-19), including the 2.7.1 and 3.1.1 patches; asynchronous draw/compile behavior remains a separate candidate requiring rendering acceptance.
 
 ## Selected change and compatibility
 
@@ -48,11 +48,33 @@ descriptor-heap, storage8 and new compiler series remain deferred. No feature sp
 
 - [x] Recover previous branch and survey ledger.
 - [x] Refresh relevant fork histories and upstream ancestry before editing code.
-- [ ] Run native concurrency regression against old and adapted code.
-- [ ] Cross-compile and validate WCP.
-- [ ] Checkpoint validated DXVK slice before Turnip implementation.
+- [x] Native concurrency regression fails on old serialized code and passes on adapted code; 50 tests pass.
+- [x] MSVC x86/x64 and MinGW x32/x64 pass; GameNative WCP package checks pass.
+- [x] DXVK source checkpoint dfcab832; MSVC builds passed before Turnip code changes, WCP validation also completed.
 - [ ] Device real-frame median/p95/p99 and visual/stability acceptance.
 
 LSFG/vkBasalt enabled in-container; LSFG FG disabled in-game; textures Low.
 Keep resolution, scene, FEX, thermal state and cache state matched; measure each
 subsystem independently. Compilation overlap is host evidence, not a device FPS claim.
+
+
+## Build and review result
+
+Source: dfcab83297c9517832f5fecac8e93b8bfa8e60df.
+CI: https://github.com/Ragnarok93/dxvk-SD865/actions/runs/38353184245 (success).
+MSVC: https://github.com/Ragnarok93/dxvk-SD865/actions/runs/38353184209 (success).
+Artifact ID11791789078; WCP dxvk-ff7r-phase0-dxvk271-dfcab83297c9.wcp.
+SHA256: ce96a3cbfca452452aff50eff7b4882327fb4b839463d3f4a248119f8b4e1047.
+Downloaded archive digest verified, WCP profile names exact source, and required
+x32/x64 PE DLL headers verified. Existing Vulkan minimum/device feature checks,
+shader compiler, descriptor model and compiler-thread settings unchanged.
+
+Review: legacy getCode decompresses into a per-call buffer and patches that copy;
+pipeline bindings are immutable after construction; worker queues retain pipeline
+lifetime, and all result publication uses release/acquire. Map value pointer is
+retained across rehash. Failed compiles remain terminal for that fast key, matching
+the upstream completion model. Same-key callers can spin/yield while compiling;
+FF7R duplicate frequency and CPU/frame-time benefit still require device evidence.
+
+This completes this independent backport slice. Large access-tracker/compiler/
+descriptor redesigns and the remaining candidate inventory are not asserted complete.

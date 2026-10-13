@@ -38,7 +38,7 @@ or unavailable private repository.
 
 - `fb34f940`, `c46d935c`, `84c34155`: later descriptor allocator has a different lifetime model. 2.7.1 already resets recycled pools in command-list cleanup; do not replace caching without a measured memory/CPU benefit.
 - New dxbc-spirv compiler, descriptor heap and mandatory storage8 changes: require substantial shader lowering and conformance work. Keep the functioning legacy compiler rather than spoofing features.
-- `cc418519`: concurrent optimized variants require adapting the key/container model and testing concurrent publication; not blindly cherry-picked.
+- `cc418519`: now adapted and validated in continuation checkpoint `dfcab832`; see FF7R-DXVK311-CONTINUATION-20261013.md for native concurrency, stable-pointer publication and cross-build evidence.
 - Synchronization/render-pass changes dependent on the 3.x access tracker are not imported piecemeal.
 
 ## Validation and benchmark contract
@@ -59,3 +59,8 @@ stable setting), resolution, save/scene, FEX build, thermals and cache state
 fixed. Compare at least three matched warm-cache trials against `d82db60`;
 record real-frame median, p95/p99, crashes and visible corruption. Separate
 DXVK and Turnip trials. Retain experiments as candidates until that gate.
+
+
+Continuation checkpoint `dfcab832` adds upstream cc418519 without changing any
+Vulkan requirements. Native 50 tests and both PE architectures pass; GameNative
+WCP run38353184245 succeeds. S20+ performance acceptance remains open.
