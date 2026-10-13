@@ -1,4 +1,5 @@
 #include "dxvk_cs.h"
+#include "../util/util_ff7r_timing.h"
 
 namespace dxvk {
   
@@ -186,6 +187,18 @@ namespace dxvk {
 
       m_device->addStatCtr(DxvkStatCounter::CsSyncCount, 1);
       m_device->addStatCtr(DxvkStatCounter::CsSyncTicks, ticks.count());
+
+      // Waiting for the DXVK CS worker can block the D3D11 application
+      // thread without blocking on Vulkan GPU completion.
+      static const bool ff7rMetrics = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+      static Ff7rTimingCounter csWaitStats;
+      if (ff7rMetrics && csWaitStats.record(uint64_t(ticks.count()))) {
+        auto stats = csWaitStats.snapshot();
+        Logger::info(str::format("DXVK-FF7R-CS-WAIT: ts_us=",
+          Ff7rTimingCounter::timeUs(t1), " samples=", stats.count,
+          " mean_us=", stats.meanUs, " max_us=", stats.maxUs,
+          " over_10ms=", stats.over10ms, " over_33ms=", stats.over33ms));
+      }
     }
   }
   
