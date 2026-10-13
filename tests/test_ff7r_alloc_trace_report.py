@@ -71,7 +71,7 @@ class AllocTraceTests(unittest.TestCase):
         source = SOURCE.read_text(encoding="utf-8")
         self.assertNotIn('env::getEnvVar("DXVK_SD865_ALLOC_TRACE") == "1"', source)
         self.assertIn('env::getEnvVar("DXVK_SD865_ALLOC_TRACE") != "0"', source)
-        self.assertIn('#ifdef DXVK_SD865_ALLOC_DIAG_WCP', source)
+        self.assertIn('#if defined(DXVK_SD865_POOL_WCP) && !defined(DXVK_SD865_ALLOC_DIAG_WCP)', source)
         self.assertIn('DXVK-SD865-ALLOC state=ready', source)
         script = (SOURCE.parents[2] / "package-release.sh").read_text(encoding="utf-8")
         self.assertIn("DXVK_SD865_DIAG_WCP", script)
