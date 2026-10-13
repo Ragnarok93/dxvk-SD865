@@ -81,6 +81,8 @@ jobs:
           set -euo pipefail
           VERSION_NAME="ff7r-pool64m32m-dxvk271-${GITHUB_SHA:0:12}"
           echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          sed -i "s/__DXVK_SD865_BUILD_SHA__/${GITHUB_SHA}/" src/util/util_ff7r_build_stamp.h
+          grep -Fq "$GITHUB_SHA" src/util/util_ff7r_build_stamp.h
           # Selecting this uniquely named diagnostic WCP is the opt-in.
           # Compile with an explicit define, so regular WCP builds stay inert.
           DXVK_SD865_POOL_WCP=1 ./package-release.sh "$VERSION_NAME" build --no-package
@@ -89,6 +91,12 @@ jobs:
               test -s "build/dxvk-$VERSION_NAME/$arch/$dll"
             done
             grep -aFq 'DXVK-SD865-ALLOC state=ready' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
+            for dll in d3d11.dll dxgi.dll; do
+              grep -aFq "$GITHUB_SHA" "build/dxvk-$VERSION_NAME/$arch/$dll"
+              grep -aFq 'DXVK-SD865-BUILD:' "build/dxvk-$VERSION_NAME/$arch/$dll"
+            done
+            grep -aFq 'DXVK-FF7R-GPU-WAIT:' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
+            grep -aFq 'DXVK-SD865-CONFIG:' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
             grep -aFq 'DXVK-SD865-ALLOC stage=driver_retry' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
             grep -aFq 'DXVK_SD865_ALLOC_TRACE' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
             grep -aFq 'DXVK-SD865-POOL state=init' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
