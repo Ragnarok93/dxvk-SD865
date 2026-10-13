@@ -6,6 +6,7 @@
 
 #include "dxvk_device.h"
 #include "dxvk_graphics.h"
+#include "../util/util_ff7r_timing.h"
 #include "dxvk_pipemanager.h"
 
 namespace dxvk {
@@ -1110,7 +1111,8 @@ namespace dxvk {
         uint64_t count = slowCount.fetch_add(1, std::memory_order_relaxed) + 1;
         if (count == 1 || count % 64 == 0) {
           Logger::info(str::format(
-            "DXVK-FF7R-ONDEMAND: samples=", count,
+            "DXVK-FF7R-ONDEMAND: ts_us=", Ff7rTimingCounter::timeUs(Ff7rTimingCounter::Clock::now()),
+            " samples=", count,
             " mean_us=", slowUs.load(std::memory_order_relaxed) / count,
             " over_10ms=", slowOver10ms.load(std::memory_order_relaxed),
             " over_33ms=", slowOver33ms.load(std::memory_order_relaxed)));

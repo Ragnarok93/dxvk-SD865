@@ -3,6 +3,7 @@
 
 #include "dxvk_device.h"
 #include "dxvk_pipemanager.h"
+#include "../util/util_ff7r_timing.h"
 
 namespace dxvk {
   
@@ -196,7 +197,9 @@ namespace dxvk {
           uint64_t libs = libraryCount.load(std::memory_order_relaxed);
           uint64_t opts = optimizedCount.load(std::memory_order_relaxed);
           Logger::info(str::format(
-            "DXVK-FF7R-PIPELINES: samples=", samples,
+            "DXVK-FF7R-PIPELINES: ts_us=", Ff7rTimingCounter::timeUs(Ff7rTimingCounter::Clock::now()),
+            " samples=", samples,
+            " pending=", m_tasksTotal.load(std::memory_order_relaxed) - m_tasksCompleted.load(std::memory_order_relaxed),
             " libraries=", libs,
             " library_mean_us=", libs ? libraryUs.load(std::memory_order_relaxed) / libs : 0,
             " optimized=", opts,

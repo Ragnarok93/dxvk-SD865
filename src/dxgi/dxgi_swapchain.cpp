@@ -389,9 +389,12 @@ namespace dxvk {
       static const bool ff7rPerfEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
       if (ff7rPerfEnabled && !m_is_d3d12) {
         Ff7rPresentMetrics::Window sample = { };
-        if (m_ff7rPresentMetrics.add(Ff7rPresentMetrics::Clock::now(), sample)) {
+        auto windowEnd = Ff7rPresentMetrics::Clock::now();
+        if (m_ff7rPresentMetrics.add(windowEnd, sample)) {
           Logger::info(str::format(
-            "DXVK-FF7R-FRAMES: present_id=", m_presentId,
+            "DXVK-FF7R-FRAMES: ts_us=",
+            std::chrono::duration_cast<std::chrono::microseconds>(windowEnd.time_since_epoch()).count(),
+            " present_id=", m_presentId,
             " count=", sample.sampleCount,
             " mean_us=", sample.meanUs,
             " p50_us=", sample.p50Us,
