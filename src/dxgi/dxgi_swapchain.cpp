@@ -383,6 +383,24 @@ namespace dxvk {
 
       m_presentId += 1;
 
+      // Debug-only real D3D11 DXGI Present completion cadence, NOT GPU frame
+      // execution time. Ignore DXGI_PRESENT_TEST and any D3D12 swap chain.
+      // The bounded 256-frame window requires no per-frame log calls.
+      static const bool ff7rPerfEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+      if (ff7rPerfEnabled && !m_is_d3d12) {
+        Ff7rPresentMetrics::Window sample = { };
+        if (m_ff7rPresentMetrics.add(Ff7rPresentMetrics::Clock::now(), sample)) {
+          Logger::info(str::format(
+            "DXVK-FF7R-FRAMES: present_id=", m_presentId,
+            " count=", sample.sampleCount,
+            " mean_us=", sample.meanUs,
+            " p50_us=", sample.p50Us,
+            " p95_us=", sample.p95Us,
+            " p99_us=", sample.p99Us,
+            " max_us=", sample.maxUs));
+        }
+      }
+
       // Update monitor frame statistics. This is not consistent with swap chain
       // frame statistics at all, but we want to ensure that all presents become
       // visible to the IDXGIOutput in case applications rely on that behaviour.
