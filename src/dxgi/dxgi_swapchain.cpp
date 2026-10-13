@@ -4,6 +4,7 @@
 
 #include "../util/util_misc.h"
 #include "../util/util_env.h"
+#include "../util/util_ff7r_build_stamp.h"
 
 #include <d3d12.h>
 
@@ -374,6 +375,15 @@ namespace dxvk {
 
       // One-shot attribution: DXGI may also present for a VKD3D D3D12 queue.
       // A DXGI log alone never establishes D3D11 as the rendering API.
+      // One-shot in-process attestation. A mismatched SHA between this
+      // DLL and d3d11.dll proves mixed/stale GameNative components.
+      if (m_presentId == 0) {
+        Logger::warn(str::format(
+          "DXVK-SD865-BUILD: component=dxgi sha=", DXVK_SD865_BUILD_SHA,
+          " exe=", env::getExeName(),
+          " metrics_enabled=", env::getEnvVar("DXVK_FF7R_METRICS") == "1" ? 1 : 0,
+          " contract=queue-sync-alloc-v2"));
+      }
       if (m_presentId == 0 && env::getEnvVar("DXVK_FF7R_PHASE0") == "1") {
         Logger::info(str::format(
           "DXVK-FF7R-PHASE0: first_dxgi_present exe=", env::getExeName(),
