@@ -9,6 +9,7 @@ Comparison of user-provided Current.zip vs DXVK.2.7.1.gplasync_Mr.Purple.T30.zip
 ## Source changes
 
 - `DXVK_FF7R_METRICS=1` enables bounded DXGI Present-completion cadence collection, D3D11 only. Each 256 intervals, emit `DXVK-FF7R-FRAMES` mean, p50, p95, p99 and max (microseconds). Rejected pauses above 3 seconds reset the current window. Disabled builds incur only an env/static check, with no sampling clock reads or allocations. This measures CPU-side Present completion cadence, **not GPU execution timestamps or actual scanout**.
+- `DXVK-FF7R-ONDEMAND` samples render-thread graphics pipeline cache-miss slowpaths (including pipeline mutex wait and new instance creation), reporting average latency and 10/33ms counts once on first miss and every 64 misses. These are CPU durations, not GPU timestamps. Disabled fastpath remains unchanged.
 - In DXVK's shader-worker pool, the same flag enables accumulated background pipeline-library and optimized-pipeline CPU compilation times, reporting `DXVK-FF7R-PIPELINES` once on first task and then once per 64 tasks. Includes counts above 10ms/33ms. Does **not** measure synchronous graphics pipeline creation, GPU cost or cache hit rates. Disabled path skips clock reads/atomics.
 - Added portable native percentile test, Python parser tests and ZIP/directory comparison script. Keep low-noise DXVK_LOG_LEVEL=info when capturing diagnostics.
 

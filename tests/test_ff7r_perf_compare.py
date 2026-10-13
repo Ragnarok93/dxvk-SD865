@@ -28,12 +28,14 @@ class PerfCompareTest(unittest.TestCase):
             with zipfile.ZipFile(p, 'w') as z:
                 lines = [f'DXVK-FF7R-FRAMES: present_id={256*(i+1)} count=256 mean_us=33333 p50_us=33333 p95_us={34000+i*1000} p99_us=44000 max_us=60000' for i in range(3)]
                 lines.append('DXVK-FF7R-PIPELINES: samples=64 libraries=60 library_mean_us=300 optimized=4 optimized_mean_us=500 over_10ms=0 over_33ms=0')
+                lines.append('DXVK-FF7R-ONDEMAND: samples=64 mean_us=200 over_10ms=1 over_33ms=0')
                 z.writestr('foo/ff7remake__dxgi.log', '\n'.join(lines))
             result = perf.compare(p, p)
             self.assertTrue(result['benchmark_valid'])
             self.assertEqual(result['candidate']['sampled_intervals'], 768)
             self.assertEqual(result['candidate']['median_window_p95_ms'], 35)
             self.assertEqual(result['candidate']['pipeline_latest_snapshot']['samples'], 64)
+            self.assertEqual(result['candidate']['on_demand_latest_snapshot']['over_10ms'], 1)
             self.assertEqual(result['p95_window_median_delta_percent'], 0)
 
 

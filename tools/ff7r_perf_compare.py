@@ -13,6 +13,7 @@ import zipfile
 
 FRAME = re.compile(r'DXVK-FF7R-FRAMES:\s*(.*)')
 PIPE = re.compile(r'DXVK-FF7R-PIPELINES:\s*(.*)')
+ONDEMAND = re.compile(r'DXVK-FF7R-ONDEMAND:\s*(.*)')
 FIELDS = re.compile(r'([a-z][a-z0-9_]*)=(\d+)')
 
 
@@ -31,6 +32,7 @@ def load_logs(path):
 def parse(path):
     windows = []
     pipelines = []
+    on_demand = []
     for content in load_logs(path):
         for line in content.splitlines():
             m = FRAME.search(line)
@@ -43,11 +45,17 @@ def parse(path):
                 d = {k: int(v) for k, v in FIELDS.findall(m.group(1))}
                 if all(k in d for k in ('samples', 'libraries', 'optimized')):
                     pipelines.append(d)
+            m = ONDEMAND.search(line)
+            if m:
+                d = {k: int(v) for k, v in FIELDS.findall(m.group(1))}
+                if all(k in d for k in ('samples', 'mean_us', 'over_10ms', 'over_33ms')):
+                    on_demand.append(d)
     # A named DXVK log may be duplicated inside a capture; sort/unique by
     # present ID per window, rather than counting the same interval twice.
     unique = {d.get('present_id', i): d for i, d in enumerate(windows)}
     windows = [unique[k] for k in sorted(unique)]
     pipelines.sort(key=lambda x: x['samples'])
+    on_demand.sort(key=lambda x: x['samples'])
     return {'present_windows': len(windows),
             'sampled_intervals': sum(d['count'] for d in windows),
             'median_window_p50_ms': med(windows, 'p50_us'),
@@ -55,6 +63,7 @@ def parse(path):
             'median_window_p99_ms': med(windows, 'p99_us'),
             'worst_window_p99_ms': max((d['p99_us'] / 1000 for d in windows), default=None),
             'pipeline_latest_snapshot': pipelines[-1] if pipelines else None,
+            'on_demand_latest_snapshot': on_demand[-1] if on_demand else None,
             'caveat': 'DXGI Present CPU completion intervals; NOT GPU execution or display scanout.'}
 
 
