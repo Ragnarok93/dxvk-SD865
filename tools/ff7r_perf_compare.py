@@ -14,6 +14,11 @@ import zipfile
 FRAME = re.compile(r'DXVK-FF7R-FRAMES:\s*(.*)')
 PIPE = re.compile(r'DXVK-FF7R-PIPELINES:\s*(.*)')
 ONDEMAND = re.compile(r'DXVK-FF7R-ONDEMAND:\s*(.*)')
+QUEUE_MARKERS = {
+    name: re.compile(r'DXVK-FF7R-' + name + r':\s*(.*)')
+    for name in ('ENQUEUE', 'QUEUE-SUBMIT', 'QUEUE-PRESENT', 'GPU-WAIT',
+                 'CS-WAIT', 'FENCE-WAIT', 'RESOURCE-WAIT')
+}
 FIELDS = re.compile(r'([a-z][a-z0-9_]*)=(\d+)')
 
 
@@ -33,6 +38,7 @@ def parse(path):
     windows = []
     pipelines = []
     on_demand = []
+    queue_metrics = {name: [] for name in QUEUE_MARKERS}
     for content in load_logs(path):
         for line in content.splitlines():
             m = FRAME.search(line)
@@ -50,12 +56,20 @@ def parse(path):
                 d = {k: int(v) for k, v in FIELDS.findall(m.group(1))}
                 if all(k in d for k in ('samples', 'mean_us', 'over_10ms', 'over_33ms')):
                     on_demand.append(d)
+            for name, matcher in QUEUE_MARKERS.items():
+                m = matcher.search(line)
+                if m:
+                    d = {k: int(v) for k, v in FIELDS.findall(m.group(1))}
+                    if all(k in d for k in ('samples', 'mean_us', 'max_us', 'over_10ms', 'over_33ms')):
+                        queue_metrics[name].append(d)
     # A named DXVK log may be duplicated inside a capture; sort/unique by
     # present ID per window, rather than counting the same interval twice.
     unique = {d.get('present_id', i): d for i, d in enumerate(windows)}
     windows = [unique[k] for k in sorted(unique)]
     pipelines.sort(key=lambda x: x['samples'])
     on_demand.sort(key=lambda x: x['samples'])
+    for values in queue_metrics.values():
+        values.sort(key=lambda x: x['samples'])
     return {'present_windows': len(windows),
             'sampled_intervals': sum(d['count'] for d in windows),
             'median_window_p50_ms': med(windows, 'p50_us'),
@@ -64,6 +78,11 @@ def parse(path):
             'worst_window_p99_ms': max((d['p99_us'] / 1000 for d in windows), default=None),
             'pipeline_latest_snapshot': pipelines[-1] if pipelines else None,
             'on_demand_latest_snapshot': on_demand[-1] if on_demand else None,
+            'queue_latest_snapshots': {name: values[-1] if values else None
+                                       for name, values in queue_metrics.items()},
+            'first_8_window_p95_ms': med(windows[:8], 'p95_us'),
+            'last_8_window_p95_ms': med(windows[-8:], 'p95_us'),
+            'windows_with_timestamps': sum('ts_us' in w for w in windows),
             'caveat': 'DXGI Present CPU completion intervals; NOT GPU execution or display scanout.'}
 
 
