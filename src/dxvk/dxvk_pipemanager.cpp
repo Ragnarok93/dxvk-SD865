@@ -1,4 +1,5 @@
 #include <optional>
+#include <chrono>
 
 #include "dxvk_device.h"
 #include "dxvk_pipemanager.h"
@@ -126,6 +127,13 @@ namespace dxvk {
   void DxvkPipelineWorkers::runWorker(DxvkPipelinePriority maxPriority) {
     static const std::array<char, 3> suffixes = { 'h', 'n', 'l' };
 
+    // Disabled by default; no clock reads or extra atomics on the hot
+    // compilation path unless a targeted FF7R diagnostic run opts in.
+    static const bool ff7rPerfEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    static std::atomic<uint64_t> libraryCount { 0 }, libraryUs { 0 };
+    static std::atomic<uint64_t> optimizedCount { 0 }, optimizedUs { 0 };
+    static std::atomic<uint64_t> over10ms { 0 }, over33ms { 0 }, totalSamples { 0 };
+
     const uint32_t maxPriorityIndex = uint32_t(maxPriority);
     env::setThreadName(str::format("dxvk-shader-", suffixes.at(maxPriorityIndex)));
 
@@ -158,11 +166,44 @@ namespace dxvk {
           break;
       }
 
+      auto started = ff7rPerfEnabled
+        ? std::chrono::steady_clock::now()
+        : std::chrono::steady_clock::time_point { };
+
       if (entry.pipelineLibrary) {
         entry.pipelineLibrary->compilePipeline();
       } else if (entry.graphicsPipeline) {
         entry.graphicsPipeline->compilePipeline(entry.graphicsState);
         entry.graphicsPipeline->releasePipeline();
+      }
+
+      if (ff7rPerfEnabled && (entry.pipelineLibrary || entry.graphicsPipeline)) {
+        uint64_t elapsedUs = uint64_t(std::chrono::duration_cast<std::chrono::microseconds>(
+          std::chrono::steady_clock::now() - started).count());
+        if (entry.pipelineLibrary) {
+          libraryUs.fetch_add(elapsedUs, std::memory_order_relaxed);
+          libraryCount.fetch_add(1, std::memory_order_relaxed);
+        } else {
+          optimizedUs.fetch_add(elapsedUs, std::memory_order_relaxed);
+          optimizedCount.fetch_add(1, std::memory_order_relaxed);
+        }
+        if (elapsedUs >= 10000)
+          over10ms.fetch_add(1, std::memory_order_relaxed);
+        if (elapsedUs >= 33000)
+          over33ms.fetch_add(1, std::memory_order_relaxed);
+        uint64_t samples = totalSamples.fetch_add(1, std::memory_order_relaxed) + 1;
+        if (samples == 1 || samples % 64 == 0) {
+          uint64_t libs = libraryCount.load(std::memory_order_relaxed);
+          uint64_t opts = optimizedCount.load(std::memory_order_relaxed);
+          Logger::info(str::format(
+            "DXVK-FF7R-PIPELINES: samples=", samples,
+            " libraries=", libs,
+            " library_mean_us=", libs ? libraryUs.load(std::memory_order_relaxed) / libs : 0,
+            " optimized=", opts,
+            " optimized_mean_us=", opts ? optimizedUs.load(std::memory_order_relaxed) / opts : 0,
+            " over_10ms=", over10ms.load(std::memory_order_relaxed),
+            " over_33ms=", over33ms.load(std::memory_order_relaxed)));
+        }
       }
 
       m_tasksCompleted += 1;
