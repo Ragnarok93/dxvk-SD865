@@ -57,13 +57,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION_NAME="ff7r-phase0-dxvk271-${GITHUB_SHA:0:12}"
+          VERSION_NAME="ff7r-verified-dxvk271-${GITHUB_SHA:0:12}"
           echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          sed -i "s/__DXVK_SD865_BUILD_SHA__/${GITHUB_SHA}/" src/util/util_ff7r_build_stamp.h
+          grep -Fq "$GITHUB_SHA" src/util/util_ff7r_build_stamp.h
           ./package-release.sh "$VERSION_NAME" build --no-package
           for arch in x32 x64; do
             for dll in d3d9.dll d3d10core.dll d3d11.dll dxgi.dll; do
               test -s "build/dxvk-$VERSION_NAME/$arch/$dll"
             done
+            # Both DLLs must contain the precise CI commit and the contract,
+            # otherwise their logs cannot prove active WCP installation.
+            for dll in d3d11.dll dxgi.dll; do
+              grep -aFq "$GITHUB_SHA" "build/dxvk-$VERSION_NAME/$arch/$dll"
+              grep -aFq 'DXVK-SD865-BUILD:' "build/dxvk-$VERSION_NAME/$arch/$dll"
+            done
+            grep -aFq 'DXVK-SD865-CONFIG:' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
+            grep -aFq 'DXVK-SD865-ALLOC state=ready' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
+            grep -aFq 'DXVK-FF7R-GPU-WAIT:' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
+            grep -aFq 'DXVK-FF7R-QUEUE-SUBMIT:' "build/dxvk-$VERSION_NAME/$arch/dxgi.dll"
           done
 
       - name: Package only GameNative WCP
