@@ -1,6 +1,8 @@
 # FFVII Remake Intergrade / SD865 — DXVK-specific optimization architecture
 
-**Status (2026-10-11):** document only; separate task branch. No DXVK optimization or Adreno performance claim yet.
+**Status (2026-10-12):** first DXVK optimization experiment is in this branch; device performance remains unverified.
+
+**Current experiment:** upstream DXVK tiler render-area trimming backport is recorded in [`FF7R-DXVK-TILER-SECONDARY-CMD-BACKPORT.md`](FF7R-DXVK-TILER-SECONDARY-CMD-BACKPORT.md). It remains unverified on the S20+ and is not a performance claim.
 
 **Primary cross-repository specification:** https://github.com/Ragnarok93/GameNative/blob/feature/ff7r-sd865-architecture-20261011/docs/ff7r-sd865/ARCHITECTURE.md
 
@@ -37,4 +39,4 @@ Inspect `src/d3d11`, `src/dxvk` (context, queue, pipelines, barriers, memory), a
 - **Release:** verified .wcp layout, install + rollback, SHA256 and versioned manifest; 32/64-bit CI and on-device smoke/thermal/stutter tests. Publishing packages is a later phase.
 - **Stop:** change in API, unresolved D3D11 FL10, missing Vulkan device capability, black textures, invalid rendering, >50ms hitch regression, memory runaway.
 
-No DXVK source patch is included in this branch. Runtime graphics acceleration via VKD3D is outside the DXVK-specific track.
+The tiler render-area experiment is the first DXVK source patch on this branch; it needs 32/64-bit CI and matched on-device A/B results before it can be retained as an optimization. Runtime graphics acceleration via VKD3D is outside the DXVK-specific track.
