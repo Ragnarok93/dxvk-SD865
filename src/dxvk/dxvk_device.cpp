@@ -1,4 +1,5 @@
 #include "dxvk_device.h"
+#include "../util/util_ff7r_timing.h"
 #include "dxvk_instance.h"
 #include "dxvk_latency_builtin.h"
 #include "dxvk_latency_reflex.h"
@@ -599,6 +600,16 @@ namespace dxvk {
 
     m_statCounters.addCtr(DxvkStatCounter::GpuSyncCount, 1);
     m_statCounters.addCtr(DxvkStatCounter::GpuSyncTicks, us.count());
+
+    static const bool ff7rMetrics = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    static Ff7rTimingCounter fenceWaitStats;
+    if (ff7rMetrics && fenceWaitStats.record(uint64_t(us.count()))) {
+      auto stats = fenceWaitStats.snapshot();
+      Logger::info(str::format("DXVK-FF7R-FENCE-WAIT: ts_us=",
+        Ff7rTimingCounter::timeUs(t1), " samples=", stats.count,
+        " mean_us=", stats.meanUs, " max_us=", stats.maxUs,
+        " over_10ms=", stats.over10ms, " over_33ms=", stats.over33ms));
+    }
   }
 
 
@@ -612,6 +623,16 @@ namespace dxvk {
 
       auto t1 = dxvk::high_resolution_clock::now();
       auto us = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0);
+
+      static const bool ff7rMetrics = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+      static Ff7rTimingCounter resourceWaitStats;
+      if (ff7rMetrics && resourceWaitStats.record(uint64_t(us.count()))) {
+        auto stats = resourceWaitStats.snapshot();
+        Logger::info(str::format("DXVK-FF7R-RESOURCE-WAIT: ts_us=",
+          Ff7rTimingCounter::timeUs(t1), " samples=", stats.count,
+          " mean_us=", stats.meanUs, " max_us=", stats.maxUs,
+          " over_10ms=", stats.over10ms, " over_33ms=", stats.over33ms));
+      }
 
       std::lock_guard<sync::Spinlock> lock(m_statLock);
       m_statCounters.addCtr(DxvkStatCounter::GpuSyncCount, 1);
