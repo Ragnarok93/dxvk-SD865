@@ -13,7 +13,7 @@ on:
       - 'meson_options.txt'
       - 'package-release.sh'
       - 'build-win*.txt'
-      - 'tests/test_refresh_statistics.py'
+      - 'tests/**'
       - 'tools/ff7r_phase0_report.py'
       - 'tests/test_ff7r_phase0_report.py'
       - 'tools/package_gamenative_wcp.py'

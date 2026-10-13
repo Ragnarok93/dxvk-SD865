@@ -1,6 +1,7 @@
 #include <iomanip>
 
 #include "../util/util_time.h"
+#include "../util/sync/sync_spinlock.h"
 
 #include "dxvk_device.h"
 #include "dxvk_graphics.h"
@@ -1373,25 +1374,41 @@ namespace dxvk {
     DxvkGraphicsPipelineFastInstanceKey key(m_device,
       m_shaders, state, m_flags, m_specConstantMask);
 
-    std::lock_guard lock(m_fastMutex);
+    // Different variants may compile concurrently, but identical keys must
+    // share one compilation. Only hold the map lock while inserting the key.
+    std::unique_lock lock(m_fastMutex);
 
-    auto entry = m_fastPipelines.find(key);
-    if (entry != m_fastPipelines.end())
-      return entry->second;
+    auto entry = m_fastPipelines.emplace(std::piecewise_construct,
+      std::tuple(key), std::tuple(VK_NOT_READY, VK_NULL_HANDLE));
 
-    // Keep pipeline locked to prevent multiple threads from compiling
-    // identical Vulkan pipelines. This should be rare, but has been
-    // buggy on some drivers in the past, so just don't allow it.
-    VkPipeline handle = createOptimizedPipeline(key);
+    // Rehashing invalidates iterators, but not pointers to existing values.
+    auto* result = &entry.first->second;
+    bool compile = entry.second;
+    lock.unlock();
 
-    if (handle)
-      m_fastPipelines.insert({ key, handle });
+    if (compile) {
+      try {
+        auto [status, handle] = createOptimizedPipeline(key);
+        result->pipeline = handle;
+        result->status.store(status, std::memory_order_release);
+        return handle;
+      } catch (...) {
+        // Shader conversion/allocation can throw before the Vulkan call.
+        // Publish failure so duplicate requests cannot wait indefinitely.
+        result->status.store(VK_ERROR_UNKNOWN, std::memory_order_release);
+        throw;
+      }
+    }
 
-    return handle;
+    sync::spin(1000u, [result] {
+      return result->status.load(std::memory_order_acquire) != VK_NOT_READY;
+    });
+
+    return result->pipeline;
   }
 
 
-  VkPipeline DxvkGraphicsPipeline::createOptimizedPipeline(
+  std::pair<VkResult, VkPipeline> DxvkGraphicsPipeline::createOptimizedPipeline(
     const DxvkGraphicsPipelineFastInstanceKey& key) const {
     auto vk = m_device->vkd();
 
@@ -1444,10 +1461,10 @@ namespace dxvk {
 
     if (vr != VK_SUCCESS) {
       Logger::err(str::format("DxvkGraphicsPipeline: Failed to compile pipeline: ", vr));
-      return VK_NULL_HANDLE;
+      return std::make_pair(vr, VK_NULL_HANDLE);
     }
 
-    return pipeline;
+    return std::make_pair(vr, pipeline);
   }
   
   
@@ -1465,7 +1482,7 @@ namespace dxvk {
 
   void DxvkGraphicsPipeline::destroyOptimizedPipelines() {
     for (const auto& instance : m_fastPipelines)
-      this->destroyVulkanPipeline(instance.second);
+      this->destroyVulkanPipeline(instance.second.pipeline);
 
     m_fastPipelines.clear();
   }
