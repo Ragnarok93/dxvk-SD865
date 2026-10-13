@@ -12,6 +12,7 @@
 #include "../spirv/spirv_module.h"
 
 #include "../util/util_time.h"
+#include "../util/util_ff7r_metrics.h"
 
 #include "../wsi/wsi_window.h"
 #include "../wsi/wsi_monitor.h"
@@ -185,6 +186,7 @@ namespace dxvk {
     DXGI_SWAP_CHAIN_DESC1           m_desc;
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC m_descFs;
     UINT                            m_presentId;
+    Ff7rPresentMetrics              m_ff7rPresentMetrics;
     bool                            m_ModeChangeInProgress = false;
 
     Com<IDXGIVkSwapChain>           m_presenter;
