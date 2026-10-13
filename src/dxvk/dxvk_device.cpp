@@ -606,7 +606,7 @@ namespace dxvk {
     if (ff7rMetrics && fenceWaitStats.record(uint64_t(us.count()))) {
       auto stats = fenceWaitStats.snapshot();
       Logger::info(str::format("DXVK-FF7R-FENCE-WAIT: ts_us=",
-        Ff7rTimingCounter::timeUs(t1), " samples=", stats.count,
+        Ff7rTimingCounter::timeUs(Ff7rTimingCounter::Clock::now()), " samples=", stats.count,
         " mean_us=", stats.meanUs, " max_us=", stats.maxUs,
         " over_10ms=", stats.over10ms, " over_33ms=", stats.over33ms));
     }
@@ -629,7 +629,7 @@ namespace dxvk {
       if (ff7rMetrics && resourceWaitStats.record(uint64_t(us.count()))) {
         auto stats = resourceWaitStats.snapshot();
         Logger::info(str::format("DXVK-FF7R-RESOURCE-WAIT: ts_us=",
-          Ff7rTimingCounter::timeUs(t1), " samples=", stats.count,
+          Ff7rTimingCounter::timeUs(Ff7rTimingCounter::Clock::now()), " samples=", stats.count,
           " mean_us=", stats.meanUs, " max_us=", stats.maxUs,
           " over_10ms=", stats.over10ms, " over_33ms=", stats.over33ms));
       }

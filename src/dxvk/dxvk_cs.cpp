@@ -195,7 +195,7 @@ namespace dxvk {
       if (ff7rMetrics && csWaitStats.record(uint64_t(ticks.count()))) {
         auto stats = csWaitStats.snapshot();
         Logger::info(str::format("DXVK-FF7R-CS-WAIT: ts_us=",
-          Ff7rTimingCounter::timeUs(t1), " samples=", stats.count,
+          Ff7rTimingCounter::timeUs(Ff7rTimingCounter::Clock::now()), " samples=", stats.count,
           " mean_us=", stats.meanUs, " max_us=", stats.maxUs,
           " over_10ms=", stats.over10ms, " over_33ms=", stats.over33ms));
       }
