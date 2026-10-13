@@ -1066,6 +1066,15 @@ namespace dxvk {
     DxvkGraphicsPipelineInstance* instance = this->findInstance(state);
 
     if (unlikely(!instance)) {
+      // The fast path is untouched. Time only cache misses that can block
+      // the game render thread, including waiting for the pipeline mutex.
+      static const bool ff7rPerfEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+      static std::atomic<uint64_t> slowCount { 0 }, slowUs { 0 };
+      static std::atomic<uint64_t> slowOver10ms { 0 }, slowOver33ms { 0 };
+      auto slowStart = ff7rPerfEnabled
+        ? std::chrono::steady_clock::now()
+        : std::chrono::steady_clock::time_point { };
+
       // Exit early if the state vector is invalid
       if (!this->validatePipelineState(state, true))
         return DxvkGraphicsPipelineHandle();
@@ -1087,6 +1096,24 @@ namespace dxvk {
         // If necessary, compile an optimized pipeline variant
         if (!instance->fastHandle.load())
           m_workers->compileGraphicsPipeline(this, state, DxvkPipelinePriority::Low);
+      }
+
+      if (ff7rPerfEnabled) {
+        uint64_t durationUs = uint64_t(std::chrono::duration_cast<std::chrono::microseconds>(
+          std::chrono::steady_clock::now() - slowStart).count());
+        slowUs.fetch_add(durationUs, std::memory_order_relaxed);
+        if (durationUs >= 10000)
+          slowOver10ms.fetch_add(1, std::memory_order_relaxed);
+        if (durationUs >= 33000)
+          slowOver33ms.fetch_add(1, std::memory_order_relaxed);
+        uint64_t count = slowCount.fetch_add(1, std::memory_order_relaxed) + 1;
+        if (count == 1 || count % 64 == 0) {
+          Logger::info(str::format(
+            "DXVK-FF7R-ONDEMAND: samples=", count,
+            " mean_us=", slowUs.load(std::memory_order_relaxed) / count,
+            " over_10ms=", slowOver10ms.load(std::memory_order_relaxed),
+            " over_33ms=", slowOver33ms.load(std::memory_order_relaxed)));
+        }
       }
     }
 
