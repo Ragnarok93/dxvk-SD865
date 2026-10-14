@@ -280,7 +280,7 @@ namespace dxvk {
         " image=", vk::getObjectHandle(m_image),
         " format=", uint32_t(key.format), " view_type=", uint32_t(key.viewType),
         " usage=", key.usage, " aspects=", key.aspects,
-        " mip_index=", key.mipIndex, " mip_count=", key.mipCount,
+        " mip_index=", uint32_t(key.mipIndex), " mip_count=", uint32_t(key.mipCount),
         " layer_index=", key.layerIndex, " layer_count=", key.layerCount));
     }
 
