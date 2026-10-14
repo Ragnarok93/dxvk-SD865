@@ -1229,7 +1229,7 @@ namespace dxvk {
   
   DxvkGraphicsPipelineInstance* DxvkGraphicsPipeline::findInstance(
     const DxvkGraphicsPipelineStateInfo& state) {
-    static const bool ff7rLookupCacheEnabled = env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_CACHE") == "1";
+    static const bool ff7rLookupCacheEnabled = env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_CACHE") != "0";
     static const bool ff7rMetricsEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
 
     // Keep the default path free of timers and metric atomics. The optional
