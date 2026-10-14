@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - feature/ff7r-sd865-architecture-20261011
+      - feature/ff7r-adreno650-telemetry-20261014
     paths:
       - '.github/workflows/ff7r-phase0-dxvk-wcp.yml'
       - 'src/**'
