@@ -1235,9 +1235,9 @@ namespace dxvk {
     if (ff7rLookupEnabled) {
       static std::atomic<uint64_t> lookupCalls { 0 };
       static std::atomic<uint64_t> sampleCount { 0 };
-      static std::atomic<uint64_t> sampleTimeUs { 0 };
+      static std::atomic<uint64_t> sampleTimeNs { 0 };
       static std::atomic<uint64_t> sampleEntries { 0 };
-      static std::atomic<uint64_t> sampleMaxUs { 0 };
+      static std::atomic<uint64_t> sampleMaxNs { 0 };
       static std::atomic<uint64_t> sampleMaxEntries { 0 };
 
       uint64_t callId = lookupCalls.fetch_add(1, std::memory_order_relaxed) + 1;
@@ -1255,13 +1255,13 @@ namespace dxvk {
         }
 
         auto t1 = std::chrono::steady_clock::now();
-        uint64_t elapsedUs = uint64_t(std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count());
-        sampleTimeUs.fetch_add(elapsedUs, std::memory_order_relaxed);
+        uint64_t elapsedNs = uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count());
+        sampleTimeNs.fetch_add(elapsedNs, std::memory_order_relaxed);
         sampleEntries.fetch_add(scanned, std::memory_order_relaxed);
 
-        uint64_t oldMaxUs = sampleMaxUs.load(std::memory_order_relaxed);
-        while (oldMaxUs < elapsedUs && !sampleMaxUs.compare_exchange_weak(
-            oldMaxUs, elapsedUs, std::memory_order_relaxed)) { }
+        uint64_t oldMaxUs = sampleMaxNs.load(std::memory_order_relaxed);
+        while (oldMaxUs < elapsedNs && !sampleMaxNs.compare_exchange_weak(
+            oldMaxUs, elapsedNs, std::memory_order_relaxed)) { }
         uint64_t oldMaxEntries = sampleMaxEntries.load(std::memory_order_relaxed);
         while (oldMaxEntries < scanned && !sampleMaxEntries.compare_exchange_weak(
             oldMaxEntries, scanned, std::memory_order_relaxed)) { }
@@ -1270,9 +1270,9 @@ namespace dxvk {
         if (samples == 1 || (samples & 15u) == 0) {
           Logger::info(str::format(
             "DXVK-FF7R-LOOKUP: samples=", samples,
-            " mean_us=", sampleTimeUs.load(std::memory_order_relaxed) / samples,
+            " mean_ns=", sampleTimeNs.load(std::memory_order_relaxed) / samples,
             " mean_entries=", sampleEntries.load(std::memory_order_relaxed) / samples,
-            " max_us=", sampleMaxUs.load(std::memory_order_relaxed),
+            " max_ns=", sampleMaxNs.load(std::memory_order_relaxed),
             " max_entries=", sampleMaxEntries.load(std::memory_order_relaxed)));
         }
 
