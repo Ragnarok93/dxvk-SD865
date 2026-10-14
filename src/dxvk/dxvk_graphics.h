@@ -1,3 +1,5 @@
+#include <atomic>
+
 #pragma once
 
 #include <mutex>
