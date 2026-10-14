@@ -17,6 +17,7 @@ DXVK_LOG_PATH=/path/to/writable/ff7r-logs
 
 - `DXVK_FF7R_METRICS=1`: opt-in frame/present cadence and GPU/resource wait timing counters.
 - `DXVK_FF7R_ONDEMAND=1`: opt-in render-thread pipeline cache-miss slow-path and worker pipeline compilation timing.
+- `DXVK_FF7R_PIPELINE_LOOKUP_CACHE=1`: **experimental candidate only**; enables a per-pipeline last-hit cache for repeated graphics pipeline states. It is off by default and should be tested against the same build with this variable unset.
 - `DXVK_LOG_LEVEL=info`: retain the informational telemetry lines without enabling debug/trace noise.
 - `DXVK_LOG_PATH`: directory for per-DLL logs. Use a location writable by the GameNative/Wine runtime. The resulting files are named from the game executable and DLL, for example `ff7remake__dxgi.log` and `ff7remake__d3d11.log` (exact executable basename may vary).
   
@@ -29,7 +30,7 @@ If the runtime cannot set more than one environment variable at a time, set them
 | `DXVK-FF7R-FRAMES` | CPU-side Present-completion interval statistics: mean, p50, p95, p99, max | Not GPU execution time or physical display scanout |
 | `DXVK-FF7R-PIPELINES` | Background pipeline-library / optimized-pipeline compilation CPU durations | Does not include all synchronous pipeline creation or GPU execution |
 | `DXVK-FF7R-ONDEMAND` | Render-thread cache-miss slow-path timing, including relevant lock wait / instance creation | Only samples the instrumented slow path |
-| `DXVK-FF7R-LOOKUP` | Sampled CPU time and entries scanned by the graphics-pipeline instance lookup | Samples one lookup per 256 calls; diagnostic-only and not representative of GPU time |
+| `DXVK-FF7R-LOOKUP` | Sampled CPU time, entries scanned, and cache-hit percentage for graphics-pipeline lookup | Samples one lookup per 256 calls; diagnostic-only and not representative of GPU time |
 | `DXVK-FF7R-FENCE-WAIT` | CPU time spent waiting for a fence | A wait duration is evidence of a stall, not proof of its root cause |
 | `DXVK-FF7R-RESOURCE-WAIT` | CPU time waiting for a resource to become reusable | Does not imply the wait can safely be removed |
 
