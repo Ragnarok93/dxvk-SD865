@@ -103,4 +103,13 @@ Relevant source comparisons against this DXVK 2.7.1-based branch:
 - Newer presentation timing and swapchain changes are not automatically useful on Android/Turnip. Any candidate must be checked against the actual WCP Vulkan loader/driver capabilities and FFVII Remake's presentation path.
 - The fork's D3D11 Vulkan interop buffer-lock additions are API/interop behavior, not a general CPU optimization for this workload.
 
-**Disposition:** no ARM64EC-specific runtime CPU optimization was blindly imported because the fork-specific delta does not establish one. Continue porting individually identified upstream runtime changes that are compatible with the Vulkan 1.3 baseline, prioritizing measured D3D11 render-thread work. Keep the existing FF7R last-hit pipeline cache as a separate experiment; its performance impact remains unmeasured.
+### ARM64EC follow-up: verify existing lazy binding before porting
+
+A targeted symbol-level inspection of the active branch confirms that the main candidate previously identified—lazy D3D11 resource binding—is already implemented here:
+
+- `D3D11ContextState` contains `D3D11LazyBindings`, including per-stage `shadersUsed`, `shadersDirty`, `bindingsUsed`, and `bindingsDirty` masks.
+- `D3D11CommonContext::DirtyBindingGeneric` tracks resource changes and defers selected null/inactive bindings.
+- `ApplyDirtyGraphicsBindings` and `ApplyDirtyComputeBindings` flush dirty bindings immediately before draw/dispatch work.
+- `DebugLazyBinding` is `Tristate::Auto`, so the default path uses the existing adaptive policy rather than forcing the more expensive always-track mode.
+
+**Disposition:** do not port lazy binding again. The ARM64EC fork's shader class-instance buffer reuse is also deferred: the target path explicitly logs class instances as unsupported, making it unlikely to improve FFVII Remake. The reviewed fork does not currently provide a distinct, safe runtime CPU optimization that is both missing here and demonstrably relevant to this workload. Keep porting individually identified upstream changes only when they fit the Vulkan 1.3 baseline, and prioritize render-thread telemetry plus matched device measurements over speculative broad refactors. The FF7R last-hit pipeline cache remains a separate experiment with unmeasured performance impact.
