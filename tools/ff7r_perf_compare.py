@@ -14,6 +14,7 @@ import zipfile
 FRAME = re.compile(r'DXVK-FF7R-FRAMES:\s*(.*)')
 PIPE = re.compile(r'DXVK-FF7R-PIPELINES:\s*(.*)')
 ONDEMAND = re.compile(r'DXVK-FF7R-ONDEMAND:\s*(.*)')
+LOOKUP = re.compile(r'DXVK-FF7R-LOOKUP:\s*(.*)')
 QUEUE_MARKERS = {
     name: re.compile(r'DXVK-FF7R-' + name + r':\s*(.*)')
     for name in ('ENQUEUE', 'QUEUE-SUBMIT', 'QUEUE-PRESENT', 'GPU-WAIT',
@@ -38,6 +39,7 @@ def parse(path):
     windows = []
     pipelines = []
     on_demand = []
+    lookups = []
     queue_metrics = {name: [] for name in QUEUE_MARKERS}
     for content in load_logs(path):
         for line in content.splitlines():
@@ -56,6 +58,11 @@ def parse(path):
                 d = {k: int(v) for k, v in FIELDS.findall(m.group(1))}
                 if all(k in d for k in ('samples', 'mean_us', 'over_10ms', 'over_33ms')):
                     on_demand.append(d)
+            m = LOOKUP.search(line)
+            if m:
+                d = {k: int(v) for k, v in FIELDS.findall(m.group(1))}
+                if all(k in d for k in ('samples', 'mean_ns', 'mean_entries', 'cache_hit_pct', 'max_ns', 'max_entries')):
+                    lookups.append(d)
             for name, matcher in QUEUE_MARKERS.items():
                 m = matcher.search(line)
                 if m:
@@ -68,6 +75,7 @@ def parse(path):
     windows = [unique[k] for k in sorted(unique)]
     pipelines.sort(key=lambda x: x['samples'])
     on_demand.sort(key=lambda x: x['samples'])
+    lookups.sort(key=lambda x: x['samples'])
     for values in queue_metrics.values():
         values.sort(key=lambda x: x['samples'])
     return {'present_windows': len(windows),
@@ -78,6 +86,7 @@ def parse(path):
             'worst_window_p99_ms': max((d['p99_us'] / 1000 for d in windows), default=None),
             'pipeline_latest_snapshot': pipelines[-1] if pipelines else None,
             'on_demand_latest_snapshot': on_demand[-1] if on_demand else None,
+            'pipeline_lookup_latest_snapshot': lookups[-1] if lookups else None,
             'queue_latest_snapshots': {name: values[-1] if values else None
                                        for name, values in queue_metrics.items()},
             'first_8_window_p95_ms': med(windows[:8], 'p95_us'),
@@ -103,10 +112,17 @@ def compare(baseline, candidate):
         key = 'median_window_p95_ms'
         out['p95_window_median_delta_ms'] = round(b[key] - a[key], 3)
         out['p95_window_median_delta_percent'] = round(100 * (b[key] / a[key] - 1), 2) if a[key] else None
+    base_lookup = a['pipeline_lookup_latest_snapshot']
+    cand_lookup = b['pipeline_lookup_latest_snapshot']
+    if base_lookup and cand_lookup:
+        out['pipeline_lookup_mean_ns_delta'] = cand_lookup['mean_ns'] - base_lookup['mean_ns']
+        out['pipeline_lookup_mean_entries_delta'] = cand_lookup['mean_entries'] - base_lookup['mean_entries']
+        out['pipeline_lookup_cache_hit_pct_delta'] = cand_lookup['cache_hit_pct'] - base_lookup['cache_hit_pct']
+        out['pipeline_lookup_note'] = 'Sampled CPU lookup time only; compare matched workloads and keep metrics-on runs separate from final low-overhead performance runs.'
     return out
 
 
-def main():
+def main()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('baseline', help='ZIP, log or directory')
     parser.add_argument('candidate', help='ZIP, log or directory')
