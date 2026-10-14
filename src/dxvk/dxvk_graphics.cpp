@@ -1,3 +1,5 @@
+#include <atomic>
+#include <chrono>
 #include <iomanip>
 #include <chrono>
 
@@ -1228,11 +1230,62 @@ namespace dxvk {
   
   DxvkGraphicsPipelineInstance* DxvkGraphicsPipeline::findInstance(
     const DxvkGraphicsPipelineStateInfo& state) {
+    // Sample the linear lookup only in diagnostic mode. The normal path below
+    // stays unchanged when telemetry is disabled, avoiding per-draw timing work.
+    static const bool ff7rLookupEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    if (ff7rLookupEnabled) {
+      static std::atomic<uint64_t> lookupCalls { 0 };
+      static std::atomic<uint64_t> sampleCount { 0 };
+      static std::atomic<uint64_t> sampleTimeUs { 0 };
+      static std::atomic<uint64_t> sampleEntries { 0 };
+      static std::atomic<uint64_t> sampleMaxUs { 0 };
+      static std::atomic<uint64_t> sampleMaxEntries { 0 };
+
+      uint64_t callId = lookupCalls.fetch_add(1, std::memory_order_relaxed) + 1;
+      if ((callId & 255u) == 0) {
+        auto t0 = std::chrono::steady_clock::now();
+        uint64_t scanned = 0;
+        DxvkGraphicsPipelineInstance* found = nullptr;
+
+        for (auto& instance : m_pipelines) {
+          scanned++;
+          if (instance.state == state) {
+            found = &instance;
+            break;
+          }
+        }
+
+        auto t1 = std::chrono::steady_clock::now();
+        uint64_t elapsedUs = uint64_t(std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count());
+        sampleTimeUs.fetch_add(elapsedUs, std::memory_order_relaxed);
+        sampleEntries.fetch_add(scanned, std::memory_order_relaxed);
+
+        uint64_t oldMaxUs = sampleMaxUs.load(std::memory_order_relaxed);
+        while (oldMaxUs < elapsedUs && !sampleMaxUs.compare_exchange_weak(
+            oldMaxUs, elapsedUs, std::memory_order_relaxed)) { }
+        uint64_t oldMaxEntries = sampleMaxEntries.load(std::memory_order_relaxed);
+        while (oldMaxEntries < scanned && !sampleMaxEntries.compare_exchange_weak(
+            oldMaxEntries, scanned, std::memory_order_relaxed)) { }
+
+        uint64_t samples = sampleCount.fetch_add(1, std::memory_order_relaxed) + 1;
+        if (samples == 1 || (samples & 15u) == 0) {
+          Logger::info(str::format(
+            "DXVK-FF7R-LOOKUP: samples=", samples,
+            " mean_us=", sampleTimeUs.load(std::memory_order_relaxed) / samples,
+            " mean_entries=", sampleEntries.load(std::memory_order_relaxed) / samples,
+            " max_us=", sampleMaxUs.load(std::memory_order_relaxed),
+            " max_entries=", sampleMaxEntries.load(std::memory_order_relaxed)));
+        }
+
+        return found;
+      }
+    }
+
     for (auto& instance : m_pipelines) {
       if (instance.state == state)
         return &instance;
     }
-    
+
     return nullptr;
   }
   
