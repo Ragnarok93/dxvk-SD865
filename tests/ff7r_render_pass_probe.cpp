@@ -3,10 +3,11 @@
 #include <cstdint>
 #include <iostream>
 #include <string>
+#include <sstream>
 #include "util_ff7r_timing.h"
 using dxvk::Ff7rTimingCounter;
 namespace env { std::string value; std::string getEnvVar(const char*) {return value;} }
-struct Logger { template<typename... T> static void info(T... values) { (std::cout << ... << values); std::cout << "\n"; } };
+struct Logger { static void info(const std::string& value) { std::cout << value; std::cout << "\n"; } };
 constexpr uint64_t VK_NULL_HANDLE=0;
 struct VkRenderingAttachmentInfo {uint64_t imageView; int imageLayout,loadOp,storeOp,resolveMode; uint64_t resolveImageView; int resolveImageLayout;};
 struct VkRenderingInfo { struct {struct {int x,y;} offset; struct {uint32_t width,height;} extent;} renderArea;

@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <atomic>
+#include <sstream>
 
 #include "../util/util_env.h"
 #include "../util/util_ff7r_timing.h"
@@ -595,10 +596,15 @@ namespace dxvk {
       static const bool ff7rRenderPasses =
         env::getEnvVar("DXVK_FF7R_RENDER_PASSES") == "1";
       if (ff7rRenderPasses) {
+        auto format = [] (const auto&... values) {
+          std::ostringstream message;
+          (message << ... << values);
+          return message.str();
+        };
         static std::atomic<uint64_t> nextPass { 0 };
         const uint64_t pass = nextPass.fetch_add(1, std::memory_order_relaxed) + 1;
         const uint64_t ts = Ff7rTimingCounter::timeUs(Ff7rTimingCounter::Clock::now());
-        Logger::info("DXVK-FF7R-RENDER-PASS ts_us=", ts, " pass=", pass,
+        Logger::info(format("DXVK-FF7R-RENDER-PASS ts_us=", ts, " pass=", pass,
           " x=", pRenderingInfo->renderArea.offset.x,
           " y=", pRenderingInfo->renderArea.offset.y,
           " width=", pRenderingInfo->renderArea.extent.width,
@@ -606,19 +612,19 @@ namespace dxvk {
           " layers=", pRenderingInfo->layerCount,
           " view_mask=", pRenderingInfo->viewMask,
           " flags=", pRenderingInfo->flags,
-          " colors=", pRenderingInfo->colorAttachmentCount);
-        auto logAttachment = [pass, ts] (const char* aspect, uint32_t index,
+          " colors=", pRenderingInfo->colorAttachmentCount));
+        auto logAttachment = [pass, ts, &format] (const char* aspect, uint32_t index,
             const VkRenderingAttachmentInfo* attachment) {
           if (!attachment)
             return;
-          Logger::info("DXVK-FF7R-ATTACHMENT ts_us=", ts, " pass=", pass,
+          Logger::info(format("DXVK-FF7R-ATTACHMENT ts_us=", ts, " pass=", pass,
             " aspect=", aspect, " index=", index,
             " bound=", attachment->imageView != VK_NULL_HANDLE ? 1 : 0,
             " layout=", attachment->imageLayout,
             " load_op=", attachment->loadOp, " store_op=", attachment->storeOp,
             " resolve_mode=", attachment->resolveMode,
             " resolve_bound=", attachment->resolveImageView != VK_NULL_HANDLE ? 1 : 0,
-            " resolve_layout=", attachment->resolveImageLayout);
+            " resolve_layout=", attachment->resolveImageLayout));
         };
         for (uint32_t i = 0; i < pRenderingInfo->colorAttachmentCount; i++)
           logAttachment("color", i, &pRenderingInfo->pColorAttachments[i]);
