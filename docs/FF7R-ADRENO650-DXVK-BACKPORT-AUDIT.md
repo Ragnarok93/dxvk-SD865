@@ -37,7 +37,7 @@ However, the active DXVK-SD865 branch already has a different pipeline-library/b
 
 The existing `DXVK-FF7R-ONDEMAND` timer measures the cache-miss slow path only. It does **not** measure the linear `findInstance` scan on cache hits, which is the hot path implicated by Sarek's write-up. A slow-path marker alone cannot establish that cache-hit lookup is expensive.
 
-**Disposition:** the branch now has a gated last-hit cache experiment: set `DXVK_FF7R_PIPELINE_LOOKUP_CACHE=1` to cache the most recently matched pipeline instance per `DxvkGraphicsPipeline`. It is off by default. The cache stores a pointer to an append-only `sync::List` node, whose address remains stable until the parent pipeline is destroyed; no node is removed during normal use. With `DXVK_FF7R_METRICS=1`, `DXVK-FF7R-LOOKUP` samples one in 256 calls and reports mean lookup nanoseconds, mean list entries scanned, and sampled cache-hit percentage. This is a candidate optimization, not yet a verified speedup. Build and runtime correctness gates must pass before performance comparison.
+**Disposition:** the last-hit cache is enabled by default on the active branch; set `DXVK_FF7R_PIPELINE_LOOKUP_CACHE=0` to disable it for A/B testing. It stores a pointer to an append-only `sync::List` node, whose address remains stable until the parent pipeline is destroyed; the node's state key is immutable after publication, and no node is removed during normal use. The cached pointer is atomic. The optimization does not alter pipeline creation, handle ownership, or Vulkan synchronization. With `DXVK_FF7R_METRICS=1`, `DXVK-FF7R-LOOKUP` samples one in 256 calls and reports mean lookup nanoseconds, mean list entries scanned, and sampled cache-hit percentage. This is source-level architectural review only: Windows builds must pass, and Adreno 650 runtime correctness/performance still require matched tests. The default can be rolled back immediately with the environment override if device testing exposes a regression.
 
 ### 3. Upstream 3.1.1 backports — classify by workload and API contract, not commit count
 
@@ -50,6 +50,12 @@ First-pass relevant classes:
 - D3D9-only fixes, title-specific config profiles, and features requiring a higher Vulkan baseline: not FFVII Remake candidates unless a concrete dependency is demonstrated.
 
 **Disposition:** create one small backport per identified behavior, each with an upstream commit link, API/feature requirements, a regression test, and an independent benchmark result. Avoid mixing synchronization, shader, and allocator changes in one patch.
+
+
+
+### Redundant Vulkan pipeline-bind suppression — defer pending command-state audit
+
+Sarek's redundant graphics/compute bind suppression is a plausible CPU-side optimization, but it is not enabled in this fork yet. The active context binds Vulkan pipelines from both ordinary D3D11 state updates and multiple internal meta operations (clear, blit, buffer/image transfer, and resolve paths). A correct cache must track graphics and compute bind points independently and invalidate state at every command-buffer reset/switch and every path that can bind a meta pipeline. Skipping a bind based only on `m_state.gp.pipeline`/`m_state.cp.pipeline` would be incorrect because those are D3D-facing pipeline objects, not necessarily the last Vulkan pipeline handle actually bound. The next implementation should put tracking at the command-buffer recording layer or prove complete invalidation coverage across all `cmdBindPipeline` call sites; do not copy Sarek's context-level change verbatim. Keep it isolated and add tests/counters for emitted versus skipped binds before enabling it by default.
 
 ## Ranked next experiments
 
