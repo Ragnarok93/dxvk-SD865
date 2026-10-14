@@ -27,6 +27,7 @@ If the runtime cannot set more than one environment variable at a time, set them
 
 | Marker | Meaning | Important limitation |
 |---|---|---|
+| `DXVK-FF7R-TELEMETRY` | Startup confirmation of `metrics`, `on_demand`, `lookup_cache`, and selected Vulkan device | Confirms the environment reached device initialization; it does not prove the candidate improves performance |
 | `DXVK-FF7R-FRAMES` | CPU-side Present-completion interval statistics: mean, p50, p95, p99, max | Not GPU execution time or physical display scanout |
 | `DXVK-FF7R-PIPELINES` | Background pipeline-library / optimized-pipeline compilation CPU durations | Does not include all synchronous pipeline creation or GPU execution |
 | `DXVK-FF7R-ONDEMAND` | Render-thread cache-miss slow-path timing, including relevant lock wait / instance creation | Only samples the instrumented slow path |
