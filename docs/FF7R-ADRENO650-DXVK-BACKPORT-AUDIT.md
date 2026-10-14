@@ -39,6 +39,12 @@ The existing `DXVK-FF7R-ONDEMAND` timer measures the cache-miss slow path only. 
 
 **Disposition:** the last-hit cache is enabled by default on the active branch; set `DXVK_FF7R_PIPELINE_LOOKUP_CACHE=0` to disable it for A/B testing. It stores a pointer to an append-only `sync::List` node, whose address remains stable until the parent pipeline is destroyed; the node's state key is immutable after publication, and no node is removed during normal use. The cached pointer is atomic. The optimization does not alter pipeline creation, handle ownership, or Vulkan synchronization. With `DXVK_FF7R_METRICS=1`, `DXVK-FF7R-LOOKUP` samples one in 256 calls and reports mean lookup nanoseconds, mean list entries scanned, and sampled cache-hit percentage. This is source-level architectural review only: Windows builds must pass, and Adreno 650 runtime correctness/performance still require matched tests. The default can be rolled back immediately with the environment override if device testing exposes a regression.
 
+### 3.1 Low-risk branch-hint backport — dynamic-state dirty paths
+
+Upstream commit [9d6b9fa](https://github.com/doitsujin/dxvk/commit/9d6b9fa5f7e43e67bce0307d04308dcf274deaa8) marks five dynamic-state update branches as unlikely: rasterizer state, stencil test/reference, depth bias, and depth bounds. The corresponding conditions were still unannotated in this fork, so the hints are now backported in isolation. This is compiler branch-prediction guidance only; it does not change state transitions or Vulkan command emission. Expected impact is small and workload/compiler dependent, and must not be represented as a measured FPS improvement.
+
+**Disposition:** keep the change isolated; validate on x86/x64 CI, then check shader/render correctness and matched frame-time captures on Adreno 650. If compiler output or device traces show no meaningful effect, the change is harmless but not a priority for further tuning.
+
 ### 3. Upstream 3.1.1 backports — classify by workload and API contract, not commit count
 
 The 2.7.1-to-3.1.1 range contains hundreds of commits spanning D3D8/9/11, DXGI, Vulkan wrappers, shaders, build tooling, and game-specific compatibility. The compare endpoint reports 988 commits between those tags, so a blind aggregate merge is not an acceptable backport method.
