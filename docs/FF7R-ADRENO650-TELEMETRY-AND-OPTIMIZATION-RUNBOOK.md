@@ -17,7 +17,7 @@ DXVK_LOG_PATH=/path/to/writable/ff7r-logs
 
 - `DXVK_FF7R_METRICS=1`: opt-in frame/present cadence and GPU/resource wait timing counters.
 - `DXVK_FF7R_ONDEMAND=1`: opt-in render-thread pipeline cache-miss slow-path and worker pipeline compilation timing.
-- `DXVK_FF7R_PIPELINE_LOOKUP_CACHE=1`: **experimental candidate only**; enables a per-pipeline last-hit cache for repeated graphics pipeline states. It is off by default and should be tested against the same build with this variable unset.
+- `DXVK_FF7R_PIPELINE_LOOKUP_CACHE`: the experimental per-pipeline last-hit cache is **enabled by default**; set it to `0` to disable it for matched A/B runs. It only shortcuts lookup of an existing immutable state instance; it does not change pipeline creation, handles, or Vulkan synchronization.
 - `DXVK_LOG_LEVEL=info`: retain the informational telemetry lines without enabling debug/trace noise.
 - `DXVK_LOG_PATH`: directory for per-DLL logs. Use a location writable by the GameNative/Wine runtime. The resulting files are named from the game executable and DLL, for example `ff7remake__dxgi.log` and `ff7remake__d3d11.log` (exact executable basename may vary).
   
