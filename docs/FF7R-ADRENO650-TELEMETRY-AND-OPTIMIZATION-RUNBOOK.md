@@ -16,8 +16,9 @@ DXVK_LOG_PATH=/path/to/writable/ff7r-logs
 ```
 
 - `DXVK_FF7R_METRICS=1`: opt-in frame/present cadence and GPU/resource wait timing counters.
-- `DXVK_FF7R_ONDEMAND=1`: opt-in render-thread pipeline cache-miss slow-path and worker pipeline compilation timing.
+- `DXVK_FF7R_ONDEMAND=1`: opt-in render-thread pipeline cache-miss slow-path timing. Background worker compilation-duration summaries are gated by `DXVK_FF7R_METRICS=1` in the current implementation.
 - `DXVK_FF7R_PIPELINE_LOOKUP_CACHE`: the experimental per-pipeline last-hit cache is **enabled by default**; set it to `0` to disable it for matched A/B runs. It only shortcuts lookup of an existing immutable state instance; it does not change pipeline creation, handles, or Vulkan synchronization.
+- `DXVK_FF7R_COMPILER_THREADS`: for `ff7remake_.exe`, optionally set `2`, `4`, `6`, or `8` to compare compiler worker counts. If `dxvk.numCompilerThreads` is explicitly configured, the FF7R environment override takes precedence when valid.
 - `DXVK_LOG_LEVEL=info`: retain the informational telemetry lines without enabling debug/trace noise.
 - `DXVK_LOG_PATH`: directory for per-DLL logs. Use a location writable by the GameNative/Wine runtime. The resulting files are named from the game executable and DLL, for example `ff7remake__dxgi.log` and `ff7remake__d3d11.log` (exact executable basename may vary).
   
@@ -36,6 +37,18 @@ If the runtime cannot set more than one environment variable at a time, set them
 | `DXVK-FF7R-RESOURCE-WAIT` | CPU time waiting for a resource to become reusable | Does not imply the wait can safely be removed |
 
 Not every marker is emitted by every capture. Frame/present cadence needs real frames; on-demand pipeline timing requires cache-miss slow paths; lookup timing samples one call in every 256 and requires enough lookups; synchronization markers require the relevant waits to occur. A missing marker alone is not proof that the feature is broken. Check the exact binary build, variable propagation, log path permissions, and workload coverage first.
+
+## Compiler-worker A/B experiment
+
+Use this only after collecting a baseline log with the same scene and cache conditions. The current worker telemetry reports aggregate pending tasks and mean compilation duration for pipeline libraries and optimized pipelines; it does **not** yet report per-priority queue wait time or render-thread stalls attributable to compilation. Do not infer queue contention from worker count or aggregate compile duration alone.
+
+1. Keep `DXVK_FF7R_METRICS=1` and `DXVK_FF7R_ONDEMAND=1` fixed for diagnostic trials. Change only `DXVK_FF7R_COMPILER_THREADS`.
+2. Compare `2`, `4`, `6`, and `8` workers, with the same GameNative/Wine runtime, Turnip revision, resolution, scene, route, cache state, and trial duration.
+3. Capture at least three matched trials per worker count; alternate order where practical to reduce thermal/order bias. Record temperatures and any throttling.
+4. Compare native-present frame-time median/p95/p99 and first-use hitching, not just mean pipeline compilation time or CPU utilization. Treat `DXVK-FF7R-PIPELINES` as compilation CPU-time evidence, not GPU time.
+5. Keep the current diagnostic default at four workers unless matched device captures show a repeatable alternative with no worse tail latency, shader-compilation hitching, stability, or thermals.
+
+No worker-count setting is presumed optimal. If the experiment points to queue contention, add targeted queue-wait/backlog instrumentation as a separate change before redesigning worker scheduling.
 
 ## Capture protocol
 
