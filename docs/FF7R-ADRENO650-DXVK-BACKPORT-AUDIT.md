@@ -90,3 +90,17 @@ Sarek's redundant graphics/compute bind suppression is a plausible CPU-side opti
 - Collect diagnostic logs and external frame-time traces. Do not treat DXVK CPU-side Present intervals as GPU execution or display-scanout time.
 - Keep a patch only if median frametime and tail frametime (p95/p99) improve repeatably without crashes, artifacts, memory regressions, or worse sustained thermals.
 - No performance gain has been established by this source audit alone.
+
+## ARM64EC fork audit — CPU-usage candidates
+
+Reviewed `JustCallMeJade/dxvk-arm64ec` (master, head `52fe923ca1496c8e44789b613fab8611dfcb5c4a`, 2026-09-25) against its fork-specific `JustCallMeJade-patch-1` branch. The branch comparison shows the fork-specific delta is build/release plumbing (`.github/workflows/build.yml`, `build-win64.txt`, `build.sh`, `meson.build`, `profile.json`), not a distinct runtime CPU-optimization patchset. The master branch contains a much newer upstream DXVK code line, so its runtime changes must be evaluated as upstream backports rather than attributed to ARM64EC-specific tuning.
+
+Relevant source comparisons against this DXVK 2.7.1-based branch:
+
+- D3D11 shader/resource state tracking already includes dirty-state checks and avoids redundant resource binds in common setters; do not transplant duplicate state tracking just because it appears in the newer fork.
+- The newer D3D11 code reuses per-stage instance-data buffers for shader class-instance metadata. This reduces repeated buffer creation for dynamic shader linkage, but is a narrow path and is not presumed to benefit FFVII Remake without evidence that the game exercises class instances. Defer as a low-priority, separately testable backport.
+- Newer DXVK context code batches resource-access declarations and clear operations and includes additional transfer paths. These changes span synchronization, command recording, and Vulkan feature handling; do not cherry-pick individual lines out of context.
+- Newer presentation timing and swapchain changes are not automatically useful on Android/Turnip. Any candidate must be checked against the actual WCP Vulkan loader/driver capabilities and FFVII Remake's presentation path.
+- The fork's D3D11 Vulkan interop buffer-lock additions are API/interop behavior, not a general CPU optimization for this workload.
+
+**Disposition:** no ARM64EC-specific runtime CPU optimization was blindly imported because the fork-specific delta does not establish one. Continue porting individually identified upstream runtime changes that are compatible with the Vulkan 1.3 baseline, prioritizing measured D3D11 render-thread work. Keep the existing FF7R last-hit pipeline cache as a separate experiment; its performance impact remains unmeasured.
