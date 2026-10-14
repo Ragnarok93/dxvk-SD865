@@ -24,18 +24,16 @@ namespace dxvk {
     m_perfHints         (getPerfHints()),
     m_objects           (this),
     m_submissionQueue   (this, queueCallback) {
-    // Emit one startup marker so a capture can verify that the game process
-    // received the opt-in FFVII Remake telemetry variables, even before a
-    // sampled frame or pipeline event has occurred.
+    // Report effective FFVII Remake optimization/diagnostic state. The
+    // pipeline lookup cache is enabled unless explicitly disabled with =0;
+    // timing instrumentation stays opt-in to avoid perturbing normal runs.
     const bool ff7rMetrics = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
     const bool ff7rOnDemand = env::getEnvVar("DXVK_FF7R_ONDEMAND") == "1";
-    const bool ff7rLookupCache = env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_CACHE") == "1";
-    if (ff7rMetrics || ff7rOnDemand || ff7rLookupCache) {
-      Logger::info(str::format("DXVK-FF7R-TELEMETRY: metrics=", ff7rMetrics ? 1 : 0,
-        " on_demand=", ff7rOnDemand ? 1 : 0,
-        " lookup_cache=", ff7rLookupCache ? 1 : 0,
-        " device=", m_properties.core.properties.deviceName));
-    }
+    const bool ff7rLookupCache = env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_CACHE") != "0";
+    Logger::info(str::format("DXVK-FF7R-TELEMETRY: metrics=", ff7rMetrics ? 1 : 0,
+      " on_demand=", ff7rOnDemand ? 1 : 0,
+      " lookup_cache=", ff7rLookupCache ? 1 : 0,
+      " device=", m_properties.core.properties.deviceName));
   }
   
   
