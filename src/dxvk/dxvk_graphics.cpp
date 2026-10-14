@@ -1071,7 +1071,9 @@ namespace dxvk {
     if (unlikely(!instance)) {
       // The fast path is untouched. Time only cache misses that can block
       // the game render thread, including waiting for the pipeline mutex.
-      static const bool ff7rPerfEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+      static const bool ff7rPerfEnabled =
+        env::getEnvVar("DXVK_FF7R_METRICS") == "1"
+     && env::getEnvVar("DXVK_FF7R_ONDEMAND") == "1";
       static std::atomic<uint64_t> slowCount { 0 }, slowUs { 0 };
       static std::atomic<uint64_t> slowOver10ms { 0 }, slowOver33ms { 0 };
       auto slowStart = ff7rPerfEnabled
