@@ -633,6 +633,9 @@ namespace dxvk {
     alignas(CACHE_LINE_SIZE)
     dxvk::mutex                                   m_mutex;
     sync::List<DxvkGraphicsPipelineInstance>      m_pipelines;
+    // Optional last-hit cache for repeated D3D11 pipeline states. Instances are
+    // append-only and remain stable for the lifetime of this pipeline object.
+    std::atomic<DxvkGraphicsPipelineInstance*>     m_lastInstance { nullptr };
     uint32_t                                      m_useCount = 0;
 
     std::unordered_map<
