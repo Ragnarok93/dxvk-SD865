@@ -1,6 +1,11 @@
 #pragma once
 
 #include <limits>
+#include <atomic>
+
+#include "../util/util_env.h"
+#include "../util/util_ff7r_timing.h"
+#include "../util/log/log.h"
 
 #include "dxvk_bind_mask.h"
 #include "dxvk_buffer.h"
@@ -585,6 +590,41 @@ namespace dxvk {
       const VkRenderingInfo*        pRenderingInfo) {
       m_cmd.execCommands = true;
 
+      // Observe final attachment ops, including secondary-buffer late
+      // clear/discard/resolve decisions. No Vulkan state is changed.
+      static const bool ff7rRenderPasses =
+        env::getEnvVar("DXVK_FF7R_RENDER_PASSES") == "1";
+      if (ff7rRenderPasses) {
+        static std::atomic<uint64_t> nextPass { 0 };
+        const uint64_t pass = nextPass.fetch_add(1, std::memory_order_relaxed) + 1;
+        const uint64_t ts = Ff7rTimingCounter::timeUs(Ff7rTimingCounter::Clock::now());
+        Logger::info("DXVK-FF7R-RENDER-PASS ts_us=", ts, " pass=", pass,
+          " x=", pRenderingInfo->renderArea.offset.x,
+          " y=", pRenderingInfo->renderArea.offset.y,
+          " width=", pRenderingInfo->renderArea.extent.width,
+          " height=", pRenderingInfo->renderArea.extent.height,
+          " layers=", pRenderingInfo->layerCount,
+          " view_mask=", pRenderingInfo->viewMask,
+          " flags=", pRenderingInfo->flags,
+          " colors=", pRenderingInfo->colorAttachmentCount);
+        auto logAttachment = [pass, ts] (const char* aspect, uint32_t index,
+            const VkRenderingAttachmentInfo* attachment) {
+          if (!attachment)
+            return;
+          Logger::info("DXVK-FF7R-ATTACHMENT ts_us=", ts, " pass=", pass,
+            " aspect=", aspect, " index=", index,
+            " bound=", attachment->imageView != VK_NULL_HANDLE ? 1 : 0,
+            " layout=", attachment->imageLayout,
+            " load_op=", attachment->loadOp, " store_op=", attachment->storeOp,
+            " resolve_mode=", attachment->resolveMode,
+            " resolve_bound=", attachment->resolveImageView != VK_NULL_HANDLE ? 1 : 0,
+            " resolve_layout=", attachment->resolveImageLayout);
+        };
+        for (uint32_t i = 0; i < pRenderingInfo->colorAttachmentCount; i++)
+          logAttachment("color", i, &pRenderingInfo->pColorAttachments[i]);
+        logAttachment("depth", 0, pRenderingInfo->pDepthAttachment);
+        logAttachment("stencil", 0, pRenderingInfo->pStencilAttachment);
+      }
       m_vkd->vkCmdBeginRendering(getCmdBuffer(), pRenderingInfo);
     }
 

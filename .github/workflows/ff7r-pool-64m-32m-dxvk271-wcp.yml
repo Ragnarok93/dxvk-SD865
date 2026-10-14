@@ -50,6 +50,9 @@ jobs:
           echo "Verified source branch descends from exact DXVK 2.7.1 release commit"
           python3 -m unittest discover -s tests -p test_gamenative_wcp.py -v
 
+      - name: Verify render-pass wrapper native tests
+        run: python3 -m unittest discover -s tests -p 'test_ff7r_render_pass*.py' -v
+
       - name: Verify attribution tests
         run: python3 -m unittest discover -s tests -p 'test_ff7r_phase0_report.py' -v
 
@@ -79,7 +82,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION_NAME="ff7r-pool64m32m-dxvk271-${GITHUB_SHA:0:12}"
+          VERSION_NAME="ff7r-renderpass-dxvk271-${GITHUB_SHA:0:12}"
           echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
           sed -i "s/__DXVK_SD865_BUILD_SHA__/${GITHUB_SHA}/" src/util/util_ff7r_build_stamp.h
           grep -Fq "$GITHUB_SHA" src/util/util_ff7r_build_stamp.h
@@ -95,6 +98,7 @@ jobs:
               grep -aFq "$GITHUB_SHA" "build/dxvk-$VERSION_NAME/$arch/$dll"
               grep -aFq 'DXVK-SD865-BUILD:' "build/dxvk-$VERSION_NAME/$arch/$dll"
             done
+            grep -aFq 'DXVK-FF7R-RENDER-PASS' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
             grep -aFq 'DXVK-FF7R-GPU-WAIT:' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
             grep -aFq 'DXVK-SD865-CONFIG:' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
             grep -aFq 'DXVK-SD865-ALLOC stage=driver_retry' "build/dxvk-$VERSION_NAME/$arch/d3d11.dll"
@@ -133,7 +137,7 @@ jobs:
           compression-level: 0
 
       - name: Publish opted-in diagnostic prerelease
-        if: github.event_name == 'workflow_dispatch'
+        if: ${{ false }}
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
