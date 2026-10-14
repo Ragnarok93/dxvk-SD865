@@ -1,7 +1,6 @@
 #include <atomic>
 #include <chrono>
 #include <iomanip>
-#include <chrono>
 
 #include "../util/util_time.h"
 #include "../util/sync/sync_spinlock.h"
