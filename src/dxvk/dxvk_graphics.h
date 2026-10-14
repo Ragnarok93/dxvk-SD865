@@ -1,7 +1,6 @@
-#include <atomic>
-
 #pragma once
 
+#include <atomic>
 #include <mutex>
 
 #include "../util/sync/sync_list.h"
