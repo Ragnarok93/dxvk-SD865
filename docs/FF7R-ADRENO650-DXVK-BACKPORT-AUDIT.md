@@ -30,7 +30,9 @@ The Sarek series makes pipeline-variant compilation asynchronous when a fallback
 
 However, the active DXVK-SD865 branch already has a different pipeline-library/base-pipeline path and optimized-pipeline worker implementation. Sarek's code was developed against a different DXVK lineage and cannot be transplanted as a clean commit. Its implementation also hashes the raw bytes of the pipeline state structure; padding/uninitialized-byte behavior, collision resolution, map overflow, queue deduplication, object lifetime, and driver concurrency all need explicit review before adoption.
 
-**Disposition:** measure the current `DXVK-FF7R-ONDEMAND` slow-path distribution first. If cache-miss lock/lookup time is material, prototype a separate opt-in experiment that preserves the current synchronous fallback when no safe fallback exists. Do not replace the current pipeline manager wholesale.
+The existing `DXVK-FF7R-ONDEMAND` timer measures the cache-miss slow path only. It does **not** measure the linear `findInstance` scan on cache hits, which is the hot path implicated by Sarek's write-up. A slow-path marker alone cannot establish that cache-hit lookup is expensive.
+
+**Disposition:** first add a separately gated, sampled lookup probe (scan length and sampled CPU duration, enabled only by `DXVK_FF7R_METRICS=1`) or use a profiler capture to quantify cache-hit lookup cost. If it is material, prototype a separate opt-in hash-lookup experiment that preserves the current synchronous fallback when no safe fallback exists. Do not replace the current pipeline manager wholesale.
 
 ### 3. Upstream 3.1.1 backports — classify by workload and API contract, not commit count
 
