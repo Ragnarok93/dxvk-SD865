@@ -624,7 +624,9 @@ namespace dxvk {
             " load_op=", attachment->loadOp, " store_op=", attachment->storeOp,
             " resolve_mode=", attachment->resolveMode,
             " resolve_bound=", attachment->resolveImageView != VK_NULL_HANDLE ? 1 : 0,
-            " resolve_layout=", attachment->resolveImageLayout));
+            " resolve_layout=", attachment->resolveImageLayout,
+            " image_view=", vk::getObjectHandle(attachment->imageView),
+            " resolve_view=", vk::getObjectHandle(attachment->resolveImageView)));
         };
         for (uint32_t i = 0; i < pRenderingInfo->colorAttachmentCount; i++)
           logAttachment("color", i, &pRenderingInfo->pColorAttachments[i]);

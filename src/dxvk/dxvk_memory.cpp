@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include "../util/util_bit.h"
+#include "../util/util_ff7r_timing.h"
 
 #include "dxvk_device.h"
 #include "dxvk_memory.h"
@@ -218,8 +219,16 @@ namespace dxvk {
   DxvkResourceImageViewMap::~DxvkResourceImageViewMap() {
     auto vk = m_device->vkd();
 
-    for (const auto& view : m_views)
+    static const bool ff7rRenderPasses = env::getEnvVar("DXVK_FF7R_RENDER_PASSES") == "1";
+    for (const auto& view : m_views) {
+      if (ff7rRenderPasses) {
+        Logger::info(str::format("DXVK-FF7R-VIEW-DESTROY ts_us=",
+          Ff7rTimingCounter::timeUs(Ff7rTimingCounter::Clock::now()),
+          " image_view=", vk::getObjectHandle(view.second.legacy.image.imageView),
+          " image=", vk::getObjectHandle(m_image)));
+      }
       vk->vkDestroyImageView(vk->device(), view.second.legacy.image.imageView, nullptr);
+    }
   }
 
 
@@ -260,6 +269,20 @@ namespace dxvk {
 
     if (vr != VK_SUCCESS)
       throw DxvkError(str::format("Failed to create Vulkan image view: ", vr));
+
+    // Join final render-pass attachment records to view subresources.
+    // Emit only after successful creation and before the view is returned.
+    static const bool ff7rRenderPasses = env::getEnvVar("DXVK_FF7R_RENDER_PASSES") == "1";
+    if (ff7rRenderPasses) {
+      Logger::info(str::format("DXVK-FF7R-VIEW-CREATE ts_us=",
+        Ff7rTimingCounter::timeUs(Ff7rTimingCounter::Clock::now()),
+        " image_view=", vk::getObjectHandle(descriptor.legacy.image.imageView),
+        " image=", vk::getObjectHandle(m_image),
+        " format=", uint32_t(key.format), " view_type=", uint32_t(key.viewType),
+        " usage=", key.usage, " aspects=", key.aspects,
+        " mip_index=", key.mipIndex, " mip_count=", key.mipCount,
+        " layer_index=", key.layerIndex, " layer_count=", key.layerCount));
+    }
 
     if (m_device->canUseDescriptorBuffer() && isShaderResource) {
       VkDescriptorGetInfoEXT info = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };

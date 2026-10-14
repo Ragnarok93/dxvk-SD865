@@ -51,7 +51,7 @@ jobs:
           python3 -m unittest discover -s tests -p test_gamenative_wcp.py -v
 
       - name: Verify render-pass wrapper native tests
-        run: python3 -m unittest discover -s tests -p 'test_ff7r_render_pass*.py' -v
+        run: python3 -m unittest discover -s tests -p 'test_ff7r*.py' -v
 
       - name: Verify attribution tests
         run: python3 -m unittest discover -s tests -p 'test_ff7r_phase0_report.py' -v

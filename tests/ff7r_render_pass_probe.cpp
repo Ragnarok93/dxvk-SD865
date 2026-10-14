@@ -8,6 +8,7 @@
 using dxvk::Ff7rTimingCounter;
 namespace env { std::string value; std::string getEnvVar(const char*) {return value;} }
 struct Logger { static void info(const std::string& value) { std::cout << value; std::cout << "\n"; } };
+namespace vk { inline uint64_t getObjectHandle(uint64_t value) { return value; } }
 constexpr uint64_t VK_NULL_HANDLE=0;
 struct VkRenderingAttachmentInfo {uint64_t imageView; int imageLayout,loadOp,storeOp,resolveMode; uint64_t resolveImageView; int resolveImageLayout;};
 struct VkRenderingInfo { struct {struct {int x,y;} offset; struct {uint32_t width,height;} extent;} renderArea;

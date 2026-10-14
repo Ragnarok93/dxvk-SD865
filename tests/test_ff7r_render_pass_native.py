@@ -23,7 +23,9 @@ class RenderPassTest(unittest.TestCase):
                 if value=='1':
                     self.assertIn('width=1280 height=720 layers=1 view_mask=0 flags=2 colors=2',lines[0])
                     self.assertIn('aspect=color index=0 bound=1 layout=2 load_op=0 store_op=0 resolve_mode=1 resolve_bound=1 resolve_layout=2',lines[1])
+                    self.assertIn('image_view=1 resolve_view=3',lines[1])
                     self.assertIn('aspect=color index=1 bound=0',lines[2])
+                    self.assertIn('image_view=0 resolve_view=0',lines[2])
                     self.assertIn('aspect=depth',lines[3]); self.assertIn('aspect=stencil',lines[4])
                     for line in lines:
                         self.assertIn(' pass=1 ',line)
