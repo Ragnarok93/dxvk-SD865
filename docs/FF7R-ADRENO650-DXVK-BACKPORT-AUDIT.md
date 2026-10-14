@@ -73,6 +73,32 @@ First-pass relevant classes:
 
 Sarek's redundant graphics/compute bind suppression is a plausible CPU-side optimization, but it is not enabled in this fork yet. The active context binds Vulkan pipelines from both ordinary D3D11 state updates and multiple internal meta operations (clear, blit, buffer/image transfer, and resolve paths). A correct cache must track graphics and compute bind points independently and invalidate state at every command-buffer reset/switch and every path that can bind a meta pipeline. Skipping a bind based only on `m_state.gp.pipeline`/`m_state.cp.pipeline` would be incorrect because those are D3D-facing pipeline objects, not necessarily the last Vulkan pipeline handle actually bound. The next implementation should put tracking at the command-buffer recording layer or prove complete invalidation coverage across all `cmdBindPipeline` call sites; do not copy Sarek's context-level change verbatim. Keep it isolated and add tests/counters for emitted versus skipped binds before enabling it by default.
 
+## Additional upstream 3.1.1 candidate triage — D3D11 and pipeline state
+
+A targeted source/diff review of additional commits in the 2.7.1 → 3.1.1 range found these candidates. They are deliberately classified rather than bulk-backported.
+
+### D3D11 indirect draw-buffer validation removal — reject as a performance-only backport
+
+Upstream commit [c8c49cc](https://github.com/doitsujin/dxvk/commit/c8c49cc156f5044f9046ae5a8396a3a3aec2ed00) removes front-end `ValidateDrawBufferSize` checks from indirect draw/dispatch calls while widening the stored indirect-command offset to `VkDeviceSize`. The active branch still performs these checks in `D3D11CommonContext::DrawIndexedInstancedIndirect` and related indirect entry points.
+
+This is not a clean CPU optimization to transplant by itself: the wider offset is part of the same correctness change, and removing validation changes behavior for undersized argument buffers. The current implementation batches adjacent indirect commands, so any future backport must also verify that the widened offset/stride calculations preserve batching boundaries and that invalid buffers are handled safely downstream. No FFVII Remake trace currently establishes that these calls are frequent enough to justify this behavior change.
+
+**Disposition:** keep the validation. Revisit only if an FFVII trace identifies this path as material and the complete upstream change can be ported with boundary tests for null buffers, offset overflow, undersized argument buffers, and batched commands.
+
+### Rasterizer-discard pipeline-state reduction — retain as a separate deferred patch
+
+Upstream commit [7926853](https://github.com/doitsujin/dxvk/commit/7926853af7f3e9a05e9e9c94928a85cbada6b501) avoids passing viewport, multisample, depth/stencil, color-blend, and render-target state for rasterizer-discard pipelines and returns early while assembling rasterization state. The active branch already has `HasRasterizerDiscard`-specific dynamic-state handling and attachment-mask shortcuts, but its pipeline create-info path still supplies several of those structures.
+
+This could reduce pipeline-state variation and Vulkan driver work for pipelines that truly discard rasterization. It is not equivalent to deleting fields mechanically: the `pNext` chain, descriptor flags, dynamic-state declarations, pipeline-library path, and the exact Vulkan 1.3 rules must remain valid. It is also not known whether FFVII Remake creates enough such variants to matter.
+
+**Disposition:** candidate for a small, isolated future patch—not included in this pass. Add a focused test/validation run for discard pipelines and pipeline-library enabled/disabled paths, then compare pipeline counts and compilation time before deciding whether to keep it.
+
+### Skyrim-specific cached dynamic resources — do not generalize
+
+Upstream commit [878473b](https://github.com/doitsujin/dxvk/commit/878473bafd6e0595ffd71eff0e6b2d9e45f00a20) enables `d3d11.cachedDynamicResources` through a Skyrim SE executable profile. This is a title-specific configuration workaround, not evidence of a generally beneficial default for Unreal Engine or FFVII Remake. Do not copy the profile or force the setting globally without an FFVII-specific resource-update trace and memory/latency A/B data.
+
+**Disposition:** reject as a global/default backport.
+
 ## Ranked next experiments
 
 | Priority | Experiment | Why it may matter | Main risk / gate |
