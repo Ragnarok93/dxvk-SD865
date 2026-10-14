@@ -1232,8 +1232,10 @@ namespace dxvk {
     static const bool ff7rLookupCacheEnabled = env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_CACHE") != "0";
     static const bool ff7rMetricsEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
 
-    // Keep the default path free of timers and metric atomics. The optional
-    // last-hit cache changes only how an already-created instance is found.
+    // The last-hit cache is enabled by default: it only shortcuts equality
+    // lookup for an already-published immutable state instance. Set the
+    // environment variable to 0 to disable it for A/B tests. Metrics remain
+    // opt-in because timing and logging perturb the hot path.
     auto findUnmeasured = [&]() -> DxvkGraphicsPipelineInstance* {
       if (ff7rLookupCacheEnabled) {
         DxvkGraphicsPipelineInstance* cached = m_lastInstance.load(std::memory_order_acquire);
