@@ -32,7 +32,7 @@ However, the active DXVK-SD865 branch already has a different pipeline-library/b
 
 The existing `DXVK-FF7R-ONDEMAND` timer measures the cache-miss slow path only. It does **not** measure the linear `findInstance` scan on cache hits, which is the hot path implicated by Sarek's write-up. A slow-path marker alone cannot establish that cache-hit lookup is expensive.
 
-**Disposition:** the telemetry branch now adds `DXVK-FF7R-LOOKUP`, sampling one lookup in every 256 calls when `DXVK_FF7R_METRICS=1`. It reports sampled CPU nanoseconds and entries scanned while leaving the normal lookup loop unchanged when metrics are disabled. This is diagnostic instrumentation, not a speedup. If matched captures show lookup cost is material, prototype a separate opt-in hash-lookup experiment that preserves the current synchronous fallback when no safe fallback exists. Do not replace the current pipeline manager wholesale.
+**Disposition:** the branch now has a gated last-hit cache experiment: set `DXVK_FF7R_PIPELINE_LOOKUP_CACHE=1` to cache the most recently matched pipeline instance per `DxvkGraphicsPipeline`. It is off by default. The cache stores a pointer to an append-only `sync::List` node, whose address remains stable until the parent pipeline is destroyed; no node is removed during normal use. With `DXVK_FF7R_METRICS=1`, `DXVK-FF7R-LOOKUP` samples one in 256 calls and reports mean lookup nanoseconds, mean list entries scanned, and sampled cache-hit percentage. This is a candidate optimization, not yet a verified speedup. Build and runtime correctness gates must pass before performance comparison.
 
 ### 3. Upstream 3.1.1 backports — classify by workload and API contract, not commit count
 
