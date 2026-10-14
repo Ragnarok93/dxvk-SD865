@@ -1,6 +1,9 @@
 name: Artifacts (Package)
 
-on: [push, pull_request, workflow_dispatch]
+# This project targets GameNative WCP artifacts. Keep generic Windows/native
+# DXVK packaging available for manual maintenance, but don't run it on every
+# push or pull request.
+on: [workflow_dispatch]
 
 jobs:
   artifacts-mingw-w64:
