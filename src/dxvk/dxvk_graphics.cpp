@@ -1281,7 +1281,8 @@ namespace dxvk {
     if (ff7rLookupCacheEnabled) {
       DxvkGraphicsPipelineInstance* cached = m_lastInstance.load(std::memory_order_acquire);
       if (cached && cached->state == state) {
-        recordSample(0, true);
+        if (sample)
+          recordSample(0, true);
         return cached;
       }
     }
