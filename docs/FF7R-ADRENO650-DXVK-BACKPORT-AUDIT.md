@@ -49,6 +49,12 @@ Upstream commit [9d6b9fa](https://github.com/doitsujin/dxvk/commit/9d6b9fa5f7e43
 
 **Disposition:** keep the change isolated; validate on x86/x64 CI, then check shader/render correctness and matched frame-time captures on Adreno 650. If compiler output or device traces show no meaningful effect, the change is harmless but not a priority for further tuning.
 
+### 2.1 Candidates reviewed and deliberately not transplanted
+
+- Upstream `bc94fe4` (push-data gather) and `398c950` (remove unused push-data members) are explicitly motivated by D3D9 content in the upstream descriptions. FFVII Remake uses the D3D11 path, so these are not justified as first-line optimizations for this workload. Their push-data layout and shader-IR changes are also coupled across `DxvkContext`, pipeline layouts, and DXBC-SPIR-V processing; do not cherry-pick only the visible copy-loop change.
+- Upstream `bd4395a` (disable raster-related dynamic state when rasterizer discard is active) changes the relationship between pipeline creation flags, dynamic-state declarations, and context dirty flags. It is a potentially useful future backport, but not a safe isolated edit: this fork must preserve exact Vulkan dynamic-state validity for both pipeline-library and optimized-pipeline paths. Defer until those paths can be compared side-by-side and exercised with validation layers or focused regression coverage.
+- Sarek's redundant `vkCmdBindPipeline` suppression remains deferred for the same architectural reason: actual command-buffer recording state, meta operations, and command-buffer reuse must all participate in invalidation.
+
 ### 3. Upstream 3.1.1 backports — classify by workload and API contract, not commit count
 
 The 2.7.1-to-3.1.1 range contains hundreds of commits spanning D3D8/9/11, DXGI, Vulkan wrappers, shaders, build tooling, and game-specific compatibility. The compare endpoint reports 988 commits between those tags, so a blind aggregate merge is not an acceptable backport method.
