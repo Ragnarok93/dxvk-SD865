@@ -1259,9 +1259,9 @@ namespace dxvk {
         sampleTimeNs.fetch_add(elapsedNs, std::memory_order_relaxed);
         sampleEntries.fetch_add(scanned, std::memory_order_relaxed);
 
-        uint64_t oldMaxUs = sampleMaxNs.load(std::memory_order_relaxed);
-        while (oldMaxUs < elapsedNs && !sampleMaxNs.compare_exchange_weak(
-            oldMaxUs, elapsedNs, std::memory_order_relaxed)) { }
+        uint64_t oldMaxNs = sampleMaxNs.load(std::memory_order_relaxed);
+        while (oldMaxNs < elapsedNs && !sampleMaxNs.compare_exchange_weak(
+            oldMaxNs, elapsedNs, std::memory_order_relaxed)) { }
         uint64_t oldMaxEntries = sampleMaxEntries.load(std::memory_order_relaxed);
         while (oldMaxEntries < scanned && !sampleMaxEntries.compare_exchange_weak(
             oldMaxEntries, scanned, std::memory_order_relaxed)) { }
