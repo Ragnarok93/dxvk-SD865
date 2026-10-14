@@ -1,4 +1,4 @@
-name: FF7R SD865 DXVK 2.7.1 pool 64/32MiB experimental WCP
+name: FF7R SD865 diagnostic-overhead candidate WCP
 
 on:
   workflow_dispatch:
@@ -75,11 +75,14 @@ jobs:
           grep -Fq 'DXVK_SD865_POOL_WCP' package-release.sh
           grep -Fq 'DXVK_SD865_POOL_EXPERIMENT' src/dxvk/dxvk_memory.cpp
 
+      - name: Verify timing aggregator and reporting cadence
+        run: python3 -m unittest discover -s tests -p test_ff7r_timing_counter_native.py -v
+
       - name: Cross-compile PE x64 and x32
         shell: bash
         run: |
           set -euo pipefail
-          VERSION_NAME="ff7r-pool64m32m-dxvk271-${GITHUB_SHA:0:12}"
+          VERSION_NAME="ff7r-diag1024-dxvk271-${GITHUB_SHA:0:12}"
           echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
           sed -i "s/__DXVK_SD865_BUILD_SHA__/${GITHUB_SHA}/" src/util/util_ff7r_build_stamp.h
           grep -Fq "$GITHUB_SHA" src/util/util_ff7r_build_stamp.h
@@ -133,7 +136,7 @@ jobs:
           compression-level: 0
 
       - name: Publish opted-in diagnostic prerelease
-        if: github.event_name == 'workflow_dispatch'
+        if: ${{ false }}
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

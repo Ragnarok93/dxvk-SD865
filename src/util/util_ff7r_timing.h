@@ -21,6 +21,13 @@ namespace dxvk {
       uint64_t over33ms;
     };
 
+    // Report less frequently to reduce formatting/Wine stderr overhead.
+    // Counters still account for every sample. Power-of-two intervals use
+    // a mask, avoiding a runtime integer division in the FEX hot path.
+    explicit Ff7rTimingCounter(uint64_t reportInterval = 1024) noexcept
+    : m_reportMask(reportInterval && !(reportInterval & (reportInterval - 1))
+        ? reportInterval - 1 : 1023) { }
+
     bool record(uint64_t elapsedUs) noexcept {
       m_totalUs.fetch_add(elapsedUs, std::memory_order_relaxed);
       if (elapsedUs >= 10000)
@@ -34,7 +41,7 @@ namespace dxvk {
 
       // Publish the count last; snapshots are approximate across workers.
       uint64_t count = m_count.fetch_add(1, std::memory_order_release) + 1;
-      return count == 1 || (count % 64 == 0);
+      return count == 1 || ((count & m_reportMask) == 0);
     }
 
     Snapshot snapshot() const noexcept {
@@ -54,6 +61,7 @@ namespace dxvk {
     }
 
   private:
+    const uint64_t m_reportMask;
     std::atomic<uint64_t> m_count { 0 };
     std::atomic<uint64_t> m_totalUs { 0 };
     std::atomic<uint64_t> m_maxUs { 0 };

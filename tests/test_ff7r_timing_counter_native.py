@@ -15,7 +15,7 @@ class Ff7rTimingCounterTest(unittest.TestCase):
 #include <thread>
 using namespace dxvk;
 int main() {
-  Ff7rTimingCounter stats;
+  Ff7rTimingCounter stats(64);
   assert(stats.record(800));
   assert(!stats.record(15000));
   assert(!stats.record(41000));
@@ -28,6 +28,16 @@ int main() {
   assert(stats.snapshot().count == 64);
   assert(Ff7rTimingCounter::timeUs(Ff7rTimingCounter::Clock::now()) > 0);
 
+  Ff7rTimingCounter reduced, invalid(0), invalidNonPower(65);
+  int reports = 0;
+  for (int i = 0; i < 4096; i++) {
+    reports += reduced.record(12000);
+    assert(invalid.record(12000) == (i == 0 || ((i + 1) % 1024 == 0)));
+    assert(invalidNonPower.record(12000) == (i == 0 || ((i + 1) % 1024 == 0)));
+  }
+  assert(reports == 5 && reduced.snapshot().count == 4096);
+  assert(reduced.snapshot().meanUs == 12000);
+  assert(reduced.snapshot().over10ms == 4096);
   Ff7rTimingCounter concurrently;
   auto task = [&concurrently] {
     for (int i = 0; i < 2048; ++i)
