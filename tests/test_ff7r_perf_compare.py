@@ -45,5 +45,49 @@ class PerfCompareTest(unittest.TestCase):
             self.assertEqual(result['p95_window_median_delta_percent'], 0)
 
 
+    def test_lookup_cache_metrics_and_duplicate_present_ids(self):
+        with tempfile.TemporaryDirectory() as temp:
+            log = Path(temp) / 'lookup.log'
+            log.write_text('\n'.join([
+                'DXVK-FF7R-FRAMES: present_id=1 count=256 mean_us=12000 p50_us=10000 p95_us=20000 p99_us=30000 max_us=40000',
+                'DXVK-FF7R-FRAMES: present_id=1 count=256 mean_us=12000 p50_us=10000 p95_us=21000 p99_us=30000 max_us=40000',
+                'DXVK-FF7R-FRAMES: present_id=2 count=256 mean_us=12000 p50_us=10000 p95_us=24000 p99_us=30000 max_us=40000',
+                'DXVK-FF7R-LOOKUP: samples=16 mean_ns=800 mean_entries=2 cache_hit_pct=75 max_ns=5000 max_entries=40',
+            ]), encoding='utf-8')
+            result = perf.parse(log)
+
+        self.assertEqual(result['present_windows'], 2)
+        self.assertEqual(result['sampled_intervals'], 512)
+        self.assertEqual(result['median_window_p95_ms'], 22.5)
+        self.assertEqual(result['pipeline_lookup_latest_snapshot']['mean_ns'], 800)
+        self.assertEqual(result['pipeline_lookup_latest_snapshot']['cache_hit_pct'], 75)
+
+    def test_comparison_reports_frame_and_lookup_deltas_from_zip(self):
+        with tempfile.TemporaryDirectory() as temp:
+            baseline = Path(temp) / 'baseline.log'
+            candidate = Path(temp) / 'candidate.zip'
+            baseline.write_text('\n'.join([
+                'DXVK-FF7R-FRAMES: present_id=1 count=256 mean_us=12000 p50_us=10000 p95_us=20000 p99_us=30000 max_us=40000',
+                'DXVK-FF7R-FRAMES: present_id=2 count=256 mean_us=12000 p50_us=10000 p95_us=22000 p99_us=30000 max_us=40000',
+                'DXVK-FF7R-FRAMES: present_id=3 count=256 mean_us=12000 p50_us=10000 p95_us=24000 p99_us=30000 max_us=40000',
+                'DXVK-FF7R-LOOKUP: samples=16 mean_ns=1000 mean_entries=8 cache_hit_pct=10 max_ns=5000 max_entries=40',
+            ]), encoding='utf-8')
+            candidate_log = '\n'.join([
+                'DXVK-FF7R-FRAMES: present_id=1 count=256 mean_us=12000 p50_us=10000 p95_us=18000 p99_us=30000 max_us=40000',
+                'DXVK-FF7R-FRAMES: present_id=2 count=256 mean_us=12000 p50_us=10000 p95_us=20000 p99_us=30000 max_us=40000',
+                'DXVK-FF7R-FRAMES: present_id=3 count=256 mean_us=12000 p50_us=10000 p95_us=22000 p99_us=30000 max_us=40000',
+                'DXVK-FF7R-LOOKUP: samples=16 mean_ns=700 mean_entries=1 cache_hit_pct=80 max_ns=5000 max_entries=40',
+            ])
+            with zipfile.ZipFile(candidate, 'w') as archive:
+                archive.writestr('logs/game.log', candidate_log)
+            result = perf.compare(baseline, candidate)
+
+        self.assertTrue(result['benchmark_valid'])
+        self.assertEqual(result['p95_window_median_delta_ms'], -2.0)
+        self.assertEqual(result['pipeline_lookup_mean_ns_delta'], -300)
+        self.assertEqual(result['pipeline_lookup_mean_entries_delta'], -7)
+        self.assertEqual(result['pipeline_lookup_cache_hit_pct_delta'], 70)
+
+
 if __name__ == '__main__':
     unittest.main()
