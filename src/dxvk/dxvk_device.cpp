@@ -32,7 +32,7 @@ namespace dxvk {
     if (ff7rMetrics || ff7rOnDemand) {
       Logger::info(str::format("DXVK-FF7R-TELEMETRY: metrics=", ff7rMetrics ? 1 : 0,
         " on_demand=", ff7rOnDemand ? 1 : 0,
-        " device=\\\"", m_properties.core.properties.deviceName, "\\\""));
+        " device=", m_properties.core.properties.deviceName));
     }
   }
   
