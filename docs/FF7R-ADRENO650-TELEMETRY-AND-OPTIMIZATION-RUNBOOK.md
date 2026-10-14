@@ -46,7 +46,7 @@ Not every marker is emitted by every capture. Frame/present cadence needs real f
 5. Perform at least three matched trials per variant. Log ambient/device thermal state and discard runs with materially different throttling or background activity.
 6. Save the complete per-DLL logs and external GameNative/Android frame-time capture together in a uniquely named archive. Never overwrite the baseline.
 7. Compare captures with `python3 tools/ff7r_perf_compare.py baseline.zip candidate.zip`. The script's windowed statistics are not a guarantee of statistical significance; inspect raw windows and external frame-time traces too.
-8. For the lookup-cache experiment, enable `DXVK_FF7R_METRICS=1` in both diagnostic runs and toggle only `DXVK_FF7R_PIPELINE_LOOKUP_CACHE` between unset and `1`. The comparison script reports sampled lookup mean-nanosecond, entries-scanned, and cache-hit-percentage deltas when both archives contain `DXVK-FF7R-LOOKUP` markers. Then repeat performance mode with metrics disabled; do not use the diagnostic timings as the final performance verdict.
+8. For the lookup-cache A/B test, enable `DXVK_FF7R_METRICS=1` in both diagnostic runs and toggle only `DXVK_FF7R_PIPELINE_LOOKUP_CACHE` between unset (enabled) and `0` (disabled). The comparison script reports sampled lookup mean-nanosecond, entries-scanned, and cache-hit-percentage deltas when both archives contain `DXVK-FF7R-LOOKUP` markers. Then repeat performance mode with metrics disabled; do not use the diagnostic timings as the final performance verdict.
 
 ## Low-overhead and performance captures
 
