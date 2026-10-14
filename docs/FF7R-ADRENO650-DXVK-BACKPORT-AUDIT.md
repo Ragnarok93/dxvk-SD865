@@ -32,7 +32,7 @@ However, the active DXVK-SD865 branch already has a different pipeline-library/b
 
 The existing `DXVK-FF7R-ONDEMAND` timer measures the cache-miss slow path only. It does **not** measure the linear `findInstance` scan on cache hits, which is the hot path implicated by Sarek's write-up. A slow-path marker alone cannot establish that cache-hit lookup is expensive.
 
-**Disposition:** first add a separately gated, sampled lookup probe (scan length and sampled CPU duration, enabled only by `DXVK_FF7R_METRICS=1`) or use a profiler capture to quantify cache-hit lookup cost. If it is material, prototype a separate opt-in hash-lookup experiment that preserves the current synchronous fallback when no safe fallback exists. Do not replace the current pipeline manager wholesale.
+**Disposition:** the telemetry branch now adds `DXVK-FF7R-LOOKUP`, sampling one lookup in every 256 calls when `DXVK_FF7R_METRICS=1`. It reports sampled CPU nanoseconds and entries scanned while leaving the normal lookup loop unchanged when metrics are disabled. This is diagnostic instrumentation, not a speedup. If matched captures show lookup cost is material, prototype a separate opt-in hash-lookup experiment that preserves the current synchronous fallback when no safe fallback exists. Do not replace the current pipeline manager wholesale.
 
 ### 3. Upstream 3.1.1 backports — classify by workload and API contract, not commit count
 
