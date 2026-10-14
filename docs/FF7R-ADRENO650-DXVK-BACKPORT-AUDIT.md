@@ -73,6 +73,14 @@ First-pass relevant classes:
 
 Sarek's redundant graphics/compute bind suppression is a plausible CPU-side optimization, but it is not enabled in this fork yet. The active context binds Vulkan pipelines from both ordinary D3D11 state updates and multiple internal meta operations (clear, blit, buffer/image transfer, and resolve paths). A correct cache must track graphics and compute bind points independently and invalidate state at every command-buffer reset/switch and every path that can bind a meta pipeline. Skipping a bind based only on `m_state.gp.pipeline`/`m_state.cp.pipeline` would be incorrect because those are D3D-facing pipeline objects, not necessarily the last Vulkan pipeline handle actually bound. The next implementation should put tracking at the command-buffer recording layer or prove complete invalidation coverage across all `cmdBindPipeline` call sites; do not copy Sarek's context-level change verbatim. Keep it isolated and add tests/counters for emitted versus skipped binds before enabling it by default.
 
+## Legacy DXVK-async fork audit — not a compatible backport source
+
+Reviewed [Sporif/dxvk-async](https://github.com/Sporif/dxvk-async). Its README's compatibility matrix ends at DXVK 1.10.3 and describes a patch that makes pipeline compilation asynchronous, writes asynchronous pipelines into the state cache, and adds a separate compiler-thread setting. It also explicitly notes that its async mode disables graphics pipeline libraries because the two paths were incompatible in that implementation.
+
+That work demonstrates the general stutter-reduction strategy, but it is not a viable direct backport to this 2.7.1-derived branch: pipeline creation, state caching, compiler worker scheduling, and GPL behavior have changed substantially since the supported 1.x line. The active branch already has base-pipeline/optimized-pipeline handling and prioritized worker queues; transplanting the old patch would risk bypassing those invariants and could force off a pipeline-library path already used here.
+
+**Disposition:** do not port the legacy patch. Sarek's newer async compilation/priority design remains the more relevant reference, but any queue-policy change must be independently justified by FFVII Remake telemetry and reviewed against this branch's existing worker lifecycle. The current next gate remains collecting a representative `DXVK-FF7R-LOOKUP` / on-demand capture before changing lookup or scheduling behavior.
+
 ## Additional upstream 3.1.1 candidate triage — D3D11 and pipeline state
 
 A targeted source/diff review of additional commits in the 2.7.1 → 3.1.1 range found these candidates. They are deliberately classified rather than bulk-backported.
