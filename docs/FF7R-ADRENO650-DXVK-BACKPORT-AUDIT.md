@@ -15,6 +15,11 @@ Status: source-level triage against the current Vulkan 1.3-compatible DXVK 2.7.1
   - Sarek's pipeline lookup/worker redesign: https://github.com/furbi963/DXVK-Sarek/commit/c919f0b44325e09c9fc5c88551d5076ea4f2906e
   - Sarek's lock-free queue/hash-map revision: https://github.com/furbi963/DXVK-Sarek/commit/0444d886ae845c9c911d84cf441fb62d6253745a
   - Upstream tiler render-area change: https://github.com/doitsujin/dxvk/commit/d92226b6a9e5ac7d9e9f00999b0feb54c9e1987e
+  - Khronos tile-based rendering best practices: https://docs.vulkan.org/guide/latest/tile_based_rendering_best_practices.html
+  - Khronos command-buffer recording and secondary-buffer guidance: https://docs.vulkan.org/samples/latest/samples/performance/command_buffer_usage/README.html
+  - Khronos dynamic-state trade-offs: https://docs.vulkan.org/guide/latest/dynamic_state.html
+  - Qualcomm Snapdragon Game Toolkit / Adreno developer guide (living documentation): https://docs.qualcomm.com/bundle/publicresource/topics/80-78185-2/
+  - Qualcomm Adreno model-specific spec sheets (including A6x): https://docs.qualcomm.com/bundle/publicresource/topics/80-78185-2/spec_sheets.html?product=1601111740035277
 
 ## Findings
 
