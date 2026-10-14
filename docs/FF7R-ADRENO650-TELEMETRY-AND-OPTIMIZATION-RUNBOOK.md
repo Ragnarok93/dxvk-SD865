@@ -29,10 +29,11 @@ If the runtime cannot set more than one environment variable at a time, set them
 | `DXVK-FF7R-FRAMES` | CPU-side Present-completion interval statistics: mean, p50, p95, p99, max | Not GPU execution time or physical display scanout |
 | `DXVK-FF7R-PIPELINES` | Background pipeline-library / optimized-pipeline compilation CPU durations | Does not include all synchronous pipeline creation or GPU execution |
 | `DXVK-FF7R-ONDEMAND` | Render-thread cache-miss slow-path timing, including relevant lock wait / instance creation | Only samples the instrumented slow path |
+| `DXVK-FF7R-LOOKUP` | Sampled CPU time and entries scanned by the graphics-pipeline instance lookup | Samples one lookup per 256 calls; diagnostic-only and not representative of GPU time |
 | `DXVK-FF7R-FENCE-WAIT` | CPU time spent waiting for a fence | A wait duration is evidence of a stall, not proof of its root cause |
 | `DXVK-FF7R-RESOURCE-WAIT` | CPU time waiting for a resource to become reusable | Does not imply the wait can safely be removed |
 
-Not every marker is emitted by every capture. Frame/present cadence needs real frames; on-demand pipeline timing requires cache-miss slow paths; synchronization markers require the relevant waits to occur. A missing marker alone is not proof that the feature is broken. Check the exact binary build, variable propagation, log path permissions, and workload coverage first.
+Not every marker is emitted by every capture. Frame/present cadence needs real frames; on-demand pipeline timing requires cache-miss slow paths; lookup timing samples one call in every 256 and requires enough lookups; synchronization markers require the relevant waits to occur. A missing marker alone is not proof that the feature is broken. Check the exact binary build, variable propagation, log path permissions, and workload coverage first.
 
 ## Capture protocol
 
