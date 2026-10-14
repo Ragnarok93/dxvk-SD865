@@ -122,7 +122,7 @@ def compare(baseline, candidate):
     return out
 
 
-def main()
+def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('baseline', help='ZIP, log or directory')
     parser.add_argument('candidate', help='ZIP, log or directory')
