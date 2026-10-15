@@ -83,7 +83,7 @@ def parse(path):
                     lookup_cache[point.group(1)].append(d)
             m = PIPELINE_LOCK.search(line)
             if m:
-                point = re.search(r'\\bpoint=(graphics|compute)\\b', m.group(1))
+                point = re.search(r'\bpoint=(graphics|compute)\b', m.group(1))
                 d = {k: int(v) for k, v in FIELDS.findall(m.group(1))}
                 if point and all(k in d for k in ('calls', 'wait_us', 'over_50us', 'max_us')):
                     pipeline_lock[point.group(1)].append(d)
