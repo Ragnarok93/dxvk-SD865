@@ -38,6 +38,21 @@ class AllocTraceTests(unittest.TestCase):
         self.assertEqual(report["events"][0]["retry_vkresult"], 0)
         self.assertEqual(report["outcomes"]["recovered_after_retry"], 1)
 
+    def test_oom_reclaim_is_parsed_and_correlatable(self):
+        event = (
+            "err: DXVK-SD865-ALLOC stage=oom_reclaim attempt_id=403 heap=0 "
+            "empty_chunks_before=3 empty_bytes_before=12582912 "
+            "empty_chunks_after=1 empty_bytes_after=4194304 "
+            "reclaimed_chunks=2 reclaimed_bytes=8388608 "
+            "pass_reclaimed_chunks=2 pass_reclaimed_bytes=8388608 pool_experiment=0"
+        )
+        report = summarize([event, DRIVER])
+        reclaim = next(item for item in report["events"] if item["stage"] == "oom_reclaim")
+        retry = next(item for item in report["events"] if item["stage"] == "driver_retry")
+        self.assertEqual(reclaim["attempt_id"], retry["first_attempt_id"])
+        self.assertEqual(reclaim["pass_reclaimed_bytes"], retry["reclaim_pass_bytes"])
+        self.assertEqual(report["by_stage"]["oom_reclaim"], 1)
+
     def test_unrecovered_driver_allocation(self):
         report = summarize([DRIVER.replace("retry_vkresult=0", "retry_vkresult=-1")
                             .replace("retry_name=VK_SUCCESS", "retry_name=VK_ERROR_OUT_OF_HOST_MEMORY")
