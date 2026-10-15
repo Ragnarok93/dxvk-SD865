@@ -131,11 +131,11 @@ class PerfCompareTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             baseline = Path(temp) / 'baseline.log'
             candidate = Path(temp) / 'candidate.log'
-            baseline.write_text('\\n'.join([
+            baseline.write_text('\n'.join([
                 'DXVK-FF7R-BINDS: point=graphics calls=1048576 skipped=100',
                 'DXVK-FF7R-BINDS: point=compute calls=1048576 skipped=20',
             ]), encoding='utf-8')
-            candidate.write_text('\\n'.join([
+            candidate.write_text('\n'.join([
                 'DXVK-FF7R-BINDS: point=graphics calls=2097152 skipped=600',
                 'DXVK-FF7R-BINDS: point=compute calls=2097152 skipped=70',
             ]), encoding='utf-8')
