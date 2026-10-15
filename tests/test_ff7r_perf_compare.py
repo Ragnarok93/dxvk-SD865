@@ -127,5 +127,28 @@ class PerfCompareTest(unittest.TestCase):
         self.assertIn('matched capture duration/workload', result['pipeline_note'])
 
 
+    def test_pipeline_bind_snapshots_are_split_by_bind_point(self):
+        with tempfile.TemporaryDirectory() as temp:
+            baseline = Path(temp) / 'baseline.log'
+            candidate = Path(temp) / 'candidate.log'
+            baseline.write_text('\\n'.join([
+                'DXVK-FF7R-BINDS: point=graphics calls=1048576 skipped=100',
+                'DXVK-FF7R-BINDS: point=compute calls=1048576 skipped=20',
+            ]), encoding='utf-8')
+            candidate.write_text('\\n'.join([
+                'DXVK-FF7R-BINDS: point=graphics calls=2097152 skipped=600',
+                'DXVK-FF7R-BINDS: point=compute calls=2097152 skipped=70',
+            ]), encoding='utf-8')
+            parsed = perf.parse(candidate)
+            result = perf.compare(baseline, candidate)
+
+        self.assertEqual(parsed['pipeline_bind_latest_snapshots']['graphics']['skipped'], 600)
+        self.assertEqual(parsed['pipeline_bind_latest_snapshots']['compute']['calls'], 2097152)
+        self.assertEqual(result['pipeline_bind_deltas']['graphics']['calls_delta'], 1048576)
+        self.assertEqual(result['pipeline_bind_deltas']['graphics']['skipped_delta'], 500)
+        self.assertEqual(result['pipeline_bind_deltas']['compute']['skipped_delta'], 50)
+        self.assertIn('matched capture durations', result['pipeline_bind_note'])
+
+
 if __name__ == '__main__':
     unittest.main()
