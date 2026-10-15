@@ -150,5 +150,30 @@ class PerfCompareTest(unittest.TestCase):
         self.assertIn('matched capture durations', result['pipeline_bind_note'])
 
 
+    def test_pipeline_lookup_cache_counters_compare_per_bind_point(self):
+        with tempfile.TemporaryDirectory() as temp:
+            baseline = Path(temp) / 'baseline.log'
+            candidate = Path(temp) / 'candidate.log'
+            baseline.write_text('\n'.join([
+                'DXVK-FF7R-LOOKUP-CACHE: point=graphics calls=1048576 hits=786432',
+                'DXVK-FF7R-LOOKUP-CACHE: point=compute calls=1048576 hits=524288',
+            ]), encoding='utf-8')
+            candidate.write_text('\n'.join([
+                'DXVK-FF7R-LOOKUP-CACHE: point=graphics calls=2097152 hits=1782579',
+                'DXVK-FF7R-LOOKUP-CACHE: point=compute calls=2097152 hits=1572864',
+            ]), encoding='utf-8')
+            parsed = perf.parse(candidate)
+            result = perf.compare(baseline, candidate)
+
+        self.assertEqual(parsed['pipeline_lookup_cache_latest_snapshots']['graphics']['hits'], 1782579)
+        self.assertEqual(result['pipeline_lookup_cache_deltas']['graphics']['calls_delta'], 1048576)
+        self.assertEqual(result['pipeline_lookup_cache_deltas']['graphics']['hits_delta'], 996147)
+        self.assertAlmostEqual(result['pipeline_lookup_cache_deltas']['graphics']['hit_rate_pct_baseline'], 75.0)
+        self.assertAlmostEqual(result['pipeline_lookup_cache_deltas']['graphics']['hit_rate_pct_candidate'], 85.0)
+        self.assertAlmostEqual(result['pipeline_lookup_cache_deltas']['graphics']['hit_rate_pct_delta'], 10.0)
+        self.assertIn('does not establish a frame-time benefit', result['pipeline_lookup_cache_note'])
+
+
+
 if __name__ == '__main__':
     unittest.main()
