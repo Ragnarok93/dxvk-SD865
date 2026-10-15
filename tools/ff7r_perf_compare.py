@@ -16,6 +16,7 @@ PIPE = re.compile(r'DXVK-FF7R-PIPELINES:\s*(.*)')
 ONDEMAND = re.compile(r'DXVK-FF7R-ONDEMAND:\s*(.*)')
 LOOKUP = re.compile(r'DXVK-FF7R-LOOKUP:\s*(.*)')
 LOOKUP_CACHE = re.compile(r'DXVK-FF7R-LOOKUP-CACHE:\s*(.*)')
+PIPELINE_LOCK = re.compile(r'DXVK-FF7R-PIPELINE-LOCK:\s*(.*)')
 BINDS = re.compile(r'DXVK-FF7R-BINDS:\s*(.*)')
 QUEUE_MARKERS = {
     name: re.compile(r'DXVK-FF7R-' + name + r':\s*(.*)')
@@ -44,6 +45,7 @@ def parse(path):
     lookups = []
     binds = {'graphics': [], 'compute': []}
     lookup_cache = {'graphics': [], 'compute': []}
+    pipeline_lock = {'graphics': [], 'compute': []}
     queue_metrics = {name: [] for name in QUEUE_MARKERS}
     for content in load_logs(path):
         for line in content.splitlines():
@@ -79,6 +81,12 @@ def parse(path):
                 d = {k: int(v) for k, v in FIELDS.findall(m.group(1))}
                 if point and all(k in d for k in ('calls', 'hits')):
                     lookup_cache[point.group(1)].append(d)
+            m = PIPELINE_LOCK.search(line)
+            if m:
+                point = re.search(r'\\bpoint=(graphics|compute)\\b', m.group(1))
+                d = {k: int(v) for k, v in FIELDS.findall(m.group(1))}
+                if point and all(k in d for k in ('calls', 'wait_us', 'over_50us', 'max_us')):
+                    pipeline_lock[point.group(1)].append(d)
             for name, matcher in QUEUE_MARKERS.items():
                 m = matcher.search(line)
                 if m:
@@ -96,6 +104,8 @@ def parse(path):
         values.sort(key=lambda x: x['calls'])
     for values in lookup_cache.values():
         values.sort(key=lambda x: x['calls'])
+    for values in pipeline_lock.values():
+        values.sort(key=lambda x: x['calls'])
     for values in queue_metrics.values():
         values.sort(key=lambda x: x['samples'])
     return {'present_windows': len(windows),
@@ -111,6 +121,8 @@ def parse(path):
                                              for point, values in binds.items()},
             'pipeline_lookup_cache_latest_snapshots': {point: values[-1] if values else None
                                                      for point, values in lookup_cache.items()},
+             'pipeline_lock_latest_snapshots': {point: values[-1] if values else None
+                                                for point, values in pipeline_lock.items()},
             'queue_latest_snapshots': {name: values[-1] if values else None
                                        for name, values in queue_metrics.items()},
             'first_8_window_p95_ms': med(windows[:8], 'p95_us'),
@@ -180,6 +192,7 @@ def compare(baseline, candidate):
             cache_deltas[point] = {
                 'calls_delta': cand['calls'] - base['calls'],
                 'hits_delta': cand['hits'] - base['hits'],
+                'victim_hits_delta': cand.get('victim_hits', 0) - base.get('victim_hits', 0),
                 'hit_rate_pct_baseline': round(base_rate, 2) if base_rate is not None else None,
                 'hit_rate_pct_candidate': round(cand_rate, 2) if cand_rate is not None else None,
                 'hit_rate_pct_delta': round(cand_rate - base_rate, 2)
@@ -187,7 +200,23 @@ def compare(baseline, candidate):
             }
     if cache_deltas:
         out['pipeline_lookup_cache_deltas'] = cache_deltas
-        out['pipeline_lookup_cache_note'] = 'Cumulative local-cache counters; compare matched workloads and durations. Hit rate alone does not establish a frame-time benefit.'
+        out['pipeline_lookup_cache_note'] = 'Cumulative local-cache counters; victim_hits measures hits in the second-chance slot. Compare matched workloads and durations; hit rate alone does not establish a frame-time benefit.'
+    base_locks = a['pipeline_lock_latest_snapshots']
+    cand_locks = b['pipeline_lock_latest_snapshots']
+    lock_deltas = {}
+    for point in ('graphics', 'compute'):
+        base, cand = base_locks.get(point), cand_locks.get(point)
+        if base and cand:
+            lock_deltas[point] = {
+                'calls_delta': cand['calls'] - base['calls'],
+                'wait_us_delta': cand['wait_us'] - base['wait_us'],
+                'over_50us_delta': cand['over_50us'] - base['over_50us'],
+                'max_us_baseline': base['max_us'],
+                'max_us_candidate': cand['max_us'],
+            }
+    if lock_deltas:
+        out['pipeline_lock_deltas'] = lock_deltas
+        out['pipeline_lock_note'] = 'Cumulative mutex-acquisition wait snapshots; compare matched durations/workloads. This measures lock acquisition only, not time spent in the critical section.'
     return out
 
 
