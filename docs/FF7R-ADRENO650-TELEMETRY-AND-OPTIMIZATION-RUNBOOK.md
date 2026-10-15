@@ -35,6 +35,7 @@ If the runtime cannot set more than one environment variable at a time, set them
 | `DXVK-FF7R-PIPELINES` | Background pipeline-library / optimized-pipeline compilation CPU durations plus opt-in queue-wait sample count, mean, and counts at or above 10 ms / 33 ms | Does not include all synchronous pipeline creation or GPU execution; queue wait is aggregate across priorities and is not per-priority attribution |
 | `DXVK-FF7R-ONDEMAND` | Render-thread cache-miss slow-path timing, including relevant lock wait / instance creation | Only samples the instrumented slow path |
 | `DXVK-FF7R-LOOKUP` | Sampled CPU time, entries scanned, and cache-hit percentage for graphics-pipeline lookup | Samples one lookup per 256 calls; diagnostic-only and not representative of GPU time |
+| `DXVK-FF7R-LOOKUP-CACHE` | Graphics/compute per-context lookup-cache calls and hits | Requires `DXVK_FF7R_METRICS=1`; sparse snapshots every 1,048,576 lookups; hit rate alone does not establish a frame-time benefit |
 | `DXVK-FF7R-BINDS` | Opt-in Vulkan graphics/compute pipeline-bind attempts and duplicate binds skipped, reported separately by bind point | Requires `DXVK_FF7R_METRICS=1`; emits sparse aggregate snapshots every 1,048,576 attempts per bind point; counters/logging perturb diagnostic runs |
 | `DXVK-FF7R-FENCE-WAIT` | CPU time spent waiting for a fence | A wait duration is evidence of a stall, not proof of its root cause |
 | `DXVK-FF7R-RESOURCE-WAIT` | CPU time waiting for a resource to become reusable | Does not imply the wait can safely be removed |
@@ -62,7 +63,7 @@ No worker-count setting is presumed optimal. If the experiment points to queue c
 5. Perform at least three matched trials per variant. Log ambient/device thermal state and discard runs with materially different throttling or background activity.
 6. Save the complete per-DLL logs and external GameNative/Android frame-time capture together in a uniquely named archive. Never overwrite the baseline.
 7. Compare captures with `python3 tools/ff7r_perf_compare.py baseline.zip candidate.zip`. The script's windowed statistics are not a guarantee of statistical significance; inspect raw windows and external frame-time traces too.
-8. For the lookup-cache A/B test, enable `DXVK_FF7R_METRICS=1` in both diagnostic runs and toggle only `DXVK_FF7R_PIPELINE_LOOKUP_CACHE` between unset (enabled) and `0` (disabled). The comparison script reports sampled lookup mean-nanosecond, entries-scanned, and cache-hit-percentage deltas when both archives contain `DXVK-FF7R-LOOKUP` markers. Then repeat performance mode with metrics disabled; do not use the diagnostic timings as the final performance verdict.
+8. For the lookup-cache A/B test, enable `DXVK_FF7R_METRICS=1` in both diagnostic runs and toggle only `DXVK_FF7R_PIPELINE_LOOKUP_CACHE` between unset (enabled) and `0` (disabled). The comparison script reports sampled lookup timing (`DXVK-FF7R-LOOKUP`) and local-cache hit/call deltas (`DXVK-FF7R-LOOKUP-CACHE`) when present. Then repeat performance mode with metrics disabled; do not use diagnostic timings or hit rate alone as the final performance verdict.
 
 ## Low-overhead and performance captures
 
