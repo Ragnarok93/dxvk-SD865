@@ -782,11 +782,16 @@ namespace dxvk {
       bindDescriptorBuffers(secondary);
 
     // Pipeline state belongs to a command buffer. The slot temporarily points
-    // at the secondary buffer, so keep the primary state separately and start
-    // secondary recording with an empty binding state.
+    // at the secondary buffer, so isolate tracking only when duplicate-bind
+    // suppression is enabled; the default path pays no extra state-copy cost.
+    static const bool ff7rSkipDuplicateBinds =
+      env::getEnvVar("DXVK_FF7R_SKIP_DUPLICATE_BINDS") == "1";
     auto execSlot = uint32_t(DxvkCmdBuffer::ExecBuffer);
-    m_execBufferPipelineStateBackup = m_boundPipelines[execSlot];
-    m_boundPipelines[execSlot] = { };
+    if (ff7rSkipDuplicateBinds) {
+      m_execBufferPipelineStateBackup = m_boundPipelines[execSlot];
+      m_boundPipelines[execSlot] = { };
+      m_execBufferPipelineStateBackupActive = true;
+    }
     m_execBuffer = std::exchange(m_cmd.cmdBuffers[execSlot], secondary);
   }
 
@@ -802,8 +807,11 @@ namespace dxvk {
     m_execBuffer = VK_NULL_HANDLE;
 
     // Restore the primary buffer's tracked state after secondary recording.
-    m_boundPipelines[execSlot] = m_execBufferPipelineStateBackup;
-    m_execBufferPipelineStateBackup = { };
+    if (m_execBufferPipelineStateBackupActive) {
+      m_boundPipelines[execSlot] = m_execBufferPipelineStateBackup;
+      m_execBufferPipelineStateBackup = { };
+      m_execBufferPipelineStateBackupActive = false;
+    }
     return cmd;
   }
 
