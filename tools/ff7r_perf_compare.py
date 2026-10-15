@@ -15,6 +15,7 @@ FRAME = re.compile(r'DXVK-FF7R-FRAMES:\s*(.*)')
 PIPE = re.compile(r'DXVK-FF7R-PIPELINES:\s*(.*)')
 ONDEMAND = re.compile(r'DXVK-FF7R-ONDEMAND:\s*(.*)')
 LOOKUP = re.compile(r'DXVK-FF7R-LOOKUP:\s*(.*)')
+LOOKUP_CACHE = re.compile(r'DXVK-FF7R-LOOKUP-CACHE:\s*(.*)')
 BINDS = re.compile(r'DXVK-FF7R-BINDS:\s*(.*)')
 QUEUE_MARKERS = {
     name: re.compile(r'DXVK-FF7R-' + name + r':\s*(.*)')
@@ -42,6 +43,7 @@ def parse(path):
     on_demand = []
     lookups = []
     binds = {'graphics': [], 'compute': []}
+    lookup_cache = {'graphics': [], 'compute': []}
     queue_metrics = {name: [] for name in QUEUE_MARKERS}
     for content in load_logs(path):
         for line in content.splitlines():
@@ -71,6 +73,12 @@ def parse(path):
                 d = {k: int(v) for k, v in FIELDS.findall(m.group(1))}
                 if point and all(k in d for k in ('calls', 'skipped')):
                     binds[point.group(1)].append(d)
+            m = LOOKUP_CACHE.search(line)
+            if m:
+                point = re.search(r'\bpoint=(graphics|compute)\b', m.group(1))
+                d = {k: int(v) for k, v in FIELDS.findall(m.group(1))}
+                if point and all(k in d for k in ('calls', 'hits')):
+                    lookup_cache[point.group(1)].append(d)
             for name, matcher in QUEUE_MARKERS.items():
                 m = matcher.search(line)
                 if m:
@@ -86,6 +94,8 @@ def parse(path):
     lookups.sort(key=lambda x: x['samples'])
     for values in binds.values():
         values.sort(key=lambda x: x['calls'])
+    for values in lookup_cache.values():
+        values.sort(key=lambda x: x['calls'])
     for values in queue_metrics.values():
         values.sort(key=lambda x: x['samples'])
     return {'present_windows': len(windows),
@@ -99,6 +109,8 @@ def parse(path):
             'pipeline_lookup_latest_snapshot': lookups[-1] if lookups else None,
             'pipeline_bind_latest_snapshots': {point: values[-1] if values else None
                                              for point, values in binds.items()},
+            'pipeline_lookup_cache_latest_snapshots': {point: values[-1] if values else None
+                                                     for point, values in lookup_cache.items()},
             'queue_latest_snapshots': {name: values[-1] if values else None
                                        for name, values in queue_metrics.items()},
             'first_8_window_p95_ms': med(windows[:8], 'p95_us'),
@@ -157,6 +169,25 @@ def compare(baseline, candidate):
     if bind_deltas:
         out['pipeline_bind_deltas'] = bind_deltas
         out['pipeline_bind_note'] = 'Cumulative counters; compare only matched capture durations and workloads. Bind counts are not themselves a performance result.'
+    base_cache = a['pipeline_lookup_cache_latest_snapshots']
+    cand_cache = b['pipeline_lookup_cache_latest_snapshots']
+    cache_deltas = {}
+    for point in ('graphics', 'compute'):
+        base, cand = base_cache.get(point), cand_cache.get(point)
+        if base and cand:
+            base_rate = 100 * base['hits'] / base['calls'] if base['calls'] else None
+            cand_rate = 100 * cand['hits'] / cand['calls'] if cand['calls'] else None
+            cache_deltas[point] = {
+                'calls_delta': cand['calls'] - base['calls'],
+                'hits_delta': cand['hits'] - base['hits'],
+                'hit_rate_pct_baseline': round(base_rate, 2) if base_rate is not None else None,
+                'hit_rate_pct_candidate': round(cand_rate, 2) if cand_rate is not None else None,
+                'hit_rate_pct_delta': round(cand_rate - base_rate, 2)
+                    if cand_rate is not None and base_rate is not None else None,
+            }
+    if cache_deltas:
+        out['pipeline_lookup_cache_deltas'] = cache_deltas
+        out['pipeline_lookup_cache_note'] = 'Cumulative local-cache counters; compare matched workloads and durations. Hit rate alone does not establish a frame-time benefit.'
     return out
 
 
