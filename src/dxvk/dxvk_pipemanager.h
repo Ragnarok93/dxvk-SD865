@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <mutex>
 #include <queue>
 #include <unordered_map>
@@ -122,6 +123,7 @@ namespace dxvk {
       DxvkShaderPipelineLibrary*    pipelineLibrary;
       DxvkGraphicsPipeline*         graphicsPipeline;
       DxvkGraphicsPipelineStateInfo graphicsState;
+      std::chrono::steady_clock::time_point enqueuedAt = { };
     };
 
     struct PipelineBucket {
