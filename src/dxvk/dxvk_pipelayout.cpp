@@ -202,13 +202,14 @@ namespace dxvk {
           void*         dst,
     const void*         srcData,
     const void*         srcResources) const {
-    auto dstPtr = reinterpret_cast<uint32_t*>(dst);
-    auto srcPtr = reinterpret_cast<const uint32_t*>(srcData);
-    auto resPtr = reinterpret_cast<const uint32_t*>(srcResources);
+    auto dstPtr = static_cast<char*>(dst);
+    auto srcPtr = static_cast<const char*>(srcData);
+    auto resPtr = static_cast<const char*>(srcResources);
 
     for (const auto& copy : m_pushData.copies) {
-      auto copyDst = dstPtr + copy.dstDwordOffset;
-      auto copySrc = (copy.isResource ? resPtr : srcPtr) + copy.srcDwordOffset;
+      auto copyDst = dstPtr + copy.dstDwordOffset * sizeof(uint32_t);
+      auto copySrc = (copy.isResource ? resPtr : srcPtr)
+        + copy.srcDwordOffset * sizeof(uint32_t);
       std::memcpy(copyDst, copySrc, copy.dwordCount * sizeof(uint32_t));
     }
   }
