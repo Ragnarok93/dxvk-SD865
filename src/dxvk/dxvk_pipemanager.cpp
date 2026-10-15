@@ -119,13 +119,20 @@ namespace dxvk {
     // If any workers are idle in a suitable set, notify the corresponding
     // condition variable. If all workers are busy anyway, we know that the
     // job is going to be picked up at some point anyway.
-    // Any worker may help with lower-priority work when its own queue is
-    // empty. Wake the highest-priority idle worker first; the worker still
-    // dequeues from the highest-priority non-empty queue.
-    for (uint32_t i = 0; i < m_buckets.size(); i++) {
+    // Prefer workers normally assigned to this priority or below. If all
+    // of those workers are busy, wake a higher-priority worker as a fallback;
+    // idle workers can help with any queue while preserving queue ordering.
+    for (uint32_t i = index; i < m_buckets.size(); i++) {
       if (m_buckets[i].idleWorkers) {
         m_buckets[i].cond.notify_one();
-        break;
+        return;
+      }
+    }
+
+    for (uint32_t i = 0; i < index; i++) {
+      if (m_buckets[i].idleWorkers) {
+        m_buckets[i].cond.notify_one();
+        return;
       }
     }
   }
