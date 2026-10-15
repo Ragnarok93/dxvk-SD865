@@ -34,8 +34,15 @@ namespace dxvk {
 
 
   static bool sd865AllocTraceAllowEvent() {
-    // Multiple memory types and retry loops can fail during a single OOM.
-    // Cap costly log operations rather than flood Wine's stderr channel.
+    // Cap driver retry details independently from OOM reclaim summaries.
+    static std::atomic<uint32_t> emitted { 0u };
+    return emitted.fetch_add(1u, std::memory_order_relaxed) < 128u;
+  }
+
+
+  static bool sd865AllocTraceAllowOomEvent() {
+    // A busy retry loop must not consume the entire budget for the paired
+    // reclaim event. Keep a separate bounded budget for each diagnostic stage.
     static std::atomic<uint32_t> emitted { 0u };
     return emitted.fetch_add(1u, std::memory_order_relaxed) < 128u;
   }
@@ -1392,7 +1399,20 @@ namespace dxvk {
     VkResult firstResult = vk->vkAllocateMemory(vk->device(), &memoryInfo, nullptr, &result.memory);
 
     if (firstResult != VK_SUCCESS) {
+      // Snapshot cumulative counters around this exact failed-allocation
+      // reclaim pass. The allocator mutex is held by allocateMemory, so the
+      // delta is attributable to this attempt rather than earlier failures.
+      const uint64_t reclaimedChunksBefore =
+        sd865PoolReclaimedChunks().load(std::memory_order_relaxed);
+      const uint64_t reclaimedBytesBefore =
+        sd865PoolReclaimedBytes().load(std::memory_order_relaxed);
+
       freeEmptyChunksInHeap(*type.heap, VkDeviceSize(-1), high_resolution_clock::time_point(), firstAttemptId);
+
+      const uint64_t reclaimedChunksAfter =
+        sd865PoolReclaimedChunks().load(std::memory_order_relaxed);
+      const uint64_t reclaimedBytesAfter =
+        sd865PoolReclaimedBytes().load(std::memory_order_relaxed);
 
       const uint64_t retryAttemptId = sd865AllocTraceNextAttempt();
       VkResult retryResult = vk->vkAllocateMemory(vk->device(), &memoryInfo, nullptr, &result.memory);
@@ -1426,8 +1446,10 @@ namespace dxvk {
           " driver_allocated_bytes=", driverHeap.memoryAllocated,
           " driver_budget_bytes=", driverHeap.memoryBudget,
           " pool_experiment=", sd865PoolExperimentEnabled() ? 1 : 0,
-          " empty_chunks_reclaimed=", sd865PoolReclaimedChunks().load(std::memory_order_relaxed),
-          " empty_bytes_reclaimed=", sd865PoolReclaimedBytes().load(std::memory_order_relaxed)));
+          " reclaim_pass_chunks=", reclaimedChunksAfter >= reclaimedChunksBefore ? reclaimedChunksAfter - reclaimedChunksBefore : 0,
+          " reclaim_pass_bytes=", reclaimedBytesAfter >= reclaimedBytesBefore ? reclaimedBytesAfter - reclaimedBytesBefore : 0,
+          " reclaim_total_chunks=", reclaimedChunksAfter,
+          " reclaim_total_bytes=", reclaimedBytesAfter));
       }
 
       if (retryResult != VK_SUCCESS)
@@ -1811,7 +1833,7 @@ namespace dxvk {
     if (freed)
       updateMemoryHeapStats(heap.index);
 
-    if (traceOomReclaim && sd865AllocTraceAllowEvent()) {
+    if (traceOomReclaim && sd865AllocTraceAllowOomEvent()) {
       uint64_t emptyChunksAfter = 0;
       VkDeviceSize emptyBytesAfter = 0;
       countEmptyChunks(emptyChunksAfter, emptyBytesAfter);
