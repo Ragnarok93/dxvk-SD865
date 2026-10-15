@@ -84,6 +84,17 @@ No worker-count setting is presumed optimal. If the experiment points to queue c
 7. Compare captures with `python3 tools/ff7r_perf_compare.py baseline.zip candidate.zip`. The script's windowed statistics are not a guarantee of statistical significance; inspect raw windows and external frame-time traces too.
 8. For the lookup-cache A/B test, enable `DXVK_FF7R_METRICS=1` in both diagnostic runs. First toggle only `DXVK_FF7R_PIPELINE_LOOKUP_VICTIM` between unset (enabled) and `0` (disabled) to measure the second-chance slot; separately toggle `DXVK_FF7R_PIPELINE_LOOKUP_CACHE` between unset (enabled) and `0` (disabled) to measure the complete context-local cache. The comparison script reports sampled lookup timing (`DXVK-FF7R-LOOKUP`) and local-cache hit/call deltas (`DXVK-FF7R-LOOKUP-CACHE`) when present. Then repeat performance mode with metrics disabled; do not use diagnostic timings or hit rate alone as the final performance verdict.
 
+
+
+## Latest source checkpoint verification
+
+- Source commit: `0e8136fd606cec3649b85e76e30ca449562350ff`.
+- Telemetry parser/report tests: passed, workflow run [38668051870](https://github.com/Ragnarok93/dxvk-SD865/actions/runs/38668051870).
+- DXVK 2.7.1 ancestry and attribution tests: passed in the WCP workflow.
+- x86/x64 cross-compilation, GameNative WCP packaging and artifact upload: passed, workflow run [38668047612](https://github.com/Ragnarok93/dxvk-SD865/actions/runs/38668047612).
+- Artifact: `ff7r-phase0-dxvk271-gamenative`; SHA-256 `7956b6016128217c8938c6b288ad93f63e49240e8bb29d8b1967a1926c0d290a`.
+- Device smoke test, visual correctness, matched performance A/B and thermal/memory-pressure testing: not performed by CI and remain open.
+
 ## Low-overhead and performance captures
 
 Run two modes:
