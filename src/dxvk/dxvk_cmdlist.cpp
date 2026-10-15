@@ -793,7 +793,7 @@ namespace dxvk {
     // at the secondary buffer, so isolate tracking only when duplicate-bind
     // suppression is enabled; the default path pays no extra state-copy cost.
     static const bool ff7rSkipDuplicateBinds =
-      env::getEnvVar("DXVK_FF7R_SKIP_DUPLICATE_BINDS") != "0";
+      env::getEnvVar("DXVK_FF7R_SKIP_DUPLICATE_BINDS") == "1";
     auto execSlot = uint32_t(DxvkCmdBuffer::ExecBuffer);
     if (ff7rSkipDuplicateBinds) {
       m_execBufferPipelineStateBackup = m_boundPipelines[execSlot];
