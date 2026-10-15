@@ -92,5 +92,38 @@ class PerfCompareTest(unittest.TestCase):
         self.assertEqual(result['pipeline_lookup_cache_hit_pct_delta'], 70)
 
 
+    def test_pipeline_queue_wait_comparison_deltas(self):
+        with tempfile.TemporaryDirectory() as temp:
+            baseline = Path(temp) / 'baseline.log'
+            candidate = Path(temp) / 'candidate.log'
+
+            def capture(path, queue_mean, over10, over33, library_mean, optimized_mean):
+                lines = [
+                    f'DXVK-FF7R-FRAMES: present_id={i} count=256 mean_us=12000 p50_us=10000 p95_us=20000 p99_us=30000 max_us=40000'
+                    for i in (1, 2, 3)
+                ]
+                lines.append(
+                    'DXVK-FF7R-PIPELINES: samples=64 libraries=60 '
+                    f'library_mean_us={library_mean} optimized=4 optimized_mean_us={optimized_mean} '
+                    'over_10ms=0 over_33ms=0 queue_wait_samples=64 '
+                    f'queue_wait_mean_us={queue_mean} queue_wait_over_10ms={over10} '
+                    f'queue_wait_over_33ms={over33}'
+                )
+                path.write_text('\\n'.join(lines), encoding='utf-8')
+
+            capture(baseline, 12000, 8, 2, 300, 500)
+            capture(candidate, 8000, 3, 1, 250, 450)
+            result = perf.compare(baseline, candidate)
+
+        self.assertTrue(result['benchmark_valid'])
+        self.assertEqual(result['pipeline_queue_wait_mean_us_delta'], -4000)
+        self.assertEqual(result['pipeline_queue_wait_over_10ms_delta'], -5)
+        self.assertEqual(result['pipeline_queue_wait_over_33ms_delta'], -1)
+        self.assertEqual(result['pipeline_queue_wait_samples_delta'], 0)
+        self.assertEqual(result['pipeline_library_mean_us_delta'], -50)
+        self.assertEqual(result['pipeline_optimized_mean_us_delta'], -50)
+        self.assertIn('matched capture duration/workload', result['pipeline_note'])
+
+
 if __name__ == '__main__':
     unittest.main()
