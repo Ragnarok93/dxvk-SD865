@@ -18,8 +18,8 @@ DXVK_LOG_PATH=/path/to/writable/ff7r-logs
 - `DXVK_FF7R_METRICS=1`: opt-in frame/present cadence and GPU/resource wait timing counters.
 - `DXVK_FF7R_ONDEMAND=1`: opt-in render-thread pipeline cache-miss slow-path timing. Background worker compilation-duration summaries are gated by `DXVK_FF7R_METRICS=1` in the current implementation.
 - `DXVK_FF7R_PIPELINE_LOOKUP_CACHE`: the context-local direct-mapped pipeline lookup cache is **enabled by default**; set it to `0` to disable it for matched A/B runs. It only shortcuts lookup of an existing immutable state instance; it does not change pipeline creation, handles, or Vulkan synchronization.
-- `DXVK_FF7R_SKIP_DUPLICATE_BINDS=1`: opt-in command-list suppression of consecutive duplicate Vulkan graphics/compute pipeline binds. It is off by default. The command-list layer tracks actual bound Vulkan handles independently per bind point and command-buffer slot; do not infer correctness from counters alone. Keep this variable unset/`0` for baseline runs and compare `DXVK-FF7R-BINDS` snapshots in diagnostic captures.
-  Secondary command-buffer recording temporarily reuses the execution-buffer slot, so the tracker saves the primary buffer's state, starts secondary recording with an empty state, and restores the primary state afterward. Keep the feature opt-in until the WCP build and rendering-correctness checks pass.
+- `DXVK_FF7R_SKIP_DUPLICATE_BINDS`: consecutive duplicate Vulkan graphics/compute pipeline binds are **suppressed by default**; set this variable to `0` to disable suppression for baseline/rollback runs. The command-list layer tracks actual bound Vulkan handles independently per bind point and command-buffer slot; do not infer correctness from counters alone. Compare `DXVK-FF7R-BINDS` snapshots in diagnostic captures.
+  Secondary command-buffer recording temporarily reuses the execution-buffer slot, so the tracker saves the primary buffer's state, starts secondary recording with an empty state, and restores the primary state afterward. This state-isolation bookkeeping is only performed while suppression is enabled.
 - `DXVK_FF7R_COMPILER_THREADS`: for `ff7remake_.exe`, optionally set `2`, `4`, `6`, or `8` to compare compiler worker counts. If `dxvk.numCompilerThreads` is explicitly configured, the FF7R environment override takes precedence when valid.
 - `DXVK_LOG_LEVEL=info`: retain the informational telemetry lines without enabling debug/trace noise.
 - `DXVK_LOG_PATH`: directory for per-DLL logs. Use a location writable by the GameNative/Wine runtime. The resulting files are named from the game executable and DLL, for example `ff7remake__dxgi.log` and `ff7remake__d3d11.log` (exact executable basename may vary).
@@ -36,7 +36,7 @@ If the runtime cannot set more than one environment variable at a time, set them
 | `DXVK-FF7R-ONDEMAND` | Render-thread cache-miss slow-path timing, including relevant lock wait / instance creation | Only samples the instrumented slow path |
 | `DXVK-FF7R-LOOKUP` | Sampled CPU time, entries scanned, and cache-hit percentage for graphics-pipeline lookup | Samples one lookup per 256 calls; diagnostic-only and not representative of GPU time |
 | `DXVK-FF7R-LOOKUP-CACHE` | Graphics/compute per-context lookup-cache calls and hits | Requires `DXVK_FF7R_METRICS=1`; sparse snapshots every 1,048,576 lookups; hit rate alone does not establish a frame-time benefit |
-| `DXVK-FF7R-BINDS` | Opt-in Vulkan graphics/compute pipeline-bind attempts and duplicate binds skipped, reported separately by bind point | Requires `DXVK_FF7R_METRICS=1`; emits sparse aggregate snapshots every 1,048,576 attempts per bind point; counters/logging perturb diagnostic runs |
+| `DXVK-FF7R-BINDS` | Vulkan graphics/compute pipeline-bind attempts and duplicate binds skipped, reported separately by bind point | Requires `DXVK_FF7R_METRICS=1`; emits sparse aggregate snapshots every 1,048,576 attempts per bind point; counters/logging perturb diagnostic runs |
 | `DXVK-FF7R-FENCE-WAIT` | CPU time spent waiting for a fence | A wait duration is evidence of a stall, not proof of its root cause |
 | `DXVK-FF7R-RESOURCE-WAIT` | CPU time waiting for a resource to become reusable | Does not imply the wait can safely be removed |
 
@@ -68,7 +68,7 @@ No worker-count setting is presumed optimal. If the experiment points to queue c
 ## Capture protocol
 
 1. Record the exact DXVK commit, DLL hashes, GameNative build, FEX/runtime version, Turnip driver revision, game build, resolution, graphics settings, save/location, and environment variables.
-2. Keep unrelated settings fixed. In particular, do not change allocator/pool configuration, compiler worker count, Turnip build, resolution, or frame generation between the baseline and candidate runs.
+2. Keep unrelated settings fixed. In particular, do not change allocator/pool configuration, compiler worker count, Turnip build, resolution, or frame generation between the baseline and candidate runs. For duplicate-bind A/B tests, use the default candidate and set `DXVK_FF7R_SKIP_DUPLICATE_BINDS=0` only on the baseline variant.
 3. Capture cold-cache and warm-cache trials separately. Use the same repeatable gameplay route and input sequence.
 4. Capture at least 768 real presented frames per trial where possible (three 256-interval windows). Do not count generated/interpolated frames as native game presents.
 5. Perform at least three matched trials per variant. Log ambient/device thermal state and discard runs with materially different throttling or background activity.
