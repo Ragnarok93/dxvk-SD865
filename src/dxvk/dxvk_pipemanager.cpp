@@ -138,7 +138,7 @@ namespace dxvk {
 
       // Reduce worker count on 32-bit to save adderss space
       if (env::is32BitHostPlatform())
-        workerCount = std::min(workerCount, 16u);
+        workerCount = std::min(workerCount, 8u);
 
       // Prefer an explicit GameNative-safe override, but preserve DXVK_CONFIG.
       std::string countSource = "hardware";
