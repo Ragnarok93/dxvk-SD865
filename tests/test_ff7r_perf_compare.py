@@ -27,7 +27,7 @@ class PerfCompareTest(unittest.TestCase):
             p = Path(temp) / 'capture.zip'
             with zipfile.ZipFile(p, 'w') as z:
                 lines = [f'DXVK-FF7R-FRAMES: present_id={256*(i+1)} count=256 mean_us=33333 p50_us=33333 p95_us={34000+i*1000} p99_us=44000 max_us=60000' for i in range(3)]
-                lines.append('DXVK-FF7R-PIPELINES: samples=64 libraries=60 library_mean_us=300 optimized=4 optimized_mean_us=500 over_10ms=0 over_33ms=0')
+                lines.append('DXVK-FF7R-PIPELINES: samples=64 libraries=60 library_mean_us=300 optimized=4 optimized_mean_us=500 over_10ms=0 over_33ms=0 queue_wait_samples=64 queue_wait_mean_us=12000 queue_wait_over_10ms=8 queue_wait_over_33ms=2')
                 lines.append('DXVK-FF7R-ONDEMAND: samples=64 mean_us=200 over_10ms=1 over_33ms=0')
                 lines.append('DXVK-FF7R-GPU-WAIT: ts_us=789000 samples=64 mean_us=3500 max_us=41000 over_10ms=2 over_33ms=1')
                 lines.append('DXVK-FF7R-QUEUE-SUBMIT: ts_us=788000 samples=64 mean_us=200 max_us=500 over_10ms=0 over_33ms=0')
@@ -37,6 +37,9 @@ class PerfCompareTest(unittest.TestCase):
             self.assertEqual(result['candidate']['sampled_intervals'], 768)
             self.assertEqual(result['candidate']['median_window_p95_ms'], 35)
             self.assertEqual(result['candidate']['pipeline_latest_snapshot']['samples'], 64)
+            self.assertEqual(result['candidate']['pipeline_latest_snapshot']['queue_wait_mean_us'], 12000)
+            self.assertEqual(result['candidate']['pipeline_latest_snapshot']['queue_wait_over_10ms'], 8)
+            self.assertEqual(result['candidate']['pipeline_latest_snapshot']['queue_wait_over_33ms'], 2)
             self.assertEqual(result['candidate']['on_demand_latest_snapshot']['over_10ms'], 1)
             self.assertEqual(result['candidate']['queue_latest_snapshots']['GPU-WAIT']['max_us'], 41000)
             self.assertEqual(result['candidate']['queue_latest_snapshots']['QUEUE-SUBMIT']['samples'], 64)
