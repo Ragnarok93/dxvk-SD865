@@ -8240,6 +8240,8 @@ namespace dxvk {
       env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_CACHE") != "0";
     static const bool metricsEnabled =
       env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    static const bool useVictimCache =
+      env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_VICTIM") != "0";
 
     if (!useLookupCache) {
       if (metricsEnabled)
@@ -8252,7 +8254,7 @@ namespace dxvk {
     bool hit = pipeline && shaders.eq(pipeline->shaders());
     bool victimHit = false;
 
-    if (!hit) {
+    if (!hit && useVictimCache) {
       pipeline = m_gpLookupCacheVictim[idx];
       victimHit = pipeline && shaders.eq(pipeline->shaders());
     }
@@ -8263,7 +8265,8 @@ namespace dxvk {
     if (victimHit) {
       std::swap(m_gpLookupCache[idx], m_gpLookupCacheVictim[idx]);
     } else if (!hit) {
-      m_gpLookupCacheVictim[idx] = m_gpLookupCache[idx];
+      if (useVictimCache)
+        m_gpLookupCacheVictim[idx] = m_gpLookupCache[idx];
       m_gpLookupCache[idx] = m_common->pipelineManager().createGraphicsPipeline(shaders);
     }
 
@@ -8277,6 +8280,8 @@ namespace dxvk {
       env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_CACHE") != "0";
     static const bool metricsEnabled =
       env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    static const bool useVictimCache =
+      env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_VICTIM") != "0";
 
     if (!useLookupCache) {
       if (metricsEnabled)
@@ -8289,7 +8294,7 @@ namespace dxvk {
     bool hit = pipeline && shaders.eq(pipeline->shaders());
     bool victimHit = false;
 
-    if (!hit) {
+    if (!hit && useVictimCache) {
       pipeline = m_cpLookupCacheVictim[idx];
       victimHit = pipeline && shaders.eq(pipeline->shaders());
     }
@@ -8300,7 +8305,8 @@ namespace dxvk {
     if (victimHit) {
       std::swap(m_cpLookupCache[idx], m_cpLookupCacheVictim[idx]);
     } else if (!hit) {
-      m_cpLookupCacheVictim[idx] = m_cpLookupCache[idx];
+      if (useVictimCache)
+        m_cpLookupCacheVictim[idx] = m_cpLookupCache[idx];
       m_cpLookupCache[idx] = m_common->pipelineManager().createComputePipeline(shaders);
     }
 
