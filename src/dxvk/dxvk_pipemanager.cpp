@@ -31,6 +31,9 @@ namespace dxvk {
     m_tasksTotal += 1;
 
     m_buckets[uint32_t(priority)].queue.emplace(library);
+    static const bool ff7rMetricsEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    if (ff7rMetricsEnabled)
+      m_buckets[uint32_t(priority)].queue.back().enqueuedAt = std::chrono::steady_clock::now();
     notifyWorkers(priority);
   }
 
@@ -46,6 +49,9 @@ namespace dxvk {
     m_tasksTotal += 1;
 
     m_buckets[uint32_t(priority)].queue.emplace(pipeline, state);
+    static const bool ff7rMetricsEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    if (ff7rMetricsEnabled)
+      m_buckets[uint32_t(priority)].queue.back().enqueuedAt = std::chrono::steady_clock::now();
     notifyWorkers(priority);
   }
 
@@ -168,6 +174,8 @@ namespace dxvk {
     static std::atomic<uint64_t> libraryCount { 0 }, libraryUs { 0 };
     static std::atomic<uint64_t> optimizedCount { 0 }, optimizedUs { 0 };
     static std::atomic<uint64_t> over10ms { 0 }, over33ms { 0 }, totalSamples { 0 };
+    static std::atomic<uint64_t> queueWaitUs { 0 }, queueWaitCount { 0 };
+    static std::atomic<uint64_t> queueWaitOver10ms { 0 }, queueWaitOver33ms { 0 };
 
     const uint32_t maxPriorityIndex = uint32_t(maxPriority);
     env::setThreadName(str::format("dxvk-shader-", suffixes.at(maxPriorityIndex)));
@@ -204,6 +212,16 @@ namespace dxvk {
       auto started = ff7rPerfEnabled
         ? std::chrono::steady_clock::now()
         : std::chrono::steady_clock::time_point { };
+      if (ff7rPerfEnabled && entry.enqueuedAt != std::chrono::steady_clock::time_point { }) {
+        uint64_t waitedUs = uint64_t(std::chrono::duration_cast<std::chrono::microseconds>(
+          started - entry.enqueuedAt).count());
+        queueWaitUs.fetch_add(waitedUs, std::memory_order_relaxed);
+        queueWaitCount.fetch_add(1, std::memory_order_relaxed);
+        if (waitedUs >= 10000)
+          queueWaitOver10ms.fetch_add(1, std::memory_order_relaxed);
+        if (waitedUs >= 33000)
+          queueWaitOver33ms.fetch_add(1, std::memory_order_relaxed);
+      }
 
       if (entry.pipelineLibrary) {
         entry.pipelineLibrary->compilePipeline();
@@ -239,7 +257,12 @@ namespace dxvk {
             " optimized=", opts,
             " optimized_mean_us=", opts ? optimizedUs.load(std::memory_order_relaxed) / opts : 0,
             " over_10ms=", over10ms.load(std::memory_order_relaxed),
-            " over_33ms=", over33ms.load(std::memory_order_relaxed)));
+            " over_33ms=", over33ms.load(std::memory_order_relaxed),
+            " queue_wait_samples=", queueWaitCount.load(std::memory_order_relaxed),
+            " queue_wait_mean_us=", queueWaitCount.load(std::memory_order_relaxed)
+              ? queueWaitUs.load(std::memory_order_relaxed) / queueWaitCount.load(std::memory_order_relaxed) : 0,
+            " queue_wait_over_10ms=", queueWaitOver10ms.load(std::memory_order_relaxed),
+            " queue_wait_over_33ms=", queueWaitOver33ms.load(std::memory_order_relaxed)));
         }
       }
 
