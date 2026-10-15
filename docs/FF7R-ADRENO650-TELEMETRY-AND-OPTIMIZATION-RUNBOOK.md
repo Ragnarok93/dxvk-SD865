@@ -30,7 +30,7 @@ If the runtime cannot set more than one environment variable at a time, set them
 |---|---|---|
 | `DXVK-FF7R-TELEMETRY` | Startup confirmation of `metrics`, `on_demand`, `lookup_cache`, and selected Vulkan device | Confirms the environment reached device initialization; it does not prove the candidate improves performance |
 | `DXVK-FF7R-FRAMES` | CPU-side Present-completion interval statistics: mean, p50, p95, p99, max | Not GPU execution time or physical display scanout |
-| `DXVK-FF7R-PIPELINES` | Background pipeline-library / optimized-pipeline compilation CPU durations | Does not include all synchronous pipeline creation or GPU execution |
+| `DXVK-FF7R-PIPELINES` | Background pipeline-library / optimized-pipeline compilation CPU durations plus opt-in queue-wait sample count, mean, and counts at or above 10 ms / 33 ms | Does not include all synchronous pipeline creation or GPU execution; queue wait is aggregate across priorities and is not per-priority attribution |
 | `DXVK-FF7R-ONDEMAND` | Render-thread cache-miss slow-path timing, including relevant lock wait / instance creation | Only samples the instrumented slow path |
 | `DXVK-FF7R-LOOKUP` | Sampled CPU time, entries scanned, and cache-hit percentage for graphics-pipeline lookup | Samples one lookup per 256 calls; diagnostic-only and not representative of GPU time |
 | `DXVK-FF7R-FENCE-WAIT` | CPU time spent waiting for a fence | A wait duration is evidence of a stall, not proof of its root cause |
@@ -40,7 +40,7 @@ Not every marker is emitted by every capture. Frame/present cadence needs real f
 
 ## Compiler-worker A/B experiment
 
-Use this only after collecting a baseline log with the same scene and cache conditions. The current worker telemetry reports aggregate pending tasks and mean compilation duration for pipeline libraries and optimized pipelines; it does **not** yet report per-priority queue wait time or render-thread stalls attributable to compilation. Do not infer queue contention from worker count or aggregate compile duration alone.
+Use this only after collecting a baseline log with the same scene and cache conditions. The worker telemetry reports aggregate pending tasks, mean compilation duration for pipeline libraries and optimized pipelines, and opt-in aggregate queue-wait mean plus counts at or above 10 ms / 33 ms. Queue wait is not separated by priority and does not directly measure render-thread stalls attributable to compilation. Do not infer queue contention from worker count or aggregate compile duration alone.
 
 1. Keep `DXVK_FF7R_METRICS=1` and `DXVK_FF7R_ONDEMAND=1` fixed for diagnostic trials. Change only `DXVK_FF7R_COMPILER_THREADS`.
 2. Compare `2`, `4`, `6`, and `8` workers, with the same GameNative/Wine runtime, Turnip revision, resolution, scene, route, cache state, and trial duration.
