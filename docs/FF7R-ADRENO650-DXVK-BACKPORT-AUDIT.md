@@ -69,9 +69,13 @@ First-pass relevant classes:
 
 
 
-### Redundant Vulkan pipeline-bind suppression — defer pending command-state audit
+### Redundant Vulkan pipeline-bind suppression — command-list prototype, opt-in only
 
-Sarek's redundant graphics/compute bind suppression is a plausible CPU-side optimization, but it is not enabled in this fork yet. The active context binds Vulkan pipelines from both ordinary D3D11 state updates and multiple internal meta operations (clear, blit, buffer/image transfer, and resolve paths). A correct cache must track graphics and compute bind points independently and invalidate state at every command-buffer reset/switch and every path that can bind a meta pipeline. Skipping a bind based only on `m_state.gp.pipeline`/`m_state.cp.pipeline` would be incorrect because those are D3D-facing pipeline objects, not necessarily the last Vulkan pipeline handle actually bound. The next implementation should put tracking at the command-buffer recording layer or prove complete invalidation coverage across all `cmdBindPipeline` call sites; do not copy Sarek's context-level change verbatim. Keep it isolated and add tests/counters for emitted versus skipped binds before enabling it by default.
+An opt-in prototype now tracks the **actual Vulkan pipeline handle** independently for graphics and compute bind points, per DXVK command-buffer slot, at the shared `DxvkCommandList::cmdBindPipeline` recording wrapper. This covers ordinary D3D11 pipeline binds and internal meta-operation binds routed through the wrapper, rather than inferring Vulkan state from D3D11 context state. The cache is invalidated when a command-buffer slot is newly allocated, replaced by `next()`, initialized, finalized, or reset. Other bind points are passed through unchanged.
+
+The feature is **off by default**. Set `DXVK_FF7R_SKIP_DUPLICATE_BINDS=1` to enable it; the startup marker reports the effective setting. With `DXVK_FF7R_METRICS=1`, `DXVK-FF7R-BINDS` reports aggregate emitted/skipped bind counts every 1,048,576 bind attempts. Leave metrics disabled for performance runs because logging/counter instrumentation perturbs the hot path.
+
+This prototype is not yet a performance result. The first gate is the existing x64/x32 GameNative WCP CI build. The next gate is matched Adreno 650 correctness testing with the feature off/on, including render-pass changes, clears/blits/resolves, compute meta operations, command-list flushes, and long-session stability. Only consider changing the default after those runs demonstrate no rendering regressions and a repeatable CPU/frame-time benefit. Roll back immediately by omitting the variable or setting it to `0`.
 
 ## Sarek dyasync worker policy versus the existing compiler
 

@@ -1,8 +1,25 @@
 
+#include <atomic>
+
 #include "dxvk_cmdlist.h"
 #include "dxvk_device.h"
 
 namespace dxvk {
+
+  void recordFf7rPipelineBind(bool skipped) {
+    static std::atomic<uint64_t> calls { 0 };
+    static std::atomic<uint64_t> skippedCalls { 0 };
+
+    if (skipped)
+      skippedCalls.fetch_add(1, std::memory_order_relaxed);
+
+    const uint64_t callCount = calls.fetch_add(1, std::memory_order_relaxed) + 1;
+    if ((callCount & 0xfffffu) == 0) {
+      Logger::info(str::format("DXVK-FF7R-BINDS: calls=", callCount,
+        " skipped=", skippedCalls.load(std::memory_order_relaxed)));
+    }
+  }
+
 
   DxvkCommandSubmission::DxvkCommandSubmission() {
 
@@ -382,6 +399,7 @@ namespace dxvk {
     // reasonably expect that to always get used. Saves some checks
     // during command recording.
     m_cmd = DxvkCommandSubmissionInfo();
+    m_boundPipelines = { };
     m_cmd.cmdBuffers[uint32_t(DxvkCmdBuffer::ExecBuffer)] = allocateCommandBuffer(DxvkCmdBuffer::ExecBuffer);
   }
   
@@ -409,6 +427,7 @@ namespace dxvk {
 
     // Reset all command buffer handles
     m_cmd = DxvkCommandSubmissionInfo();
+    m_boundPipelines = { };
 
     // Increment queue submission count
     uint64_t submissionCount = m_cmdSubmissions.size();
@@ -431,6 +450,7 @@ namespace dxvk {
         m_cmd.cmdBuffers[i] = cmdBuffer == DxvkCmdBuffer::ExecBuffer
           ? allocateCommandBuffer(cmdBuffer)
           : VK_NULL_HANDLE;
+        m_boundPipelines[i] = { };
 
         push = true;
       }
@@ -476,6 +496,7 @@ namespace dxvk {
 
     m_cmdSubmissions.clear();
     m_cmdSparseBinds.clear();
+    m_boundPipelines = { };
 
     m_wsiSemaphores = PresenterSync();
 
