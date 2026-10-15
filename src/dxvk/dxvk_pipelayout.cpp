@@ -206,7 +206,8 @@ namespace dxvk {
     auto srcPtr = static_cast<const char*>(srcData);
     auto resPtr = static_cast<const char*>(srcResources);
 
-    for (const auto& copy : m_pushData.copies) {
+    for (size_t i = 0; i < m_pushData.copies.size(); i++) {
+      const auto& copy = m_pushData.copies[i];
       auto copyDst = dstPtr + copy.dstDwordOffset * sizeof(uint32_t);
       auto copySrc = (copy.isResource ? resPtr : srcPtr)
         + copy.srcDwordOffset * sizeof(uint32_t);
