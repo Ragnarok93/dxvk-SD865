@@ -7361,9 +7361,8 @@ namespace dxvk {
     if (unlikely(pushData.isEmpty()))
       return;
 
-    if ((bit::tzcnt(pushData.getResourceDwordMask() + 1u) * 4u) >= pushData.getSize()) {
-      // All push data comes from resource updates, which means it
-      // is already in the correct layout. Commit directly.
+    if (!layout->needsPushDataGather()) {
+      // Resource-only push data is already in the correct layout.
       m_cmd->cmdPushConstants(DxvkCmdBuffer::ExecBuffer,
         layout->getPipelineLayout(),
         pushData.getStageMask(),
@@ -7371,48 +7370,12 @@ namespace dxvk {
         pushData.getSize(),
         &m_state.pc.resourceData[pushData.getOffset()]);
     } else {
-      // Gather push data for all the different blocks
+      // Use the layout's precomputed copy ranges instead of rebuilding the
+      // resource-mask copy plan at draw frequency.
       std::array<char, MaxTotalPushDataSize> data;
-
-      for (auto i : bit::BitMask(layout->getPushDataMask())) {
-        auto block = layout->getPushDataBlock(i);
-        auto blockSize = block.getSize();
-
-        auto srcOffset = computePushDataBlockOffset(i);
-        auto dstOffset = block.getOffset();
-
-        auto constantData = &m_state.pc.constantData[srcOffset];
-        auto resourceData = &m_state.pc.resourceData[dstOffset];
-
-        auto dstData = &data[dstOffset];
-
-        uint32_t rangeOffset = 0u;
-
-        // Copy chunks of dwords either from the constant data array or
-        // the resource data array, depending on the resource mask.
-        uint64_t resourceMask = block.getResourceDwordMask();
-
-        while (resourceMask) {
-          uint32_t dwordIndex = bit::tzcnt(resourceMask);
-          uint32_t dwordCount = bit::tzcnt(resourceMask + (resourceMask & -resourceMask));
-
-          uint32_t byteIndex = dwordIndex * sizeof(uint32_t);
-          uint32_t byteCount = dwordCount * sizeof(uint32_t);
-
-          std::memcpy(&dstData[rangeOffset],
-            &constantData[rangeOffset], byteIndex);
-
-          std::memcpy(&dstData[rangeOffset + byteIndex],
-            &resourceData[rangeOffset + byteIndex],
-            byteCount - byteIndex);
-
-          resourceMask >>= dwordCount;
-          rangeOffset += byteCount;
-        }
-
-        std::memcpy(&dstData[rangeOffset],
-          &constantData[rangeOffset], blockSize - rangeOffset);
-      }
+      layout->gatherPushData(data.data(),
+        m_state.pc.constantData.data(),
+        m_state.pc.resourceData.data());
 
       m_cmd->cmdPushConstants(DxvkCmdBuffer::ExecBuffer,
         layout->getPipelineLayout(),

@@ -156,6 +156,7 @@ namespace dxvk {
   : m_device(device), m_flags(key.getFlags()) {
     initMetadata(key);
     initPipelineLayout(key);
+    initPushDataCopy();
   }
 
 
@@ -189,6 +190,78 @@ namespace dxvk {
       m_pushData.blocks[i] = key.getPushDataBlock(i);
       m_pushData.mergedBlock.merge(m_pushData.blocks[i]);
     }
+  }
+
+
+  bool DxvkPipelineLayout::needsPushDataGather() const {
+    return m_pushData.needsGather;
+  }
+
+
+  void DxvkPipelineLayout::gatherPushData(
+          void*         dst,
+    const void*         srcData,
+    const void*         srcResources) const {
+    auto dstPtr = reinterpret_cast<uint32_t*>(dst);
+    auto srcPtr = reinterpret_cast<const uint32_t*>(srcData);
+    auto resPtr = reinterpret_cast<const uint32_t*>(srcResources);
+
+    for (const auto& copy : m_pushData.copies) {
+      auto copyDst = dstPtr + copy.dstDwordOffset;
+      auto copySrc = (copy.isResource ? resPtr : srcPtr) + copy.srcDwordOffset;
+      std::memcpy(copyDst, copySrc, copy.dwordCount * sizeof(uint32_t));
+    }
+  }
+
+
+  void DxvkPipelineLayout::initPushDataCopy() {
+    for (auto i : bit::BitMask(getPushDataMask())) {
+      auto block = getPushDataBlock(i);
+      auto resourceMask = block.getResourceDwordMask();
+      auto srcOffset = (i
+        ? MaxSharedPushDataSize + MaxPerStagePushDataSize * (i - 1u)
+        : 0u) / sizeof(uint32_t);
+      auto dstOffset = block.getOffset() / sizeof(uint32_t);
+      auto dstEnd = align<uint32_t>(
+        block.getOffset() + block.getSize(), sizeof(uint32_t)) / sizeof(uint32_t);
+      auto blockSize = dstEnd - dstOffset;
+
+      // Build and merge dword-aligned ranges once per pipeline layout.
+      for (uint32_t dword = 0u; dword < blockSize; dword++) {
+        PushDataCopy copy = { };
+        copy.dwordCount = 1u;
+
+        if (resourceMask & (uint64_t(1) << dword)) {
+          copy.isResource = true;
+          copy.dstDwordOffset = dstOffset + dword;
+          copy.srcDwordOffset = dstOffset + dword;
+        } else {
+          copy.dstDwordOffset = dstOffset + dword;
+          copy.srcDwordOffset = srcOffset + dword;
+        }
+
+        addPushDataCopyEntry(copy);
+      }
+    }
+  }
+
+
+  void DxvkPipelineLayout::addPushDataCopyEntry(const PushDataCopy& entry) {
+    if (!entry.dwordCount)
+      return;
+
+    if (!m_pushData.copies.empty()) {
+      auto& last = m_pushData.copies.back();
+      if (last.isResource == entry.isResource
+       && last.srcDwordOffset + last.dwordCount == entry.srcDwordOffset
+       && last.dstDwordOffset + last.dwordCount == entry.dstDwordOffset) {
+        last.dwordCount += entry.dwordCount;
+        return;
+      }
+    }
+
+    m_pushData.copies.push_back(entry);
+    m_pushData.needsGather |= !entry.isResource;
   }
 
 
