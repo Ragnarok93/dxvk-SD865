@@ -155,12 +155,16 @@ class PerfCompareTest(unittest.TestCase):
             baseline = Path(temp) / 'baseline.log'
             candidate = Path(temp) / 'candidate.log'
             baseline.write_text('\n'.join([
-                'DXVK-FF7R-LOOKUP-CACHE: point=graphics calls=1048576 hits=786432',
-                'DXVK-FF7R-LOOKUP-CACHE: point=compute calls=1048576 hits=524288',
+                'DXVK-FF7R-LOOKUP-CACHE: point=graphics calls=1048576 hits=786432 victim_hits=65536',
+                'DXVK-FF7R-LOOKUP-CACHE: point=compute calls=1048576 hits=524288 victim_hits=32768',
+                'DXVK-FF7R-PIPELINE-LOCK: point=graphics calls=4096 wait_us=12000 over_50us=4 max_us=600',
+                'DXVK-FF7R-PIPELINE-LOCK: point=compute calls=4096 wait_us=8000 over_50us=2 max_us=300',
             ]), encoding='utf-8')
             candidate.write_text('\n'.join([
-                'DXVK-FF7R-LOOKUP-CACHE: point=graphics calls=2097152 hits=1782579',
-                'DXVK-FF7R-LOOKUP-CACHE: point=compute calls=2097152 hits=1572864',
+                'DXVK-FF7R-LOOKUP-CACHE: point=graphics calls=2097152 hits=1782579 victim_hits=131072',
+                'DXVK-FF7R-LOOKUP-CACHE: point=compute calls=2097152 hits=1572864 victim_hits=65536',
+                'DXVK-FF7R-PIPELINE-LOCK: point=graphics calls=8192 wait_us=18000 over_50us=8 max_us=900',
+                'DXVK-FF7R-PIPELINE-LOCK: point=compute calls=8192 wait_us=10000 over_50us=3 max_us=500',
             ]), encoding='utf-8')
             parsed = perf.parse(candidate)
             result = perf.compare(baseline, candidate)
@@ -168,10 +172,15 @@ class PerfCompareTest(unittest.TestCase):
         self.assertEqual(parsed['pipeline_lookup_cache_latest_snapshots']['graphics']['hits'], 1782579)
         self.assertEqual(result['pipeline_lookup_cache_deltas']['graphics']['calls_delta'], 1048576)
         self.assertEqual(result['pipeline_lookup_cache_deltas']['graphics']['hits_delta'], 996147)
+        self.assertEqual(result['pipeline_lookup_cache_deltas']['graphics']['victim_hits_delta'], 65536)
         self.assertAlmostEqual(result['pipeline_lookup_cache_deltas']['graphics']['hit_rate_pct_baseline'], 75.0)
         self.assertAlmostEqual(result['pipeline_lookup_cache_deltas']['graphics']['hit_rate_pct_candidate'], 85.0)
         self.assertAlmostEqual(result['pipeline_lookup_cache_deltas']['graphics']['hit_rate_pct_delta'], 10.0)
         self.assertIn('does not establish a frame-time benefit', result['pipeline_lookup_cache_note'])
+        self.assertEqual(result['pipeline_lock_deltas']['graphics']['wait_us_delta'], 6000)
+        self.assertEqual(result['pipeline_lock_deltas']['graphics']['over_50us_delta'], 4)
+        self.assertEqual(result['pipeline_lock_deltas']['compute']['max_us_baseline'], 300)
+        self.assertIn('not time spent in the critical section', result['pipeline_lock_note'])
 
 
 
