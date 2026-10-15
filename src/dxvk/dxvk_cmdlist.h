@@ -657,7 +657,7 @@ namespace dxvk {
             VkPipelineBindPoint     pipelineBindPoint,
             VkPipeline              pipeline) {
       static const bool ff7rSkipDuplicateBinds =
-        env::getEnvVar("DXVK_FF7R_SKIP_DUPLICATE_BINDS") == "1";
+        env::getEnvVar("DXVK_FF7R_SKIP_DUPLICATE_BINDS") != "0";
       static const bool ff7rMetricsEnabled =
         env::getEnvVar("DXVK_FF7R_METRICS") == "1";
 
