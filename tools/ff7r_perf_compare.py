@@ -112,6 +112,17 @@ def compare(baseline, candidate):
         key = 'median_window_p95_ms'
         out['p95_window_median_delta_ms'] = round(b[key] - a[key], 3)
         out['p95_window_median_delta_percent'] = round(100 * (b[key] / a[key] - 1), 2) if a[key] else None
+    base_pipeline = a['pipeline_latest_snapshot']
+    cand_pipeline = b['pipeline_latest_snapshot']
+    if base_pipeline and cand_pipeline:
+        out['pipeline_library_mean_us_delta'] = cand_pipeline['library_mean_us'] - base_pipeline['library_mean_us']
+        out['pipeline_optimized_mean_us_delta'] = cand_pipeline['optimized_mean_us'] - base_pipeline['optimized_mean_us']
+        if 'queue_wait_mean_us' in base_pipeline and 'queue_wait_mean_us' in cand_pipeline:
+            out['pipeline_queue_wait_mean_us_delta'] = cand_pipeline['queue_wait_mean_us'] - base_pipeline['queue_wait_mean_us']
+            out['pipeline_queue_wait_over_10ms_delta'] = cand_pipeline.get('queue_wait_over_10ms', 0) - base_pipeline.get('queue_wait_over_10ms', 0)
+            out['pipeline_queue_wait_over_33ms_delta'] = cand_pipeline.get('queue_wait_over_33ms', 0) - base_pipeline.get('queue_wait_over_33ms', 0)
+            out['pipeline_queue_wait_samples_delta'] = cand_pipeline.get('queue_wait_samples', 0) - base_pipeline.get('queue_wait_samples', 0)
+        out['pipeline_note'] = 'Compilation and queue-wait values are CPU-side cumulative snapshots. Count deltas require matched capture duration/workload and are not render-thread-stall attribution.'
     base_lookup = a['pipeline_lookup_latest_snapshot']
     cand_lookup = b['pipeline_lookup_latest_snapshot']
     if base_lookup and cand_lookup:
