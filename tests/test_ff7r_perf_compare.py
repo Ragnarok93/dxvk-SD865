@@ -15,10 +15,12 @@ class PerfCompareTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             a = Path(temp) / 'a.log'
             b = Path(temp) / 'b.log'
-            a.write_text('DXVK: Using 8 compiler threads\n')
-            b.write_text('DXVK: Graphics pipeline libraries supported\n')
+            a.write_text('DXVK: Using 8 compiler threads\nDXVK-FF7R-PIPELINES: samples=64 libraries=60 optimized=4\n')
+            b.write_text('DXVK: Graphics pipeline libraries supported\nDXVK-FF7R-PIPELINES: samples=64 libraries=55 optimized=9\n')
             result = perf.compare(a, b)
             self.assertFalse(result['benchmark_valid'])
+            self.assertNotIn('pipeline_library_mean_us_delta', result)
+            self.assertNotIn('pipeline_queue_wait_mean_us_delta', result)
             self.assertEqual(result['candidate']['present_windows'], 0)
             self.assertNotIn('p95_window_median_delta_percent', result)
 
