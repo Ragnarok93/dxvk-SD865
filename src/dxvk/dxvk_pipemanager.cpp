@@ -9,6 +9,44 @@
 #include "../util/util_ff7r_build_stamp.h"
 
 namespace dxvk {
+
+  namespace {
+
+    void recordFf7rPipelineLockWait(bool graphics, uint64_t waitUs) {
+      static std::atomic<uint64_t> graphicsCalls { 0 };
+      static std::atomic<uint64_t> graphicsWaitUs { 0 };
+      static std::atomic<uint64_t> graphicsOver50Us { 0 };
+      static std::atomic<uint64_t> graphicsMaxUs { 0 };
+      static std::atomic<uint64_t> computeCalls { 0 };
+      static std::atomic<uint64_t> computeWaitUs { 0 };
+      static std::atomic<uint64_t> computeOver50Us { 0 };
+      static std::atomic<uint64_t> computeMaxUs { 0 };
+
+      auto& calls = graphics ? graphicsCalls : computeCalls;
+      auto& totalWait = graphics ? graphicsWaitUs : computeWaitUs;
+      auto& over50 = graphics ? graphicsOver50Us : computeOver50Us;
+      auto& maxWait = graphics ? graphicsMaxUs : computeMaxUs;
+
+      totalWait.fetch_add(waitUs, std::memory_order_relaxed);
+      if (waitUs >= 50)
+        over50.fetch_add(1, std::memory_order_relaxed);
+
+      uint64_t oldMax = maxWait.load(std::memory_order_relaxed);
+      while (oldMax < waitUs && !maxWait.compare_exchange_weak(
+          oldMax, waitUs, std::memory_order_relaxed)) { }
+
+      const uint64_t count = calls.fetch_add(1, std::memory_order_relaxed) + 1;
+      if ((count & 0xfffu) == 0) {
+        Logger::info(str::format("DXVK-FF7R-PIPELINE-LOCK: point=",
+          graphics ? "graphics" : "compute",
+          " calls=", count,
+          " wait_us=", totalWait.load(std::memory_order_relaxed),
+          " over_50us=", over50.load(std::memory_order_relaxed),
+          " max_us=", maxWait.load(std::memory_order_relaxed)));
+      }
+    }
+
+  }
   
   DxvkPipelineWorkers::DxvkPipelineWorkers(
           DxvkDevice*                     device)
@@ -297,8 +335,17 @@ namespace dxvk {
     if (shaders.cs == nullptr)
       return nullptr;
     
-    std::lock_guard<dxvk::mutex> lock(m_pipelineMutex);
-    
+    static const bool ff7rMetricsEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    const auto lockStart = ff7rMetricsEnabled
+      ? std::chrono::steady_clock::now()
+      : std::chrono::steady_clock::time_point { };
+    std::unique_lock<dxvk::mutex> lock(m_pipelineMutex);
+    if (ff7rMetricsEnabled) {
+      const auto waitUs = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - lockStart).count();
+      recordFf7rPipelineLockWait(false, uint64_t(std::max<int64_t>(0, waitUs)));
+    }
+
     auto pair = m_computePipelines.find(shaders);
     if (pair != m_computePipelines.end())
       return &pair->second;
@@ -321,7 +368,16 @@ namespace dxvk {
     if (shaders.vs == nullptr)
       return nullptr;
     
-    std::lock_guard<dxvk::mutex> lock(m_pipelineMutex);
+    static const bool ff7rMetricsEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    const auto lockStart = ff7rMetricsEnabled
+      ? std::chrono::steady_clock::now()
+      : std::chrono::steady_clock::time_point { };
+    std::unique_lock<dxvk::mutex> lock(m_pipelineMutex);
+    if (ff7rMetricsEnabled) {
+      const auto waitUs = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - lockStart).count();
+      recordFf7rPipelineLockWait(true, uint64_t(std::max<int64_t>(0, waitUs)));
+    }
 
     auto pair = m_graphicsPipelines.find(shaders);
     if (pair != m_graphicsPipelines.end())
