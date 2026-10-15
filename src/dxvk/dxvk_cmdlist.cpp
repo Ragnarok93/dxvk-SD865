@@ -781,7 +781,13 @@ namespace dxvk {
     if (m_device->canUseDescriptorBuffer())
       bindDescriptorBuffers(secondary);
 
-    m_execBuffer = std::exchange(m_cmd.cmdBuffers[uint32_t(DxvkCmdBuffer::ExecBuffer)], secondary);
+    // Pipeline state belongs to a command buffer. The slot temporarily points
+    // at the secondary buffer, so keep the primary state separately and start
+    // secondary recording with an empty binding state.
+    auto execSlot = uint32_t(DxvkCmdBuffer::ExecBuffer);
+    m_execBufferPipelineStateBackup = m_boundPipelines[execSlot];
+    m_boundPipelines[execSlot] = { };
+    m_execBuffer = std::exchange(m_cmd.cmdBuffers[execSlot], secondary);
   }
 
 
@@ -791,8 +797,13 @@ namespace dxvk {
     if (m_vkd->vkEndCommandBuffer(cmd))
       throw DxvkError("DxvkCommandList: Failed to end secondary command buffer");
 
-    m_cmd.cmdBuffers[uint32_t(DxvkCmdBuffer::ExecBuffer)] = m_execBuffer;
+    auto execSlot = uint32_t(DxvkCmdBuffer::ExecBuffer);
+    m_cmd.cmdBuffers[execSlot] = m_execBuffer;
     m_execBuffer = VK_NULL_HANDLE;
+
+    // Restore the primary buffer's tracked state after secondary recording.
+    m_boundPipelines[execSlot] = m_execBufferPipelineStateBackup;
+    m_execBufferPipelineStateBackup = { };
     return cmd;
   }
 
