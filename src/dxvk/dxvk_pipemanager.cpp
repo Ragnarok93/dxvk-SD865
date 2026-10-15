@@ -119,20 +119,10 @@ namespace dxvk {
     // If any workers are idle in a suitable set, notify the corresponding
     // condition variable. If all workers are busy anyway, we know that the
     // job is going to be picked up at some point anyway.
-    // Prefer workers normally assigned to this priority or below. If all
-    // of those workers are busy, wake a higher-priority worker as a fallback;
-    // idle workers can help with any queue while preserving queue ordering.
     for (uint32_t i = index; i < m_buckets.size(); i++) {
       if (m_buckets[i].idleWorkers) {
         m_buckets[i].cond.notify_one();
-        return;
-      }
-    }
-
-    for (uint32_t i = 0; i < index; i++) {
-      if (m_buckets[i].idleWorkers) {
-        m_buckets[i].cond.notify_one();
-        return;
+        break;
       }
     }
   }
@@ -239,11 +229,10 @@ namespace dxvk {
         auto& bucket = m_buckets[maxPriorityIndex];
 
         bucket.idleWorkers += 1;
-        bucket.cond.wait(lock, [this, &entry] {
-          // Keep queue priority ordering, but let otherwise-idle workers
-          // help with lower-priority queues instead of leaving CPU capacity
-          // unused. A queued high-priority item is always selected first.
-          for (uint32_t i = 0; i < m_buckets.size(); i++) {
+        bucket.cond.wait(lock, [this, maxPriorityIndex, &entry] {
+          // Attempt to fetch a work item from the
+          // highest-priority queue that is not empty
+          for (uint32_t i = 0; i <= maxPriorityIndex; i++) {
             if (!m_buckets[i].queue.empty()) {
               entry = m_buckets[i].queue.front();
               m_buckets[i].queue.pop();
