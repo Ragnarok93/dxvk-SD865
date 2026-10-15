@@ -18,6 +18,7 @@ DXVK_LOG_PATH=/path/to/writable/ff7r-logs
 - `DXVK_FF7R_METRICS=1`: opt-in frame/present cadence and GPU/resource wait timing counters.
 - `DXVK_FF7R_ONDEMAND=1`: opt-in render-thread pipeline cache-miss slow-path timing. Background worker compilation-duration summaries are gated by `DXVK_FF7R_METRICS=1` in the current implementation.
 - `DXVK_FF7R_PIPELINE_LOOKUP_CACHE`: the experimental per-pipeline last-hit cache is **enabled by default**; set it to `0` to disable it for matched A/B runs. It only shortcuts lookup of an existing immutable state instance; it does not change pipeline creation, handles, or Vulkan synchronization.
+- `DXVK_FF7R_SKIP_DUPLICATE_BINDS=1`: opt-in command-list suppression of consecutive duplicate Vulkan graphics/compute pipeline binds. It is off by default. The command-list layer tracks actual bound Vulkan handles independently per bind point and command-buffer slot; do not infer correctness from counters alone. Keep this variable unset/`0` for baseline runs and compare `DXVK-FF7R-BINDS` snapshots in diagnostic captures.
 - `DXVK_FF7R_COMPILER_THREADS`: for `ff7remake_.exe`, optionally set `2`, `4`, `6`, or `8` to compare compiler worker counts. If `dxvk.numCompilerThreads` is explicitly configured, the FF7R environment override takes precedence when valid.
 - `DXVK_LOG_LEVEL=info`: retain the informational telemetry lines without enabling debug/trace noise.
 - `DXVK_LOG_PATH`: directory for per-DLL logs. Use a location writable by the GameNative/Wine runtime. The resulting files are named from the game executable and DLL, for example `ff7remake__dxgi.log` and `ff7remake__d3d11.log` (exact executable basename may vary).
@@ -33,6 +34,7 @@ If the runtime cannot set more than one environment variable at a time, set them
 | `DXVK-FF7R-PIPELINES` | Background pipeline-library / optimized-pipeline compilation CPU durations plus opt-in queue-wait sample count, mean, and counts at or above 10 ms / 33 ms | Does not include all synchronous pipeline creation or GPU execution; queue wait is aggregate across priorities and is not per-priority attribution |
 | `DXVK-FF7R-ONDEMAND` | Render-thread cache-miss slow-path timing, including relevant lock wait / instance creation | Only samples the instrumented slow path |
 | `DXVK-FF7R-LOOKUP` | Sampled CPU time, entries scanned, and cache-hit percentage for graphics-pipeline lookup | Samples one lookup per 256 calls; diagnostic-only and not representative of GPU time |
+| `DXVK-FF7R-BINDS` | Opt-in Vulkan graphics/compute pipeline-bind attempts and duplicate binds skipped, reported separately by bind point | Requires `DXVK_FF7R_METRICS=1`; emits sparse aggregate snapshots every 1,048,576 attempts per bind point; counters/logging perturb diagnostic runs |
 | `DXVK-FF7R-FENCE-WAIT` | CPU time spent waiting for a fence | A wait duration is evidence of a stall, not proof of its root cause |
 | `DXVK-FF7R-RESOURCE-WAIT` | CPU time waiting for a resource to become reusable | Does not imply the wait can safely be removed |
 
