@@ -115,8 +115,10 @@ def compare(baseline, candidate):
     base_pipeline = a['pipeline_latest_snapshot']
     cand_pipeline = b['pipeline_latest_snapshot']
     if base_pipeline and cand_pipeline:
-        out['pipeline_library_mean_us_delta'] = cand_pipeline['library_mean_us'] - base_pipeline['library_mean_us']
-        out['pipeline_optimized_mean_us_delta'] = cand_pipeline['optimized_mean_us'] - base_pipeline['optimized_mean_us']
+        if all(k in base_pipeline and k in cand_pipeline
+               for k in ('library_mean_us', 'optimized_mean_us')):
+            out['pipeline_library_mean_us_delta'] = cand_pipeline['library_mean_us'] - base_pipeline['library_mean_us']
+            out['pipeline_optimized_mean_us_delta'] = cand_pipeline['optimized_mean_us'] - base_pipeline['optimized_mean_us']
         if 'queue_wait_mean_us' in base_pipeline and 'queue_wait_mean_us' in cand_pipeline:
             out['pipeline_queue_wait_mean_us_delta'] = cand_pipeline['queue_wait_mean_us'] - base_pipeline['queue_wait_mean_us']
             out['pipeline_queue_wait_over_10ms_delta'] = cand_pipeline.get('queue_wait_over_10ms', 0) - base_pipeline.get('queue_wait_over_10ms', 0)
