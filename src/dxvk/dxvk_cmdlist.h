@@ -244,7 +244,7 @@ namespace dxvk {
    * are no longer used may get destroyed.
    */
   // Records opt-in FFVII Remake pipeline-bind telemetry.
-  void recordFf7rPipelineBind(bool skipped);
+  void recordFf7rPipelineBind(VkPipelineBindPoint bindPoint, bool skipped);
 
 
   class DxvkCommandList : public RcObject {
@@ -684,7 +684,7 @@ namespace dxvk {
       }
 
       if (ff7rMetricsEnabled)
-        recordFf7rPipelineBind(skip);
+        recordFf7rPipelineBind(pipelineBindPoint, skip);
 
       if (!skip)
         m_vkd->vkCmdBindPipeline(commandBuffer, pipelineBindPoint, pipeline);
