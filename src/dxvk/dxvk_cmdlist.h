@@ -1300,6 +1300,7 @@ namespace dxvk {
 
     std::array<BoundPipelineState, uint32_t(DxvkCmdBuffer::Count)> m_boundPipelines = { };
     BoundPipelineState m_execBufferPipelineStateBackup = { };
+    bool m_execBufferPipelineStateBackupActive = false;
 
     DxvkDevice*               m_device;
     Rc<vk::DeviceFn>          m_vkd;
