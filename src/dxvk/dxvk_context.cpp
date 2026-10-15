@@ -13,24 +13,30 @@ namespace dxvk {
 
   namespace {
 
-    void recordFf7rPipelineLookup(bool graphics, bool hit) {
+    void recordFf7rPipelineLookup(bool graphics, bool hit, bool victimHit = false) {
       static std::atomic<uint64_t> graphicsLookups { 0 };
       static std::atomic<uint64_t> graphicsHits { 0 };
+      static std::atomic<uint64_t> graphicsVictimHits { 0 };
       static std::atomic<uint64_t> computeLookups { 0 };
       static std::atomic<uint64_t> computeHits { 0 };
+      static std::atomic<uint64_t> computeVictimHits { 0 };
 
       auto& lookups = graphics ? graphicsLookups : computeLookups;
       auto& hits = graphics ? graphicsHits : computeHits;
+      auto& victimHits = graphics ? graphicsVictimHits : computeVictimHits;
 
       if (hit)
         hits.fetch_add(1, std::memory_order_relaxed);
+      if (victimHit)
+        victimHits.fetch_add(1, std::memory_order_relaxed);
 
       const uint64_t count = lookups.fetch_add(1, std::memory_order_relaxed) + 1;
       if ((count & 0xfffffu) == 0) {
         Logger::info(str::format("DXVK-FF7R-LOOKUP-CACHE: point=",
           graphics ? "graphics" : "compute",
           " calls=", count,
-          " hits=", hits.load(std::memory_order_relaxed)));
+          " hits=", hits.load(std::memory_order_relaxed),
+          " victim_hits=", victimHits.load(std::memory_order_relaxed)));
       }
     }
 
@@ -8244,14 +8250,24 @@ namespace dxvk {
     auto idx = shaders.hash() % m_gpLookupCache.size();
     auto* pipeline = m_gpLookupCache[idx];
     bool hit = pipeline && shaders.eq(pipeline->shaders());
+    bool victimHit = false;
+
+    if (!hit) {
+      pipeline = m_gpLookupCacheVictim[idx];
+      victimHit = pipeline && shaders.eq(pipeline->shaders());
+    }
 
     if (metricsEnabled)
-      recordFf7rPipelineLookup(true, hit);
+      recordFf7rPipelineLookup(true, hit || victimHit, victimHit);
 
-    if (unlikely(!hit))
+    if (victimHit) {
+      std::swap(m_gpLookupCache[idx], m_gpLookupCacheVictim[idx]);
+    } else if (!hit) {
+      m_gpLookupCacheVictim[idx] = m_gpLookupCache[idx];
       m_gpLookupCache[idx] = m_common->pipelineManager().createGraphicsPipeline(shaders);
+    }
 
-    return m_gpLookupCache[idx];
+    return hit || victimHit ? pipeline : m_gpLookupCache[idx];
   }
 
 
@@ -8271,14 +8287,24 @@ namespace dxvk {
     auto idx = shaders.hash() % m_cpLookupCache.size();
     auto* pipeline = m_cpLookupCache[idx];
     bool hit = pipeline && shaders.eq(pipeline->shaders());
+    bool victimHit = false;
+
+    if (!hit) {
+      pipeline = m_cpLookupCacheVictim[idx];
+      victimHit = pipeline && shaders.eq(pipeline->shaders());
+    }
 
     if (metricsEnabled)
-      recordFf7rPipelineLookup(false, hit);
+      recordFf7rPipelineLookup(false, hit || victimHit, victimHit);
 
-    if (unlikely(!hit))
+    if (victimHit) {
+      std::swap(m_cpLookupCache[idx], m_cpLookupCacheVictim[idx]);
+    } else if (!hit) {
+      m_cpLookupCacheVictim[idx] = m_cpLookupCache[idx];
       m_cpLookupCache[idx] = m_common->pipelineManager().createComputePipeline(shaders);
+    }
 
-    return m_cpLookupCache[idx];
+    return hit || victimHit ? pipeline : m_cpLookupCache[idx];
   }
 
 
