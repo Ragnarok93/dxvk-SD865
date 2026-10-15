@@ -40,7 +40,7 @@ Not every marker is emitted by every capture. Frame/present cadence needs real f
 
 ## Compiler-worker A/B experiment
 
-Use this only after collecting a baseline log with the same scene and cache conditions. The worker telemetry reports aggregate pending tasks, mean compilation duration for pipeline libraries and optimized pipelines, and opt-in aggregate queue-wait mean plus counts at or above 10 ms / 33 ms. Queue wait is not separated by priority and does not directly measure render-thread stalls attributable to compilation. Do not infer queue contention from worker count or aggregate compile duration alone.
+Use this only after collecting a baseline log with the same scene and cache conditions. The worker telemetry reports aggregate pending tasks, mean compilation duration for pipeline libraries and optimized pipelines, and opt-in aggregate queue-wait mean plus counts at or above 10 ms / 33 ms. `tools/ff7r_perf_compare.py` now reports candidate-minus-baseline deltas for the pipeline library/optimized compile means and queue-wait mean/counts when both captures contain these fields. The counters are cumulative snapshots: compare matched capture duration/workload, and do not treat count deltas as normalized rates. Queue wait is not separated by priority and does not directly measure render-thread stalls attributable to compilation. Do not infer queue contention from worker count or aggregate compile duration alone.
 
 1. Keep `DXVK_FF7R_METRICS=1` and `DXVK_FF7R_ONDEMAND=1` fixed for diagnostic trials. Change only `DXVK_FF7R_COMPILER_THREADS`.
 2. Compare `2`, `4`, `6`, and `8` workers, with the same GameNative/Wine runtime, Turnip revision, resolution, scene, route, cache state, and trial duration.
