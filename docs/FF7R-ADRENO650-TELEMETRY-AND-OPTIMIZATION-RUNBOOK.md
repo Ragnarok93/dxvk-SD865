@@ -95,6 +95,22 @@ No worker-count setting is presumed optimal. If the experiment points to queue c
 - Artifact: `ff7r-phase0-dxvk271-gamenative`; SHA-256 `7956b6016128217c8938c6b288ad93f63e49240e8bb29d8b1967a1926c0d290a`.
 - Device smoke test, visual correctness, matched performance A/B and thermal/memory-pressure testing: not performed by CI and remain open.
 
+## Vulkan allocation-failure triage
+
+The allocator emits failure-only `DXVK-SD865-ALLOC` records. When `vkAllocateMemory` fails, inspect the adjacent `stage=oom_reclaim` record before interpreting `stage=driver_retry`:
+
+- `empty_chunks_before` / `empty_bytes_before`: fully unoccupied backing chunks available for release immediately before the OOM reclaim pass.
+- `empty_chunks_after` / `empty_bytes_after`: remaining empty chunks after the pass.
+- `reclaimed_chunks` / `reclaimed_bytes`: observed reduction across that pass. These are measured from pool state, not inferred from heap-budget snapshots.
+- `pool_experiment`: whether the separately gated host-visible/device-local chunk-size experiment was active. This does not control the new OOM-reclaim measurements.
+
+The cumulative `empty_chunks_reclaimed` / `empty_bytes_reclaimed` fields in later failure records now count reclamation when allocation tracing is enabled, including the default pool policy. Setting `DXVK_SD865_ALLOC_TRACE=0` opts out of these failure diagnostics.
+
+Interpretation:
+- Zero empty chunks before reclaim means this retry path had no completely unused pool chunks it could safely return; it does not prove the heap had no other reclaimable resources.
+- Positive reclaimed bytes followed by another `VK_ERROR_OUT_OF_DEVICE_MEMORY` means freeing idle pool chunks was insufficient. Investigate request size, memory-type requirements, driver pressure and resource lifetime before changing synchronization or reclaiming live resources.
+- This instrumentation does not change allocation policy, move resources, or free occupied chunks. It is intended to distinguish allocator states before any policy experiment is considered.
+
 ## Low-overhead and performance captures
 
 Run two modes:
