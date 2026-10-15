@@ -6,17 +6,37 @@
 
 namespace dxvk {
 
-  void recordFf7rPipelineBind(bool skipped) {
-    static std::atomic<uint64_t> calls { 0 };
-    static std::atomic<uint64_t> skippedCalls { 0 };
+  void recordFf7rPipelineBind(VkPipelineBindPoint bindPoint, bool skipped) {
+    static std::atomic<uint64_t> graphicsCalls { 0 };
+    static std::atomic<uint64_t> graphicsSkipped { 0 };
+    static std::atomic<uint64_t> computeCalls { 0 };
+    static std::atomic<uint64_t> computeSkipped { 0 };
+
+    std::atomic<uint64_t>* calls = nullptr;
+    std::atomic<uint64_t>* skippedCalls = nullptr;
+
+    switch (bindPoint) {
+      case VK_PIPELINE_BIND_POINT_GRAPHICS:
+        calls = &graphicsCalls;
+        skippedCalls = &graphicsSkipped;
+        break;
+      case VK_PIPELINE_BIND_POINT_COMPUTE:
+        calls = &computeCalls;
+        skippedCalls = &computeSkipped;
+        break;
+      default:
+        return;
+    }
 
     if (skipped)
-      skippedCalls.fetch_add(1, std::memory_order_relaxed);
+      skippedCalls->fetch_add(1, std::memory_order_relaxed);
 
-    const uint64_t callCount = calls.fetch_add(1, std::memory_order_relaxed) + 1;
+    const uint64_t callCount = calls->fetch_add(1, std::memory_order_relaxed) + 1;
     if ((callCount & 0xfffffu) == 0) {
-      Logger::info(str::format("DXVK-FF7R-BINDS: calls=", callCount,
-        " skipped=", skippedCalls.load(std::memory_order_relaxed)));
+      Logger::info(str::format("DXVK-FF7R-BINDS: point=",
+        bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS ? "graphics" : "compute",
+        " calls=", callCount,
+        " skipped=", skippedCalls->load(std::memory_order_relaxed)));
     }
   }
 
