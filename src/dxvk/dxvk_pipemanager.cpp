@@ -334,96 +334,116 @@ namespace dxvk {
     const DxvkComputePipelineShaders& shaders) {
     if (shaders.cs == nullptr)
       return nullptr;
-    
+
     static const bool ff7rMetricsEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
     const auto lockStart = ff7rMetricsEnabled
       ? std::chrono::steady_clock::now()
       : std::chrono::steady_clock::time_point { };
-    std::unique_lock<dxvk::mutex> lock(m_pipelineMutex);
-    if (ff7rMetricsEnabled) {
-      const auto waitUs = std::chrono::duration_cast<std::chrono::microseconds>(
-        std::chrono::steady_clock::now() - lockStart).count();
-      recordFf7rPipelineLockWait(false, uint64_t(std::max<int64_t>(0, waitUs)));
+    int64_t lockWaitUs = 0;
+    DxvkComputePipeline* result = nullptr;
+
+    {
+      std::unique_lock<dxvk::mutex> lock(m_pipelineMutex);
+      if (ff7rMetricsEnabled) {
+        lockWaitUs = std::chrono::duration_cast<std::chrono::microseconds>(
+          std::chrono::steady_clock::now() - lockStart).count();
+      }
+
+      auto pair = m_computePipelines.find(shaders);
+      if (pair != m_computePipelines.end()) {
+        result = &pair->second;
+      } else {
+        DxvkShaderPipelineLibraryKey key;
+        key.addShader(shaders.cs);
+
+        auto library = findPipelineLibraryLocked(key);
+
+        auto iter = m_computePipelines.emplace(
+          std::piecewise_construct,
+          std::tuple(shaders),
+          std::tuple(m_device, this, shaders, library));
+        result = &iter.first->second;
+      }
     }
 
-    auto pair = m_computePipelines.find(shaders);
-    if (pair != m_computePipelines.end())
-      return &pair->second;
+    if (ff7rMetricsEnabled)
+      recordFf7rPipelineLockWait(false, uint64_t(std::max<int64_t>(0, lockWaitUs)));
 
-    DxvkShaderPipelineLibraryKey key;
-    key.addShader(shaders.cs);
-
-    auto library = findPipelineLibraryLocked(key);
-
-    auto iter = m_computePipelines.emplace(
-      std::piecewise_construct,
-      std::tuple(shaders),
-      std::tuple(m_device, this, shaders, library));
-    return &iter.first->second;
+    return result;
   }
-  
-  
+
+
   DxvkGraphicsPipeline* DxvkPipelineManager::createGraphicsPipeline(
     const DxvkGraphicsPipelineShaders& shaders) {
     if (shaders.vs == nullptr)
       return nullptr;
-    
+
     static const bool ff7rMetricsEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
     const auto lockStart = ff7rMetricsEnabled
       ? std::chrono::steady_clock::now()
       : std::chrono::steady_clock::time_point { };
-    std::unique_lock<dxvk::mutex> lock(m_pipelineMutex);
-    if (ff7rMetricsEnabled) {
-      const auto waitUs = std::chrono::duration_cast<std::chrono::microseconds>(
-        std::chrono::steady_clock::now() - lockStart).count();
-      recordFf7rPipelineLockWait(true, uint64_t(std::max<int64_t>(0, waitUs)));
-    }
+    int64_t lockWaitUs = 0;
+    DxvkGraphicsPipeline* result = nullptr;
 
-    auto pair = m_graphicsPipelines.find(shaders);
-    if (pair != m_graphicsPipelines.end())
-      return &pair->second;
+    {
+      std::unique_lock<dxvk::mutex> lock(m_pipelineMutex);
+      if (ff7rMetricsEnabled) {
+        lockWaitUs = std::chrono::duration_cast<std::chrono::microseconds>(
+          std::chrono::steady_clock::now() - lockStart).count();
+      }
 
-    DxvkShaderPipelineLibrary* vsLibrary = nullptr;
-    DxvkShaderPipelineLibrary* fsLibrary = nullptr;
+      auto pair = m_graphicsPipelines.find(shaders);
+      if (pair != m_graphicsPipelines.end()) {
+        result = &pair->second;
+      } else {
+        DxvkShaderPipelineLibrary* vsLibrary = nullptr;
+        DxvkShaderPipelineLibrary* fsLibrary = nullptr;
 
-    if (m_device->canUseGraphicsPipelineLibrary()) {
-      DxvkShaderPipelineLibraryKey vsKey;
-      vsKey.addShader(shaders.vs);
+        if (m_device->canUseGraphicsPipelineLibrary()) {
+          DxvkShaderPipelineLibraryKey vsKey;
+          vsKey.addShader(shaders.vs);
 
-      if (shaders.tcs != nullptr) vsKey.addShader(shaders.tcs);
-      if (shaders.tes != nullptr) vsKey.addShader(shaders.tes);
-      if (shaders.gs  != nullptr) vsKey.addShader(shaders.gs);
+          if (shaders.tcs != nullptr) vsKey.addShader(shaders.tcs);
+          if (shaders.tes != nullptr) vsKey.addShader(shaders.tes);
+          if (shaders.gs  != nullptr) vsKey.addShader(shaders.gs);
 
-      if (vsKey.canUsePipelineLibrary()) {
-        vsLibrary = findPipelineLibraryLocked(vsKey);
+          if (vsKey.canUsePipelineLibrary()) {
+            vsLibrary = findPipelineLibraryLocked(vsKey);
 
-        if (!vsLibrary) {
-          // If multiple shader stages are participating, create a
-          // pipeline library so that it can potentially be reused.
-          // Don't dispatch the pipeline library to a worker thread
-          // since it should be compiled on demand anyway.
-          vsLibrary = createPipelineLibraryLocked(vsKey);
+            if (!vsLibrary) {
+              // If multiple shader stages are participating, create a
+              // pipeline library so that it can potentially be reused.
+              // Don't dispatch the pipeline library to a worker thread
+              // since it should be compiled on demand anyway.
+              vsLibrary = createPipelineLibraryLocked(vsKey);
+            }
+          }
+
+          if (vsLibrary) {
+            DxvkShaderPipelineLibraryKey fsKey;
+
+            if (shaders.fs != nullptr)
+              fsKey.addShader(shaders.fs);
+
+            fsLibrary = findPipelineLibraryLocked(fsKey);
+          }
         }
-      }
 
-      if (vsLibrary) {
-        DxvkShaderPipelineLibraryKey fsKey;
-
-        if (shaders.fs != nullptr)
-          fsKey.addShader(shaders.fs);
-
-        fsLibrary = findPipelineLibraryLocked(fsKey);
+        auto iter = m_graphicsPipelines.emplace(
+          std::piecewise_construct,
+          std::tuple(shaders),
+          std::tuple(m_device, this, shaders, vsLibrary, fsLibrary));
+        result = &iter.first->second;
       }
     }
 
-    auto iter = m_graphicsPipelines.emplace(
-      std::piecewise_construct,
-      std::tuple(shaders),
-      std::tuple(m_device, this, shaders, vsLibrary, fsLibrary));
-    return &iter.first->second;
+    if (ff7rMetricsEnabled)
+      recordFf7rPipelineLockWait(true, uint64_t(std::max<int64_t>(0, lockWaitUs)));
+
+    return result;
   }
 
-  
+
   DxvkShaderPipelineLibrary* DxvkPipelineManager::createShaderPipelineLibrary(
     const DxvkShaderPipelineLibraryKey& key) {
     std::lock_guard<dxvk::mutex> lock(m_pipelineMutex);
