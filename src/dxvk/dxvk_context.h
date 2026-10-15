@@ -1405,8 +1405,12 @@ namespace dxvk {
     std::array<DxvkBufferSlice, MaxNumUniformBufferSlots> m_uniformBuffers;
     std::array<DxvkViewPair, MaxNumResourceSlots> m_resources;
 
+    // A small victim slot reduces direct-mapped cache conflict misses while
+    // keeping the common lookup to one shader-key comparison.
     std::array<DxvkGraphicsPipeline*, 4096> m_gpLookupCache = { };
+    std::array<DxvkGraphicsPipeline*, 4096> m_gpLookupCacheVictim = { };
     std::array<DxvkComputePipeline*,   256> m_cpLookupCache = { };
+    std::array<DxvkComputePipeline*,   256> m_cpLookupCacheVictim = { };
 
     std::vector<VkImageMemoryBarrier2> m_imageLayoutTransitions;
 
