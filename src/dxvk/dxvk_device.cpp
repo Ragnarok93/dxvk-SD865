@@ -30,10 +30,12 @@ namespace dxvk {
     const bool ff7rMetrics = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
     const bool ff7rOnDemand = env::getEnvVar("DXVK_FF7R_ONDEMAND") == "1";
     const bool ff7rLookupCache = env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_CACHE") != "0";
+    const bool ff7rLookupVictim = env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_VICTIM") != "0";
     const bool ff7rSkipDuplicateBinds = env::getEnvVar("DXVK_FF7R_SKIP_DUPLICATE_BINDS") != "0";
     Logger::info(str::format("DXVK-FF7R-TELEMETRY: metrics=", ff7rMetrics ? 1 : 0,
       " on_demand=", ff7rOnDemand ? 1 : 0,
       " lookup_cache=", ff7rLookupCache ? 1 : 0,
+      " lookup_victim=", ff7rLookupVictim ? 1 : 0,
       " skip_duplicate_binds=", ff7rSkipDuplicateBinds ? 1 : 0,
       " device=", m_properties.core.properties.deviceName));
   }
