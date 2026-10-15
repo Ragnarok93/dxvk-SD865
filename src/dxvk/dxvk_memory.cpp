@@ -1392,7 +1392,7 @@ namespace dxvk {
     VkResult firstResult = vk->vkAllocateMemory(vk->device(), &memoryInfo, nullptr, &result.memory);
 
     if (firstResult != VK_SUCCESS) {
-      freeEmptyChunksInHeap(*type.heap, VkDeviceSize(-1), high_resolution_clock::time_point());
+      freeEmptyChunksInHeap(*type.heap, VkDeviceSize(-1), high_resolution_clock::time_point(), firstAttemptId);
 
       const uint64_t retryAttemptId = sd865AllocTraceNextAttempt();
       VkResult retryResult = vk->vkAllocateMemory(vk->device(), &memoryInfo, nullptr, &result.memory);
@@ -1758,12 +1758,13 @@ namespace dxvk {
   void DxvkMemoryAllocator::freeEmptyChunksInHeap(
     const DxvkMemoryHeap&       heap,
           VkDeviceSize          allocationSize,
-          high_resolution_clock::time_point time) {
-    // The all-bits-set allocation size is used by allocateDeviceMemory after
-    // vkAllocateMemory fails. Capture the reclaimable pool state around that
-    // specific pass so a failed retry distinguishes "nothing was free" from
-    // "empty chunks were released but the driver still rejected the request".
+          high_resolution_clock::time_point time,
+          uint64_t               traceAttemptId) {
+    // Only the failed-allocation call supplies an attempt ID. The destructor
+    // also uses the all-bits-set size to release every empty chunk, so the size
+    // sentinel alone must not mislabel shutdown cleanup as an OOM retry pass.
     const bool traceOomReclaim = allocationSize == VkDeviceSize(-1)
+      && traceAttemptId != 0u
       && sd865AllocTraceEnabled();
 
     auto countEmptyChunks = [&] (uint64_t& count, VkDeviceSize& bytes) {
@@ -1793,6 +1794,11 @@ namespace dxvk {
     if (traceOomReclaim)
       countEmptyChunks(emptyChunksBefore, emptyBytesBefore);
 
+    const uint64_t reclaimedChunksBefore = traceOomReclaim
+      ? sd865PoolReclaimedChunks().load(std::memory_order_relaxed) : 0u;
+    const uint64_t reclaimedBytesBefore = traceOomReclaim
+      ? sd865PoolReclaimedBytes().load(std::memory_order_relaxed) : 0u;
+
     bool freed = false;
 
     for (auto typeIndex : bit::BitMask(heap.memoryTypes)) {
@@ -1809,9 +1815,14 @@ namespace dxvk {
       uint64_t emptyChunksAfter = 0;
       VkDeviceSize emptyBytesAfter = 0;
       countEmptyChunks(emptyChunksAfter, emptyBytesAfter);
+      const uint64_t reclaimedChunksAfter =
+        sd865PoolReclaimedChunks().load(std::memory_order_relaxed);
+      const uint64_t reclaimedBytesAfter =
+        sd865PoolReclaimedBytes().load(std::memory_order_relaxed);
 
       Logger::err(str::format(
         "DXVK-SD865-ALLOC stage=oom_reclaim",
+        " attempt_id=", traceAttemptId,
         " heap=", heap.index,
         " empty_chunks_before=", emptyChunksBefore,
         " empty_bytes_before=", emptyBytesBefore,
@@ -1819,6 +1830,8 @@ namespace dxvk {
         " empty_bytes_after=", emptyBytesAfter,
         " reclaimed_chunks=", emptyChunksBefore >= emptyChunksAfter ? emptyChunksBefore - emptyChunksAfter : 0,
         " reclaimed_bytes=", emptyBytesBefore >= emptyBytesAfter ? emptyBytesBefore - emptyBytesAfter : 0,
+        " pass_reclaimed_chunks=", reclaimedChunksAfter >= reclaimedChunksBefore ? reclaimedChunksAfter - reclaimedChunksBefore : 0,
+        " pass_reclaimed_bytes=", reclaimedBytesAfter >= reclaimedBytesBefore ? reclaimedBytesAfter - reclaimedBytesBefore : 0,
         " pool_experiment=", sd865PoolExperimentEnabled() ? 1 : 0));
     }
   }

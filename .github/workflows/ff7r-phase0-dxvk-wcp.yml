@@ -53,6 +53,15 @@ jobs:
       - name: Verify attribution tests
         run: python3 -m unittest discover -s tests -v
 
+      - name: Verify per-attempt allocator trace contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'traceAttemptId != 0u' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'attempt_id=", traceAttemptId' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'pass_reclaimed_chunks=' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'uint64_t               traceAttemptId = 0u' src/dxvk/dxvk_memory.h
+
       - name: Cross-compile PE x64 and x32
         shell: bash
         run: |

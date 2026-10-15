@@ -99,12 +99,14 @@ No worker-count setting is presumed optimal. If the experiment points to queue c
 
 The allocator emits failure-only `DXVK-SD865-ALLOC` records. When `vkAllocateMemory` fails, inspect the adjacent `stage=oom_reclaim` record before interpreting `stage=driver_retry`:
 
-- `empty_chunks_before` / `empty_bytes_before`: fully unoccupied backing chunks available for release immediately before the OOM reclaim pass.
-- `empty_chunks_after` / `empty_bytes_after`: remaining empty chunks after the pass.
-- `reclaimed_chunks` / `reclaimed_bytes`: observed reduction across that pass. These are measured from pool state, not inferred from heap-budget snapshots.
-- `pool_experiment`: whether the separately gated host-visible/device-local chunk-size experiment was active. This does not control the new OOM-reclaim measurements.
+- `attempt_id`: matches the OOM reclaim pass to `first_attempt_id` on the following `stage=driver_retry` record. Shutdown cleanup is not emitted as an OOM reclaim event; it uses the same size sentinel internally but has no allocation-attempt ID.
+- `empty_chunks_before` / `empty_bytes_before`: fully unoccupied backing chunks visible immediately before this OOM reclaim pass.
+- `empty_chunks_after` / `empty_bytes_after`: remaining empty chunks visible after the pass.
+- `reclaimed_chunks` / `reclaimed_bytes`: observed reduction in visible empty-pool state across the pass.
+- `pass_reclaimed_chunks` / `pass_reclaimed_bytes`: per-pass delta of the allocator's actual-free counters. These are the primary fields for counting chunks/bytes released by this exact attempt; they are independent of whether a chunk remains visible in the before/after scan.
+- `pool_experiment`: whether the separately gated host-visible/device-local chunk-size experiment was active. This does not control the OOM-reclaim measurements.
 
-The cumulative `empty_chunks_reclaimed` / `empty_bytes_reclaimed` fields in later failure records now count reclamation when allocation tracing is enabled, including the default pool policy. Setting `DXVK_SD865_ALLOC_TRACE=0` opts out of these failure diagnostics.
+The `empty_chunks_reclaimed` / `empty_bytes_reclaimed` fields on `stage=driver_retry` and `stage=pool_exhausted` are cumulative for the allocator lifetime, including cleanups that happened before the current failed allocation. Do not interpret them as bytes reclaimed by the immediately preceding retry pass. Setting `DXVK_SD865_ALLOC_TRACE=0` opts out of these failure diagnostics.
 
 Interpretation:
 - Zero empty chunks before reclaim means this retry path had no completely unused pool chunks it could safely return; it does not prove the heap had no other reclaimable resources.
