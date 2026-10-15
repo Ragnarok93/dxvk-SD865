@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstring>
 #include <map>
@@ -9,7 +10,32 @@
 #include "dxvk_context.h"
 
 namespace dxvk {
-  
+
+  namespace {
+
+    void recordFf7rPipelineLookup(bool graphics, bool hit) {
+      static std::atomic<uint64_t> graphicsLookups { 0 };
+      static std::atomic<uint64_t> graphicsHits { 0 };
+      static std::atomic<uint64_t> computeLookups { 0 };
+      static std::atomic<uint64_t> computeHits { 0 };
+
+      auto& lookups = graphics ? graphicsLookups : computeLookups;
+      auto& hits = graphics ? graphicsHits : computeHits;
+
+      if (hit)
+        hits.fetch_add(1, std::memory_order_relaxed);
+
+      const uint64_t count = lookups.fetch_add(1, std::memory_order_relaxed) + 1;
+      if ((count & 0xfffffu) == 0) {
+        Logger::info(str::format("DXVK-FF7R-LOOKUP: point=",
+          graphics ? "graphics" : "compute",
+          " calls=", count,
+          " hits=", hits.load(std::memory_order_relaxed)));
+      }
+    }
+
+  }
+
   DxvkContext::DxvkContext(const Rc<DxvkDevice>& device)
   : m_device      (device),
     m_common      (&device->m_objects),
@@ -8204,9 +8230,25 @@ namespace dxvk {
 
   DxvkGraphicsPipeline* DxvkContext::lookupGraphicsPipeline(
     const DxvkGraphicsPipelineShaders&  shaders) {
+    static const bool useLookupCache =
+      env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_CACHE") != "0";
+    static const bool metricsEnabled =
+      env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+
+    if (!useLookupCache) {
+      if (metricsEnabled)
+        recordFf7rPipelineLookup(true, false);
+      return m_common->pipelineManager().createGraphicsPipeline(shaders);
+    }
+
     auto idx = shaders.hash() % m_gpLookupCache.size();
-    
-    if (unlikely(!m_gpLookupCache[idx] || !shaders.eq(m_gpLookupCache[idx]->shaders())))
+    auto* pipeline = m_gpLookupCache[idx];
+    bool hit = pipeline && shaders.eq(pipeline->shaders());
+
+    if (metricsEnabled)
+      recordFf7rPipelineLookup(true, hit);
+
+    if (unlikely(!hit))
       m_gpLookupCache[idx] = m_common->pipelineManager().createGraphicsPipeline(shaders);
 
     return m_gpLookupCache[idx];
@@ -8215,9 +8257,25 @@ namespace dxvk {
 
   DxvkComputePipeline* DxvkContext::lookupComputePipeline(
     const DxvkComputePipelineShaders&   shaders) {
+    static const bool useLookupCache =
+      env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_CACHE") != "0";
+    static const bool metricsEnabled =
+      env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+
+    if (!useLookupCache) {
+      if (metricsEnabled)
+        recordFf7rPipelineLookup(false, false);
+      return m_common->pipelineManager().createComputePipeline(shaders);
+    }
+
     auto idx = shaders.hash() % m_cpLookupCache.size();
-    
-    if (unlikely(!m_cpLookupCache[idx] || !shaders.eq(m_cpLookupCache[idx]->shaders())))
+    auto* pipeline = m_cpLookupCache[idx];
+    bool hit = pipeline && shaders.eq(pipeline->shaders());
+
+    if (metricsEnabled)
+      recordFf7rPipelineLookup(false, hit);
+
+    if (unlikely(!hit))
       m_cpLookupCache[idx] = m_common->pipelineManager().createComputePipeline(shaders);
 
     return m_cpLookupCache[idx];
