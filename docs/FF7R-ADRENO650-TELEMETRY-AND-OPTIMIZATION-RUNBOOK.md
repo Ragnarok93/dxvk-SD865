@@ -17,7 +17,8 @@ DXVK_LOG_PATH=/path/to/writable/ff7r-logs
 
 - `DXVK_FF7R_METRICS=1`: opt-in frame/present cadence and GPU/resource wait timing counters.
 - `DXVK_FF7R_ONDEMAND=1`: opt-in render-thread pipeline cache-miss slow-path timing. Background worker compilation-duration summaries are gated by `DXVK_FF7R_METRICS=1` in the current implementation.
-- `DXVK_FF7R_PIPELINE_LOOKUP_CACHE`: the context-local direct-mapped pipeline lookup cache is **enabled by default**; set it to `0` to disable it for matched A/B runs. It only shortcuts lookup of an existing immutable state instance; it does not change pipeline creation, handles, or Vulkan synchronization.
+- `DXVK_FF7R_PIPELINE_LOOKUP_CACHE`: the context-local pipeline lookup cache is **enabled by default**; set it to `0` to bypass the context cache for matched A/B runs.
+- `DXVK_FF7R_PIPELINE_LOOKUP_VICTIM`: the bounded second-chance victim slot is **enabled by default**; set it to `0` to compare against the original direct-mapped cache while keeping the primary cache enabled. The victim slot only shortcuts lookup of an existing immutable state instance; it does not change pipeline creation, handles, or Vulkan synchronization.
 - `DXVK_FF7R_SKIP_DUPLICATE_BINDS`: consecutive duplicate Vulkan graphics/compute pipeline binds are **suppressed by default**; set this variable to `0` to disable suppression for baseline/rollback runs. The command-list layer tracks actual bound Vulkan handles independently per bind point and command-buffer slot; do not infer correctness from counters alone. Compare `DXVK-FF7R-BINDS` snapshots in diagnostic captures.
   Secondary command-buffer recording temporarily reuses the execution-buffer slot, so the tracker saves the primary buffer's state, starts secondary recording with an empty state, and restores the primary state afterward. This state-isolation bookkeeping is only performed while suppression is enabled.
 - `DXVK_FF7R_COMPILER_THREADS`: for `ff7remake_.exe`, optionally set `2`, `4`, `6`, or `8` to compare compiler worker counts. If `dxvk.numCompilerThreads` is explicitly configured, the FF7R environment override takes precedence when valid.
@@ -30,7 +31,7 @@ If the runtime cannot set more than one environment variable at a time, set them
 
 | Marker | Meaning | Important limitation |
 |---|---|---|
-| `DXVK-FF7R-TELEMETRY` | Startup confirmation of `metrics`, `on_demand`, `lookup_cache`, `skip_duplicate_binds`, and selected Vulkan device | Confirms the environment reached device initialization; it does not prove the candidate improves performance |
+| `DXVK-FF7R-TELEMETRY` | Startup confirmation of `metrics`, `on_demand`, `lookup_cache`, `lookup_victim`, `skip_duplicate_binds`, and selected Vulkan device | Confirms the environment reached device initialization; it does not prove the candidate improves performance |
 | `DXVK-FF7R-FRAMES` | CPU-side Present-completion interval statistics: mean, p50, p95, p99, max | Not GPU execution time or physical display scanout |
 | `DXVK-FF7R-PIPELINES` | Background pipeline-library / optimized-pipeline compilation CPU durations plus opt-in queue-wait sample count, mean, and counts at or above 10 ms / 33 ms | Does not include all synchronous pipeline creation or GPU execution; queue wait is aggregate across priorities and is not per-priority attribution |
 | `DXVK-FF7R-ONDEMAND` | Render-thread cache-miss slow-path timing, including relevant lock wait / instance creation | Only samples the instrumented slow path |
@@ -79,7 +80,7 @@ No worker-count setting is presumed optimal. If the experiment points to queue c
 5. Perform at least three matched trials per variant. Log ambient/device thermal state and discard runs with materially different throttling or background activity.
 6. Save the complete per-DLL logs and external GameNative/Android frame-time capture together in a uniquely named archive. Never overwrite the baseline.
 7. Compare captures with `python3 tools/ff7r_perf_compare.py baseline.zip candidate.zip`. The script's windowed statistics are not a guarantee of statistical significance; inspect raw windows and external frame-time traces too.
-8. For the lookup-cache A/B test, enable `DXVK_FF7R_METRICS=1` in both diagnostic runs and toggle only `DXVK_FF7R_PIPELINE_LOOKUP_CACHE` between unset (enabled) and `0` (disabled). The comparison script reports sampled lookup timing (`DXVK-FF7R-LOOKUP`) and local-cache hit/call deltas (`DXVK-FF7R-LOOKUP-CACHE`) when present. Then repeat performance mode with metrics disabled; do not use diagnostic timings or hit rate alone as the final performance verdict.
+8. For the lookup-cache A/B test, enable `DXVK_FF7R_METRICS=1` in both diagnostic runs. First toggle only `DXVK_FF7R_PIPELINE_LOOKUP_VICTIM` between unset (enabled) and `0` (disabled) to measure the second-chance slot; separately toggle `DXVK_FF7R_PIPELINE_LOOKUP_CACHE` between unset (enabled) and `0` (disabled) to measure the complete context-local cache. The comparison script reports sampled lookup timing (`DXVK-FF7R-LOOKUP`) and local-cache hit/call deltas (`DXVK-FF7R-LOOKUP-CACHE`) when present. Then repeat performance mode with metrics disabled; do not use diagnostic timings or hit rate alone as the final performance verdict.
 
 ## Low-overhead and performance captures
 
