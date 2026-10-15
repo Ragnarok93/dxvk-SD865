@@ -7,6 +7,12 @@
 namespace dxvk {
 
   void recordFf7rPipelineBind(VkPipelineBindPoint bindPoint, bool skipped) {
+    // Bind counters are diagnostic only. Avoid two contended atomic updates
+    // per bind in normal runs; duplicate-bind suppression remains independent.
+    static const bool metricsEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    if (!metricsEnabled)
+      return;
+
     static std::atomic<uint64_t> graphicsCalls { 0 };
     static std::atomic<uint64_t> graphicsSkipped { 0 };
     static std::atomic<uint64_t> computeCalls { 0 };
