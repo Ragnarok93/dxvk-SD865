@@ -214,6 +214,10 @@ namespace dxvk {
     static std::atomic<uint64_t> over10ms { 0 }, over33ms { 0 }, totalSamples { 0 };
     static std::atomic<uint64_t> queueWaitUs { 0 }, queueWaitCount { 0 };
     static std::atomic<uint64_t> queueWaitOver10ms { 0 }, queueWaitOver33ms { 0 };
+    static std::atomic<uint64_t> libraryQueueWaitUs { 0 }, libraryQueueWaitCount { 0 };
+    static std::atomic<uint64_t> libraryQueueWaitOver10ms { 0 }, libraryQueueWaitOver33ms { 0 };
+    static std::atomic<uint64_t> optimizedQueueWaitUs { 0 }, optimizedQueueWaitCount { 0 };
+    static std::atomic<uint64_t> optimizedQueueWaitOver10ms { 0 }, optimizedQueueWaitOver33ms { 0 };
 
     const uint32_t maxPriorityIndex = uint32_t(maxPriority);
     env::setThreadName(str::format("dxvk-shader-", suffixes.at(maxPriorityIndex)));
@@ -259,6 +263,19 @@ namespace dxvk {
           queueWaitOver10ms.fetch_add(1, std::memory_order_relaxed);
         if (waitedUs >= 33000)
           queueWaitOver33ms.fetch_add(1, std::memory_order_relaxed);
+
+        // Split backlog wait by work type so aggregate queue stalls can be
+        // attributed to library compilation versus optimized pipelines.
+        auto& typeWaitUs = entry.pipelineLibrary ? libraryQueueWaitUs : optimizedQueueWaitUs;
+        auto& typeWaitCount = entry.pipelineLibrary ? libraryQueueWaitCount : optimizedQueueWaitCount;
+        auto& typeOver10ms = entry.pipelineLibrary ? libraryQueueWaitOver10ms : optimizedQueueWaitOver10ms;
+        auto& typeOver33ms = entry.pipelineLibrary ? libraryQueueWaitOver33ms : optimizedQueueWaitOver33ms;
+        typeWaitUs.fetch_add(waitedUs, std::memory_order_relaxed);
+        typeWaitCount.fetch_add(1, std::memory_order_relaxed);
+        if (waitedUs >= 10000)
+          typeOver10ms.fetch_add(1, std::memory_order_relaxed);
+        if (waitedUs >= 33000)
+          typeOver33ms.fetch_add(1, std::memory_order_relaxed);
       }
 
       if (entry.pipelineLibrary) {
@@ -300,7 +317,17 @@ namespace dxvk {
             " queue_wait_mean_us=", queueWaitCount.load(std::memory_order_relaxed)
               ? queueWaitUs.load(std::memory_order_relaxed) / queueWaitCount.load(std::memory_order_relaxed) : 0,
             " queue_wait_over_10ms=", queueWaitOver10ms.load(std::memory_order_relaxed),
-            " queue_wait_over_33ms=", queueWaitOver33ms.load(std::memory_order_relaxed)));
+            " queue_wait_over_33ms=", queueWaitOver33ms.load(std::memory_order_relaxed),
+            " library_queue_wait_samples=", libraryQueueWaitCount.load(std::memory_order_relaxed),
+            " library_queue_wait_mean_us=", libraryQueueWaitCount.load(std::memory_order_relaxed)
+              ? libraryQueueWaitUs.load(std::memory_order_relaxed) / libraryQueueWaitCount.load(std::memory_order_relaxed) : 0,
+            " library_queue_wait_over_10ms=", libraryQueueWaitOver10ms.load(std::memory_order_relaxed),
+            " library_queue_wait_over_33ms=", libraryQueueWaitOver33ms.load(std::memory_order_relaxed),
+            " optimized_queue_wait_samples=", optimizedQueueWaitCount.load(std::memory_order_relaxed),
+            " optimized_queue_wait_mean_us=", optimizedQueueWaitCount.load(std::memory_order_relaxed)
+              ? optimizedQueueWaitUs.load(std::memory_order_relaxed) / optimizedQueueWaitCount.load(std::memory_order_relaxed) : 0,
+            " optimized_queue_wait_over_10ms=", optimizedQueueWaitOver10ms.load(std::memory_order_relaxed),
+            " optimized_queue_wait_over_33ms=", optimizedQueueWaitOver33ms.load(std::memory_order_relaxed)));
         }
       }
 
