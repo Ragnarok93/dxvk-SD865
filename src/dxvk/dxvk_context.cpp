@@ -27,7 +27,7 @@ namespace dxvk {
 
       const uint64_t count = lookups.fetch_add(1, std::memory_order_relaxed) + 1;
       if ((count & 0xfffffu) == 0) {
-        Logger::info(str::format("DXVK-FF7R-LOOKUP: point=",
+        Logger::info(str::format("DXVK-FF7R-LOOKUP-CACHE: point=",
           graphics ? "graphics" : "compute",
           " calls=", count,
           " hits=", hits.load(std::memory_order_relaxed)));
