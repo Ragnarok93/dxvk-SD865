@@ -140,3 +140,6 @@ This distinction matters because instrumentation itself can perturb CPU scheduli
 ## Current limitations
 
 The present/pipeline/wait markers are CPU-side instrumentation and cannot independently provide GPU timestamps or true scanout timing. External GameNative frame-time capture is required for a reliable frame-pacing comparison. A successful compile is not a device validation result; no performance gain should be claimed until the same Adreno 650 device has completed matched baseline/candidate runs.
+
+
+Allocator-failure correlation: `stage=driver_retry` now reports `reclaim_pass_chunks` and `reclaim_pass_bytes` as per-attempt deltas, with process-lifetime totals separately named `reclaim_total_*`. Its matching `stage=oom_reclaim` event uses the same `attempt_id` as the first failed driver allocation and has a separate bounded log budget.
