@@ -111,7 +111,7 @@ class PerfCompareTest(unittest.TestCase):
                     f'queue_wait_mean_us={queue_mean} queue_wait_over_10ms={over10} '
                     f'queue_wait_over_33ms={over33}'
                 )
-                path.write_text('\\n'.join(lines), encoding='utf-8')
+                path.write_text('\n'.join(lines), encoding='utf-8')
 
             capture(baseline, 12000, 8, 2, 300, 500)
             capture(candidate, 8000, 3, 1, 250, 450)
