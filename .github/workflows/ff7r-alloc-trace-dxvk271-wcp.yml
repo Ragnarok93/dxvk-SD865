@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feature/ff7r-sd865-architecture-20261011
+      - feature/ff7r-adreno650-telemetry-20261014
     paths:
       - '.github/workflows/ff7r-alloc-trace-dxvk271-wcp.yml'
       - 'src/d3d11/d3d11_main.cpp'
@@ -66,6 +67,9 @@ jobs:
           grep -Fq 'DXVK_SD865_ALLOC_DIAG_WCP' src/dxvk/dxvk_memory.cpp
           grep -Fq 'stage=driver_retry' src/dxvk/dxvk_memory.cpp
           grep -Fq 'retry_vkresult=' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'reclaim_pass_chunks=' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'reclaim_total_bytes=' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'sd865AllocTraceAllowOomEvent' src/dxvk/dxvk_memory.cpp
           grep -Fq 'stage=pool_exhausted' src/dxvk/dxvk_memory.cpp
 
       - name: Cross-compile PE x64 and x32
