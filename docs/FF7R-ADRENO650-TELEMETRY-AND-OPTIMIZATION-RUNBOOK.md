@@ -42,6 +42,17 @@ If the runtime cannot set more than one environment variable at a time, set them
 
 Not every marker is emitted by every capture. Frame/present cadence needs real frames; on-demand pipeline timing requires cache-miss slow paths; lookup timing samples one call in every 256 and requires enough lookups; synchronization markers require the relevant waits to occur. A missing marker alone is not proof that the feature is broken. Check the exact binary build, variable propagation, log path permissions, and workload coverage first.
 
+## Existing architecture verified before adding duplicate mechanisms
+
+The source audit found several report candidates already present in this DXVK 2.7.1-derived branch:
+
+- **Lazy legacy descriptor updates:** `DxvkContext::updateDescriptorSetsBindings` derives a `dirtySetMask` from tracked resource state and updates only dirty sets.
+- **Descriptor write batching:** the legacy path gathers writes and submits them together (or uses descriptor update templates where the 32-bit host path benefits); the descriptor-buffer path gathers descriptor data and updates allocated ranges.
+- **Bounded pipeline lookup:** each context has direct-mapped graphics (4096-entry) and compute (256-entry) lookup arrays. A cache miss falls back to `DxvkPipelineManager`, whose global graphics/compute pipeline stores are already `std::unordered_map` instances protected by the pipeline mutex. A separate hash index in the manager would duplicate existing infrastructure without evidence of a bottleneck.
+- **Secondary command buffers:** command-pool support already allocates and records secondary command buffers for render-pass continuation. Broadly moving more work into them is not assumed to help Adreno 650 and remains deferred until workload evidence identifies a CPU submission bottleneck.
+
+Accordingly, the current changes add an opt-out switch and hit/call telemetry around the existing context-local lookup cache rather than replacing the manager's cache or adding a second index. The duplicate-bind optimization remains opt-in, and its state-isolation bookkeeping is gated by that same switch so the default path avoids the extra copy/reset work. More invasive descriptor-state or command-buffer changes should only follow matched FF7R captures showing that these existing mechanisms leave measurable overhead.
+
 ## Compiler-worker A/B experiment
 
 Use this only after collecting a baseline log with the same scene and cache conditions. The worker telemetry reports aggregate pending tasks, mean compilation duration for pipeline libraries and optimized pipelines, and opt-in aggregate queue-wait mean plus counts at or above 10 ms / 33 ms. `tools/ff7r_perf_compare.py` now reports candidate-minus-baseline deltas for the pipeline library/optimized compile means and queue-wait mean/counts when both captures contain these fields. The counters are cumulative snapshots: compare matched capture duration/workload, and do not treat count deltas as normalized rates. Queue wait is not separated by priority and does not directly measure render-thread stalls attributable to compilation. Do not infer queue contention from worker count or aggregate compile duration alone.
