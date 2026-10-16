@@ -1,6 +1,6 @@
 # DXVK 2.7.1 → 3.1.1 selective backport ledger (FFVII Remake / Adreno 650)
 
-Status: active review ledger for `feature/ff7r-adreno650-telemetry-20261014`. This is a selective compatibility audit, not a claim that the 3.1.1 source tree has been fully ported. The branch must remain based on upstream DXVK 2.7.1 and Vulkan 1.3; newer changes that require newer Vulkan features, changed shader interfaces, or unverified driver behavior are not accepted wholesale.
+Status: active review ledger for `feature/ff7r-adreno650-telemetry-20261014` (isolated candidate branch). This is a selective compatibility audit, not a claim that the 3.1.1 source tree has been fully ported. The branch must remain based on upstream DXVK 2.7.1 and Vulkan 1.3; newer changes that require newer Vulkan features, changed shader interfaces, or unverified driver behavior are not accepted wholesale.
 
 ## Confirmed target and invariants
 
@@ -27,6 +27,7 @@ Status: active review ledger for `feature/ff7r-adreno650-telemetry-20261014`. Th
 | `c276b56bb8` — ignore some explicit D3D11 flushes on tilers | **Rejected for this workload** | The upstream commit itself warns of possible deadlocks and is a Unity-specific heuristic. Do not suppress FFVII Remake flushes without a reproducible correctness case and hazard analysis. |
 | `bd20ebe959` — use persistent shader cache for DXBC-to-SPIR-V shaders | **Deferred as a dependency group** | Requires the DXVK cached-shader API and shader-cache infrastructure commits; this is a multi-commit startup/first-use behavior change. Audit the existing 2.7.1 cache path and cache-key/lifetime contract before transplanting. |
 | `e3d3f69fe3` — reroute mapped allocations to cached memory on tilers | **Deferred pending memory traces** | Alters allocator behavior and can affect staging bandwidth, cache coherency, memory pressure, and resource lifetime. Needs device-specific mapped/upload measurements and memory-pressure tests. |
+| `7926853af7f3e9a05e9e9c94928a85cbada6b501` — omit unnecessary state for rasterizer-discard optimized pipelines | **Implemented in the unified working branch** | Reuses the fork's existing `HasRasterizerDiscard` flag; does not add Vulkan requirements or import the separate geometry-shader `ExportsPosition` behavior. CI/WCP and device correctness are pending; no performance gain claimed. |
 | DXVK 3.1.1-wide changes outside the reviewed commit window | **Not yet audited** | The upstream comparison spans hundreds of commits; the GitHub compare endpoint exposes a limited page. This ledger intentionally does not claim every intervening commit has been reviewed. Continue by subsystem and record exact source commits before backporting. |
 
 ## Next implementation/verification gates
@@ -34,4 +35,5 @@ Status: active review ledger for `feature/ff7r-adreno650-telemetry-20261014`. Th
 1. Automated telemetry/report tests passed on the latest source checkpoint; x86/x64 cross-compilation and WCP packaging passed on commit `0e8136f`.
 2. Use matched Adreno 650 captures to decide whether the tiler render-area backport, push-data gather, lookup victim slots, and duplicate-bind suppression are retained. Do not report a speedup without real device results.
 3. Use the `DXVK-FF7R-LOOKUP` scan count to decide whether the pipeline-variant table is worth the added complexity.
-4. Keep flush suppression, allocator policy changes, and persistent shader-cache backports deferred until their workload-specific contracts are verified.
+4. Validate the rasterizer-discard state reduction with x86/x64 GameNative WCP CI and discard/normal-pipeline correctness checks before device A/B testing.
+5. Keep flush suppression, allocator policy changes, and persistent shader-cache backports deferred until their workload-specific contracts are verified.
