@@ -578,6 +578,11 @@ namespace dxvk {
       rsInfo.rasterizerDiscardEnable = VK_TRUE;
     }
 
+    // If the geometry shader does not export a position, no primitives can
+    // be rasterized. Keep transform feedback behavior, but skip rasterization.
+    if (shaders.gs && !shaders.gs->flags().test(DxvkShaderFlag::ExportsPosition))
+      rsInfo.rasterizerDiscardEnable = VK_TRUE;
+
     // Rasterizer discard makes the remaining rasterization state irrelevant.
     // Leave it at its zero-initialized values to avoid unnecessary variants.
     if (rsInfo.rasterizerDiscardEnable)
@@ -1041,7 +1046,8 @@ namespace dxvk {
                          |  VK_ACCESS_TRANSFORM_FEEDBACK_WRITE_BIT_EXT;
       }
 
-      if (m_shaders.gs->info().xfbRasterizedStream < 0)
+      if (m_shaders.gs->info().xfbRasterizedStream < 0
+       || !m_shaders.gs->flags().test(DxvkShaderFlag::ExportsPosition))
         m_flags.set(DxvkGraphicsPipelineFlag::HasRasterizerDiscard);
     }
     

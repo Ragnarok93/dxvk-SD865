@@ -133,3 +133,11 @@ Source: committed companion log `logs/ff7remake__d3d11.txt` at branch head `039a
 - When emitting an image access barrier for a depth/stencil format, the barrier range now includes the image format's complete aspect mask rather than only the tracked aspect. This addresses edge cases where a depth image is subsequently used as a compute resource and the barrier would omit the stencil aspect (or vice versa).
 - Compatibility: uses existing Vulkan 1.3 barrier structures and no new extension or feature. This is a correctness/validation fix, not a performance claim.
 - Validation: WCP x86/x64 builds; Vulkan validation where available; smoke tests for depth-only, stencil, and combined depth/stencil images, including render-to-compute transitions. Keep the change limited to the normal `accessImage` barrier path; layout-transition and transfer ownership paths have their own subresource semantics.
+
+## Rasterizer discard for geometry shaders without position output (2026-10-16)
+
+- Adapted upstream [`8bb499c546b1cefbbc588ea70ecb3086dfdc7f49`](https://github.com/doitsujin/dxvk/commit/8bb499c546b1cefbbc588ea70ecb3086dfdc7f49).
+- If a geometry shader does not export `Position`, DXVK now enables rasterizer discard in the Vulkan rasterization state and marks the graphics pipeline as a discard pipeline. This avoids setting up rasterization state for output that cannot be rasterized; transform-feedback output remains supported by the existing path.
+- The existing discard-state backport then omits irrelevant rasterization state and dynamic commands. No Vulkan feature newer than 1.3 is required.
+- Expected benefit is limited to geometry-shader pipelines without position output (including upstream's stated D3D9 SWVP case); do not assume this is exercised by FFVII Remake or claim a game-level speedup without a matched capture.
+- Validation: WCP x86/x64 builds; confirm the shader metadata marks `ExportsPosition` correctly for geometry shaders; test GS pipelines with/without position output, with transform feedback, and normal rasterizing GS pipelines.
