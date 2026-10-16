@@ -116,12 +116,11 @@ namespace dxvk {
 
 
   void DxvkPipelineWorkers::notifyWorkers(DxvkPipelinePriority priority) {
-    uint32_t index = uint32_t(priority);
-
-    // If any workers are idle in a suitable set, notify the corresponding
-    // condition variable. If all workers are busy anyway, we know that the
-    // job is going to be picked up at some point anyway.
-    for (uint32_t i = index; i < m_buckets.size(); i++) {
+    // Every worker can now help with every priority, always taking the
+    // highest-priority queued task first. Wake the first idle worker group;
+    // if none is idle, a running worker will pick up the task on its next
+    // dequeue.
+    for (uint32_t i = 0; i < m_buckets.size(); i++) {
       if (m_buckets[i].idleWorkers) {
         m_buckets[i].cond.notify_one();
         break;
@@ -235,10 +234,11 @@ namespace dxvk {
         auto& bucket = m_buckets[maxPriorityIndex];
 
         bucket.idleWorkers += 1;
-        bucket.cond.wait(lock, [this, maxPriorityIndex, &entry] {
-          // Attempt to fetch a work item from the
-          // highest-priority queue that is not empty
-          for (uint32_t i = 0; i <= maxPriorityIndex; i++) {
+        bucket.cond.wait(lock, [this, &entry] {
+          // All workers may help with lower-priority work when no higher
+          // priority task is queued. Preserve strict priority ordering by
+          // always checking the queues from highest to lowest.
+          for (uint32_t i = 0; i < m_buckets.size(); i++) {
             if (!m_buckets[i].queue.empty()) {
               entry = m_buckets[i].queue.front();
               m_buckets[i].queue.pop();
