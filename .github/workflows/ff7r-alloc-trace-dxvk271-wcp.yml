@@ -4,7 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - feature/ff7r-sd865-architecture-20261011
       - feature/ff7r-adreno650-telemetry-20261014
     paths:
       - '.github/workflows/ff7r-alloc-trace-dxvk271-wcp.yml'
@@ -87,6 +86,26 @@ jobs:
           grep -Fq 'GpDynamicViewport' src/dxvk/dxvk_context.cpp
           grep -Fq 'm_flags.all(DxvkContextFlag::GpDirtyViewport,' src/dxvk/dxvk_context.cpp
           grep -Fq 'if (!flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard))' src/dxvk/dxvk_graphics.cpp
+          python3 - <<'PY'
+          from pathlib import Path
+
+          graphics = Path("src/dxvk/dxvk_graphics.cpp").read_text()
+          ctor_start = graphics.index("DxvkGraphicsPipelineDynamicState::DxvkGraphicsPipelineDynamicState(")
+          ctor_end = graphics.index("bool DxvkGraphicsPipelineDynamicState::eq", ctor_start)
+          ctor = graphics[ctor_start:ctor_end]
+          discard_guard = ctor.index("if (!flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard))")
+          assert ctor.index("if (state.useDynamicVertexStrides())") < discard_guard
+          assert ctor.index("VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT") > discard_guard
+          assert ctor.index("VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT") > discard_guard
+
+          context = Path("src/dxvk/dxvk_context.cpp").read_text()
+          assert "m_flags.all(DxvkContextFlag::GpDirtyViewport,\n                             DxvkContextFlag::GpDynamicViewport)" in context
+          discard_block_start = context.index("Rasterizer discard pipelines do not declare raster-related dynamic state.")
+          discard_block = context[discard_block_start:context.index("// If necessary, dirty descriptor sets", discard_block_start)]
+          for flag in ("GpDynamicViewport", "GpDynamicRasterizerState", "GpDirtyViewport", "GpDirtyRasterizerState"):
+              assert flag in discard_block, flag
+          print("Rasterizer-discard dynamic-state source contract passed")
+          PY
 
       - name: Cross-compile PE x64 and x32
         shell: bash
