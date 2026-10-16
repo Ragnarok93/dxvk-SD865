@@ -180,3 +180,20 @@ The relocation entry stores `DxvkAllocationModes` (a flags wrapper), not a singl
 - Follow-up to the cached-mapping tiler preference and upstream [d43594895e1c3036abbe323d1d33f373bcdddb85](https://github.com/doitsujin/dxvk/commit/d43594895e1c3036abbe323d1d33f373bcdddb85): when `dxvk.zeroMappedMemory` is enabled, first redirect the host-visible device-local lookup to the host-visible/coherent system-memory lookup, then prevent the tiler cached-memory hint from overwriting that choice. Cached coherent system-memory lookups remain preferred.
 - This preserves the zeroMappedMemory policy while retaining the cached mapping preference for normal host-visible coherent allocations. It avoids forcing zeroMappedMemory allocations onto a device-local host-visible memory type merely because the tiler hint prefers cached mappings.
 - Vulkan API baseline unchanged. Validate both settings combinations on the target driver, log selected memory types, and compare CPU zeroing cost, allocation failures, and memory pressure before claiming a performance benefit.
+
+
+## Legacy descriptor-pool storage capacity adaptation (2026-10-16)
+
+- Adapted the capacity correction from upstream [`84c34155aa093a55d2e57032c93696cae0899515`](https://github.com/doitsujin/dxvk/commit/84c34155aa093a55d2e57032c93696cae0899515) to this fork's six-type descriptor pool. Storage-image and storage-texel-buffer descriptor capacities now scale as `m_maxSets / 4` rather than `m_maxSets / 64` (16× more entries), matching the upstream correction without adding inline-uniform-block descriptors that this fork does not allocate.
+- This changes descriptor capacity only; it does not enable newer Vulkan features or change `maxSets`. The larger per-pool reservation may increase driver-side pool memory, so this is not assumed to be a free optimization.
+- Validation gate: x86/x64 WCP builds; inspect Vulkan allocation logs for `VK_ERROR_OUT_OF_POOL_MEMORY` / `VK_ERROR_FRAGMENTED_POOL` (the current allocator collapses allocation errors to a null handle); stress many storage-image/storage-texel descriptors and monitor pool memory and OOM behavior on Adreno 650. No performance gain claimed until a matched device A/B shows one.
+
+## Persistent DXBC-to-SPIR-V shader-cache dependency audit (2026-10-16)
+
+- Audited upstream `b705d4be48450ed53cf653ebfe408e3172f9d7bc` (per-device cached-shader API), `0bdba3659a25c59bb8e1b9d0efc0d544d88a8205` (cache serialization/thread/file implementation), and `bd20ebe959527cfa9bf59363caa125cb65230ecb` (D3D11 call site). The complete cache implementation is a substantial new subsystem, not a safe one-hunk backport. It also depends on shader IR serialization/metadata/layout formats and a compatible dxbc-spirv update; current 2.7.1 constructor side effects (shader dump, ICB allocation/upload, registration and binding masks) must remain correct on cache hits and misses.
+- Disposition: continue the dependency audit, but do not introduce the persistent cache yet. Before implementation, map the exact 2.7.1-compatible dxbc-spirv revision and file/path APIs, verify all cache-key inputs, add cache format invalidation tests, and test cache corruption / unwritable-directory fallback. The change is expected to improve repeated shader translation/startup, but first-run compilation and Vulkan API compatibility are separate concerns.
+
+## Pipeline variant hash-table audit (2026-10-16)
+
+- Audited upstream `e40ba5f8b88dde90bb4293f5eaa1c3e41ed247b4` plus graphics/compute integrations `7f0c71c2e7dc10016c1050298eeb50cf096b7d67` and `9138d7cdf9af6f18d01b04116c29b7424e065046`. This is a concurrent adaptive table replacing linear variant lists and changes instance ownership/lifetime as well as lookup.
+- Disposition: do not port based on the available FFVII Remake trace. Existing lookup telemetry reports 97–100% hits, mean lookup roughly 1–2 microseconds, and at most three scanned entries. The hash computation, table memory, atomic operations, and concurrency/lifetime risk are not justified by current evidence. Revisit only if a representative capture shows materially larger scan counts or lookup time.
