@@ -174,3 +174,9 @@ Source: committed companion log `logs/ff7remake__d3d11.txt` at branch head `039a
 ### Fork-specific adaptation
 
 The relocation entry stores `DxvkAllocationModes` (a flags wrapper), not a single enum as in the upstream revision. The eviction throttle therefore tests the `NoDeviceMemory` bit with `.test(...)`, preserving combined relocation-mode flags.
+
+## Preserve zeroMappedMemory's host-visible device-local fallback (2026-10-16)
+
+- Follow-up to the cached-mapping tiler preference: when `dxvk.zeroMappedMemory` is enabled, the allocator must not let the tiler cached-memory hint overwrite the existing host-visible device-local fallback. Cached coherent system-memory lookups remain preferred; the HVV lookup retains the zeroMappedMemory policy.
+- This keeps the two independent policies from overriding each other and avoids forcing zeroMappedMemory allocations onto a device-local host-visible memory type merely because cached mappings are preferred on tilers.
+- Vulkan API baseline unchanged. Validate both settings combinations on the target driver, log selected memory types, and compare CPU zeroing cost, allocation failures, and memory pressure before claiming a performance benefit.

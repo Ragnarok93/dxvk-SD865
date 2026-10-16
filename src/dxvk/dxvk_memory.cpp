@@ -2399,7 +2399,11 @@ namespace dxvk {
     // be particularly expensive on ARM systems.
     if (m_device->perfHints().preferCachedMemory) {
       m_memTypesByPropertyFlags[hostCoherentIndex] = m_memTypesByPropertyFlags[hostCachedIndex];
-      m_memTypesByPropertyFlags[hostVisibleVramIndex] = m_memTypesByPropertyFlags[hostCachedIndex];
+
+      // Preserve the zeroMappedMemory policy: clearing mapped allocations
+      // should not redirect host-visible device-local requests back to HVV.
+      if (!m_device->config().zeroMappedMemory)
+        m_memTypesByPropertyFlags[hostVisibleVramIndex] = m_memTypesByPropertyFlags[hostCachedIndex];
     }
   }
 
