@@ -170,3 +170,7 @@ Source: committed companion log `logs/ff7remake__d3d11.txt` at branch head `039a
 - Clear operations now include attachment-read access along with attachment writes for color and depth/stencil. Render-pass attachment transitions likewise conservatively include read access; depth/stencil writes remain excluded for a read-only layout.
 - The old load-op-based read-access inference was too narrow: attachment reads can occur as part of blending/depth-stencil tests even when the load op is not `LOAD`. More complete access masks improve synchronization correctness and Vulkan validation behavior.
 - This does not change render-pass API requirements or introduce post-1.3 features. Validate color blending, depth/stencil tests, clear/discard operations, and read-only depth attachments on the target driver.
+
+### Fork-specific adaptation
+
+The relocation entry stores `DxvkAllocationModes` (a flags wrapper), not a single enum as in the upstream revision. The eviction throttle therefore tests the `NoDeviceMemory` bit with `.test(...)`, preserving combined relocation-mode flags.

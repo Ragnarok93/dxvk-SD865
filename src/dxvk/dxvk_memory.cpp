@@ -639,7 +639,7 @@ namespace dxvk {
 
       // Evicted resources may require expensive relocation to system memory.
       // Overestimate their size to limit the amount of eviction work per batch.
-      totalSize += iter->second.mode == DxvkAllocationMode::NoDeviceMemory
+      totalSize += iter->second.mode.test(DxvkAllocationMode::NoDeviceMemory)
         ? iter->first.size * 16u
         : iter->first.size;
 
