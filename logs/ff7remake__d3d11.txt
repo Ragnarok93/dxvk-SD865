@@ -1,0 +1,809 @@
+info:  D3D11InternalCreateDevice: Maximum supported feature level: D3D_FEATURE_LEVEL_11_1
+info:  D3D11InternalCreateDevice: Using feature level D3D_FEATURE_LEVEL_11_0
+info:  Creating device:
+info:  Wrapper(5710):
+info:    Driver   : Wrapper driver 26.2.99
+info:  Queues:
+info:    Graphics : (0, 0)
+info:    Transfer : (0, 0)
+info:    Sparse   : (4294967295, 0)
+info:  Memory:
+info:    Heap 0: 7.76 GiB (DEVICE_LOCAL)
+info:    Budget: 4.46 GiB
+info:      Type  0: DEVICE_LOCAL | HOST_VISIBLE | HOST_COHERENT
+info:      Type  1: DEVICE_LOCAL | HOST_VISIBLE | HOST_COHERENT | HOST_CACHED
+info:      Type  2: DEVICE_LOCAL | HOST_VISIBLE | HOST_CACHED
+info:  Enabled extensions:
+info:    VK_EXT_attachment_feedback_loop_layout
+info:    VK_EXT_custom_border_color
+info:    VK_EXT_depth_clip_enable
+info:    VK_EXT_extended_dynamic_state3
+info:    VK_EXT_graphics_pipeline_library
+info:    VK_EXT_multi_draw
+info:    VK_EXT_non_seamless_cube_map
+info:    VK_EXT_robustness2
+info:    VK_EXT_shader_module_identifier
+info:    VK_EXT_shader_stencil_export
+info:    VK_EXT_swapchain_maintenance1
+info:    VK_EXT_transform_feedback
+info:    VK_EXT_vertex_attribute_divisor
+info:    VK_KHR_external_memory_win32
+info:    VK_KHR_external_semaphore_win32
+info:    VK_KHR_load_store_op_none
+info:    VK_KHR_maintenance5
+info:    VK_KHR_maintenance6
+info:    VK_KHR_pipeline_library
+info:    VK_KHR_present_id
+info:    VK_KHR_present_wait
+info:    VK_KHR_swapchain
+info:    VK_KHR_swapchain_mutable_format
+info:    VK_KHR_win32_keyed_mutex
+info:  Enabled features:
+info:    depthBiasClamp                 : 1
+info:    depthBounds                    : 1
+info:    depthClamp                     : 1
+info:    drawIndirectFirstInstance      : 1
+info:    dualSrcBlend                   : 1
+info:    fillModeNonSolid               : 1
+info:    fragmentStoresAndAtomics       : 1
+info:    fullDrawIndexUint32            : 1
+info:    geometryShader                 : 1
+info:    imageCubeArray                 : 1
+info:    independentBlend               : 1
+info:    logicOp                        : 1
+info:    multiDrawIndirect              : 1
+info:    multiViewport                  : 1
+info:    occlusionQueryPrecise          : 1
+info:    pipelineStatisticsQuery        : 1
+info:    robustBufferAccess             : 1
+info:    sampleRateShading              : 1
+info:    samplerAnisotropy              : 1
+info:    shaderClipDistance             : 1
+info:    shaderCullDistance             : 1
+info:    shaderFloat64                  : 0
+info:    shaderImageGatherExtended      : 1
+info:    shaderInt16                    : 1
+info:    shaderInt64                    : 1
+info:    shaderSampledImageArrayDynamicIndexing : 1
+info:    sparseBinding                  : 0
+info:    sparseResidencyBuffer          : 0
+info:    sparseResidencyImage2D         : 0
+info:    sparseResidencyImage3D         : 0
+info:    sparseResidency2Samples        : 0
+info:    sparseResidency4Samples        : 0
+info:    sparseResidency8Samples        : 0
+info:    sparseResidency16Samples       : 0
+info:    sparseResidencyAliased         : 0
+info:    shaderResourceResidency        : 0
+info:    shaderResourceMinLod           : 1
+info:    tessellationShader             : 1
+info:    textureCompressionBC           : 1
+info:    variableMultisampleRate        : 1
+info:    vertexPipelineStoresAndAtomics : 1
+info:    wideLines                      : 0
+info:    shaderDrawParameters           : 1
+info:    storagePushConstant16          : 0
+info:    bufferDeviceAddress            : 1
+info:    descriptorIndexing             : 1
+info:    descriptorBindingSampledImageUpdateAfterBind : 1
+info:    descriptorBindingUpdateUnusedWhilePending : 1
+info:    descriptorBindingPartiallyBound : 1
+info:    drawIndirectCount              : 1
+info:    hostQueryReset                 : 1
+info:    runtimeDescriptorArray         : 1
+info:    samplerFilterMinmax            : 1
+info:    samplerMirrorClampToEdge       : 1
+info:    shaderInt8                     : 1
+info:    shaderOutputViewportIndex      : 1
+info:    shaderOutputLayer              : 1
+info:    timelineSemaphore              : 1
+info:    uniformBufferStandardLayout    : 1
+info:    vulkanMemoryModel              : 1
+info:    dynamicRendering               : 1
+info:    maintenance4                   : 1
+info:    robustImageAccess              : 0
+info:    pipelineCreationCacheControl   : 1
+info:    shaderDemoteToHelperInvocation : 1
+info:    shaderZeroInitializeWorkgroupMemory : 1
+info:    synchronization2               : 1
+info:  VK_EXT_attachment_feedback_loop_layout:
+info:    attachmentFeedbackLoopLayout   : 1
+info:  VK_EXT_conservative_rasterization:
+info:    extConservativeRasterization   : 0
+info:  VK_EXT_custom_border_color:
+info:    customBorderColors             : 1
+info:    customBorderColorWithoutFormat : 1
+info:  VK_EXT_depth_clip_enable:
+info:    depthClipEnable                : 1
+info:  VK_EXT_depth_bias_control:
+info:    depthBiasControl               : 0
+info:    leastRepresentableValueForceUnormRepresentation : 0
+info:    floatRepresentation            : 0
+info:    depthBiasExact                 : 0
+info:  VK_EXT_descriptor_buffer:
+info:    descriptorBuffer               : 0
+info:  VK_EXT_extended_dynamic_state3:
+info:    extendedDynamicState3AlphaToCoverageEnable : 1
+info:    extendedDynamicState3DepthClipEnable : 1
+info:    extendedDynamicState3RasterizationSamples : 1
+info:    extendedDynamicState3SampleMask : 1
+info:    extendedDynamicState3LineRasterizationMode : 1
+info:  VK_EXT_fragment_shader_interlock:
+info:    fragmentShaderSampleInterlock  : 0
+info:    fragmentShaderPixelInterlock   : 0
+info:  VK_EXT_full_screen_exclusive:
+info:    extFullScreenExclusive         : 0
+info:  VK_EXT_graphics_pipeline_library:
+info:    graphicsPipelineLibrary        : 1
+info:  VK_EXT_hdr_metadata:
+info:    extHdrMetadata                 : 0
+info:  VK_EXT_line_rasterization:
+info:    rectangularLines               : 0
+info:    smoothLines                    : 0
+info:  VK_EXT_memory_budget:
+info:    extMemoryBudget                : 1
+info:  VK_EXT_memory_priority:
+info:    memoryPriority                 : 0
+info:  VK_EXT_multi_draw:
+info:    multiDraw                      : 1
+info:  VK_EXT_non_seamless_cube_map:
+info:    nonSeamlessCubeMap             : 1
+info:  VK_EXT_pageable_device_local_memory:
+info:    pageableDeviceLocalMemory      : 0
+info:  VK_EXT_robustness2:
+info:    robustBufferAccess2            : 1
+info:    robustImageAccess2             : 1
+info:    nullDescriptor                 : 1
+info:  VK_EXT_shader_module_identifier:
+info:    shaderModuleIdentifier         : 1
+info:  VK_EXT_shader_stencil_export:
+info:    extShaderStencilExport         : 1
+info:  VK_EXT_swapchain_colorspace:
+info:    extSwapchainColorSpace         : 0
+info:  VK_EXT_swapchain_maintenance1:
+info:    swapchainMaintenance1          : 1
+info:  VK_EXT_transform_feedback:
+info:    transformFeedback              : 1
+info:    geometryStreams                : 1
+info:  VK_EXT_vertex_attribute_divisor:
+info:    vertexAttributeInstanceRateDivisor : 1
+info:    vertexAttributeInstanceRateZeroDivisor : 1
+info:  VK_KHR_external_memory_win32:
+info:    khrExternalMemoryWin32         : 1
+info:  VK_KHR_external_semaphore_win32:
+info:    khrExternalSemaphoreWin32      : 1
+info:  VK_KHR_load_store_op_none:
+info:    khrLoadStoreOpNone             : 1
+info:  VK_KHR_maintenance5:
+info:    maintenance5                   : 1
+info:  VK_KHR_maintenance6:
+info:    maintenance6                   : 1
+info:  VK_KHR_maintenance7:
+info:    maintenance7                   : 0
+info:  VK_KHR_pipeline_library:
+info:    khrPipelineLibrary             : 1
+info:  VK_KHR_present_id:
+info:    presentId                      : 1
+info:  VK_KHR_present_wait:
+info:    presentWait                    : 1
+info:  VK_KHR_swapchain:
+info:    khrSwapchain                   : 1
+info:  VK_KHR_swapchain_mutable_format:
+info:    khrSwapchainMutableFormat      : 1
+info:  VK_KHR_win32_keyed_mutex:
+info:    khrWin32KeyedMutex             : 1
+info:  VK_NV_descriptor_pool_overallocation:
+info:    descriptorPoolOverallocation   : 0
+info:  VK_NV_low_latency2:
+info:    nvLowLatency2                  : 0
+info:  VK_NV_raw_access_chains:
+info:    shaderRawAccessChains          : 0
+info:  VK_NVX_binary_import:
+info:    nvxBinaryImport                : 0
+info:  VK_NVX_image_view_handle:
+info:    nvxImageViewHandle             : 0
+info:  Memory type mask for buffer resources: 0x7, usage: 0x219ff
+warn:  DXVK-SD865-ALLOC state=ready capture_enabled=1 heap_count=1 heap0_size_bytes=8337227776 heap0_budget_bytes=4715960075
+warn:  DXVK-SD865-BUILD: component=d3d11 sha=__DXVK_SD865_BUILD_SHA__ exe=ff7remake_.exe contract=queue-sync-alloc-v2
+info:  DXVK: Graphics pipeline libraries supported
+info:  DXVK-FF7R-TELEMETRY: metrics=1 on_demand=1 lookup_cache=1 lookup_victim=1 skip_duplicate_binds=1 device=Wrapper(5710)
+info:  DXVK-FF7R-CS-WAIT: ts_us=11124458354 samples=1 mean_us=1424 max_us=1424 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11124461367 samples=1 mean_us=32 max_us=32 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11124461680 samples=1 mean_us=253 max_us=253 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11124462092 samples=1 mean_us=130 max_us=130 over_10ms=0 over_33ms=0
+info:  D3D11InternalCreateDevice: Maximum supported feature level: D3D_FEATURE_LEVEL_11_1
+info:  D3D11InternalCreateDevice: Using feature level D3D_FEATURE_LEVEL_11_0
+info:  Creating device:
+info:  Wrapper(5710):
+info:    Driver   : Wrapper driver 26.2.99
+info:  Queues:
+info:    Graphics : (0, 0)
+info:    Transfer : (0, 0)
+info:    Sparse   : (4294967295, 0)
+info:  Memory:
+info:    Heap 0: 7.76 GiB (DEVICE_LOCAL)
+info:    Budget: 4.47 GiB
+info:      Type  0: DEVICE_LOCAL | HOST_VISIBLE | HOST_COHERENT
+info:      Type  1: DEVICE_LOCAL | HOST_VISIBLE | HOST_COHERENT | HOST_CACHED
+info:      Type  2: DEVICE_LOCAL | HOST_VISIBLE | HOST_CACHED
+info:  Enabled extensions:
+info:    VK_EXT_attachment_feedback_loop_layout
+info:    VK_EXT_custom_border_color
+info:    VK_EXT_depth_clip_enable
+info:    VK_EXT_extended_dynamic_state3
+info:    VK_EXT_graphics_pipeline_library
+info:    VK_EXT_multi_draw
+info:    VK_EXT_non_seamless_cube_map
+info:    VK_EXT_robustness2
+info:    VK_EXT_shader_module_identifier
+info:    VK_EXT_shader_stencil_export
+info:    VK_EXT_swapchain_maintenance1
+info:    VK_EXT_transform_feedback
+info:    VK_EXT_vertex_attribute_divisor
+info:    VK_KHR_external_memory_win32
+info:    VK_KHR_external_semaphore_win32
+info:    VK_KHR_load_store_op_none
+info:    VK_KHR_maintenance5
+info:    VK_KHR_maintenance6
+info:    VK_KHR_pipeline_library
+info:    VK_KHR_present_id
+info:    VK_KHR_present_wait
+info:    VK_KHR_swapchain
+info:    VK_KHR_swapchain_mutable_format
+info:    VK_KHR_win32_keyed_mutex
+info:  Enabled features:
+info:    depthBiasClamp                 : 1
+info:    depthBounds                    : 1
+info:    depthClamp                     : 1
+info:    drawIndirectFirstInstance      : 1
+info:    dualSrcBlend                   : 1
+info:    fillModeNonSolid               : 1
+info:    fragmentStoresAndAtomics       : 1
+info:    fullDrawIndexUint32            : 1
+info:    geometryShader                 : 1
+info:    imageCubeArray                 : 1
+info:    independentBlend               : 1
+info:    logicOp                        : 1
+info:    multiDrawIndirect              : 1
+info:    multiViewport                  : 1
+info:    occlusionQueryPrecise          : 1
+info:    pipelineStatisticsQuery        : 1
+info:    robustBufferAccess             : 1
+info:    sampleRateShading              : 1
+info:    samplerAnisotropy              : 1
+info:    shaderClipDistance             : 1
+info:    shaderCullDistance             : 1
+info:    shaderFloat64                  : 0
+info:    shaderImageGatherExtended      : 1
+info:    shaderInt16                    : 1
+info:    shaderInt64                    : 1
+info:    shaderSampledImageArrayDynamicIndexing : 1
+info:    sparseBinding                  : 0
+info:    sparseResidencyBuffer          : 0
+info:    sparseResidencyImage2D         : 0
+info:    sparseResidencyImage3D         : 0
+info:    sparseResidency2Samples        : 0
+info:    sparseResidency4Samples        : 0
+info:    sparseResidency8Samples        : 0
+info:    sparseResidency16Samples       : 0
+info:    sparseResidencyAliased         : 0
+info:    shaderResourceResidency        : 0
+info:    shaderResourceMinLod           : 1
+info:    tessellationShader             : 1
+info:    textureCompressionBC           : 1
+info:    variableMultisampleRate        : 1
+info:    vertexPipelineStoresAndAtomics : 1
+info:    wideLines                      : 0
+info:    shaderDrawParameters           : 1
+info:    storagePushConstant16          : 0
+info:    bufferDeviceAddress            : 1
+info:    descriptorIndexing             : 1
+info:    descriptorBindingSampledImageUpdateAfterBind : 1
+info:    descriptorBindingUpdateUnusedWhilePending : 1
+info:    descriptorBindingPartiallyBound : 1
+info:    drawIndirectCount              : 1
+info:    hostQueryReset                 : 1
+info:    runtimeDescriptorArray         : 1
+info:    samplerFilterMinmax            : 1
+info:    samplerMirrorClampToEdge       : 1
+info:    shaderInt8                     : 1
+info:    shaderOutputViewportIndex      : 1
+info:    shaderOutputLayer              : 1
+info:    timelineSemaphore              : 1
+info:    uniformBufferStandardLayout    : 1
+info:    vulkanMemoryModel              : 1
+info:    dynamicRendering               : 1
+info:    maintenance4                   : 1
+info:    robustImageAccess              : 0
+info:    pipelineCreationCacheControl   : 1
+info:    shaderDemoteToHelperInvocation : 1
+info:    shaderZeroInitializeWorkgroupMemory : 1
+info:    synchronization2               : 1
+info:  VK_EXT_attachment_feedback_loop_layout:
+info:    attachmentFeedbackLoopLayout   : 1
+info:  VK_EXT_conservative_rasterization:
+info:    extConservativeRasterization   : 0
+info:  VK_EXT_custom_border_color:
+info:    customBorderColors             : 1
+info:    customBorderColorWithoutFormat : 1
+info:  VK_EXT_depth_clip_enable:
+info:    depthClipEnable                : 1
+info:  VK_EXT_depth_bias_control:
+info:    depthBiasControl               : 0
+info:    leastRepresentableValueForceUnormRepresentation : 0
+info:    floatRepresentation            : 0
+info:    depthBiasExact                 : 0
+info:  VK_EXT_descriptor_buffer:
+info:    descriptorBuffer               : 0
+info:  VK_EXT_extended_dynamic_state3:
+info:    extendedDynamicState3AlphaToCoverageEnable : 1
+info:    extendedDynamicState3DepthClipEnable : 1
+info:    extendedDynamicState3RasterizationSamples : 1
+info:    extendedDynamicState3SampleMask : 1
+info:    extendedDynamicState3LineRasterizationMode : 1
+info:  VK_EXT_fragment_shader_interlock:
+info:    fragmentShaderSampleInterlock  : 0
+info:    fragmentShaderPixelInterlock   : 0
+info:  VK_EXT_full_screen_exclusive:
+info:    extFullScreenExclusive         : 0
+info:  VK_EXT_graphics_pipeline_library:
+info:    graphicsPipelineLibrary        : 1
+info:  VK_EXT_hdr_metadata:
+info:    extHdrMetadata                 : 0
+info:  VK_EXT_line_rasterization:
+info:    rectangularLines               : 0
+info:    smoothLines                    : 0
+info:  VK_EXT_memory_budget:
+info:    extMemoryBudget                : 1
+info:  VK_EXT_memory_priority:
+info:    memoryPriority                 : 0
+info:  VK_EXT_multi_draw:
+info:    multiDraw                      : 1
+info:  VK_EXT_non_seamless_cube_map:
+info:    nonSeamlessCubeMap             : 1
+info:  VK_EXT_pageable_device_local_memory:
+info:    pageableDeviceLocalMemory      : 0
+info:  VK_EXT_robustness2:
+info:    robustBufferAccess2            : 1
+info:    robustImageAccess2             : 1
+info:    nullDescriptor                 : 1
+info:  VK_EXT_shader_module_identifier:
+info:    shaderModuleIdentifier         : 1
+info:  VK_EXT_shader_stencil_export:
+info:    extShaderStencilExport         : 1
+info:  VK_EXT_swapchain_colorspace:
+info:    extSwapchainColorSpace         : 0
+info:  VK_EXT_swapchain_maintenance1:
+info:    swapchainMaintenance1          : 1
+info:  VK_EXT_transform_feedback:
+info:    transformFeedback              : 1
+info:    geometryStreams                : 1
+info:  VK_EXT_vertex_attribute_divisor:
+info:    vertexAttributeInstanceRateDivisor : 1
+info:    vertexAttributeInstanceRateZeroDivisor : 1
+info:  VK_KHR_external_memory_win32:
+info:    khrExternalMemoryWin32         : 1
+info:  VK_KHR_external_semaphore_win32:
+info:    khrExternalSemaphoreWin32      : 1
+info:  VK_KHR_load_store_op_none:
+info:    khrLoadStoreOpNone             : 1
+info:  VK_KHR_maintenance5:
+info:    maintenance5                   : 1
+info:  VK_KHR_maintenance6:
+info:    maintenance6                   : 1
+info:  VK_KHR_maintenance7:
+info:    maintenance7                   : 0
+info:  VK_KHR_pipeline_library:
+info:    khrPipelineLibrary             : 1
+info:  VK_KHR_present_id:
+info:    presentId                      : 1
+info:  VK_KHR_present_wait:
+info:    presentWait                    : 1
+info:  VK_KHR_swapchain:
+info:    khrSwapchain                   : 1
+info:  VK_KHR_swapchain_mutable_format:
+info:    khrSwapchainMutableFormat      : 1
+info:  VK_KHR_win32_keyed_mutex:
+info:    khrWin32KeyedMutex             : 1
+info:  VK_NV_descriptor_pool_overallocation:
+info:    descriptorPoolOverallocation   : 0
+info:  VK_NV_low_latency2:
+info:    nvLowLatency2                  : 0
+info:  VK_NV_raw_access_chains:
+info:    shaderRawAccessChains          : 0
+info:  VK_NVX_binary_import:
+info:    nvxBinaryImport                : 0
+info:  VK_NVX_image_view_handle:
+info:    nvxImageViewHandle             : 0
+info:  Memory type mask for buffer resources: 0x7, usage: 0x219ff
+warn:  DXVK-SD865-ALLOC state=ready capture_enabled=1 heap_count=1 heap0_size_bytes=8337227776 heap0_budget_bytes=4721202955
+warn:  DXVK-SD865-BUILD: component=d3d11 sha=__DXVK_SD865_BUILD_SHA__ exe=ff7remake_.exe contract=queue-sync-alloc-v2
+info:  DXVK: Graphics pipeline libraries supported
+info:  DXVK-FF7R-TELEMETRY: metrics=1 on_demand=1 lookup_cache=1 lookup_victim=1 skip_duplicate_binds=1 device=Wrapper(5710)
+warn:  D3D11DXGIDevice::QueryInterface: Unknown interface query
+warn:  a7aa6116-9c8d-4bba-9083-b4d816b71b78
+warn:  D3D11DXGIDevice::QueryInterface: Unknown interface query
+warn:  0ec870a6-5d7e-4c22-8cfc-5baae07616ed
+info:  Presenter: Actual swapchain properties:
+info:    Format:       VK_FORMAT_B8G8R8A8_UNORM
+info:    Color space:  VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+info:    Present mode: VK_PRESENT_MODE_IMMEDIATE_KHR (dynamic: yes)
+info:    Buffer size:  960x540
+info:    Image count:  4
+info:  DXVK-FF7R-QUEUE-PRESENT: ts_us=11128449460 samples=1 mean_us=13620 max_us=13620 over_10ms=1 over_33ms=0
+warn:  DXVK-SD865-CONFIG: sha=__DXVK_SD865_BUILD_SHA__ exe=ff7remake_.exe compiler_threads=4 source=ff7r-env-override dxvk_config_present=1 override_present=1 metrics_enabled=1 alloc_trace_enabled=1
+info:  DXVK: Using 4 compiler threads
+info:  DXVK-FF7R-PIPELINES: ts_us=11135725259 samples=1 pending=1 libraries=1 library_mean_us=3715 optimized=0 optimized_mean_us=0 over_10ms=0 over_33ms=0 queue_wait_samples=1 queue_wait_mean_us=2747 queue_wait_over_10ms=0 queue_wait_over_33ms=0 library_queue_wait_samples=1 library_queue_wait_mean_us=2747 library_queue_wait_over_10ms=0 library_queue_wait_over_33ms=0 optimized_queue_wait_samples=0 optimized_queue_wait_mean_us=0 optimized_queue_wait_over_10ms=0 optimized_queue_wait_over_33ms=0 high_queue_wait_samples=0 high_queue_wait_mean_us=0 high_queue_wait_over_10ms=0 high_queue_wait_over_33ms=0 normal_queue_wait_samples=1 normal_queue_wait_mean_us=2747 normal_queue_wait_over_10ms=0 normal_queue_wait_over_33ms=0 low_queue_wait_samples=0 low_queue_wait_mean_us=0 low_queue_wait_over_10ms=0 low_queue_wait_over_33ms=0
+info:  DXVK-FF7R-ONDEMAND: ts_us=11135768748 samples=1 mean_us=1919 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-LOOKUP: samples=1 mean_ns=1800 mean_entries=0 cache_hit_pct=100 max_ns=1800 max_entries=0
+info:  Presenter: Got VK_SUBOPTIMAL_KHR, recreating swapchain
+info:  Presenter: Actual swapchain properties:
+info:    Format:       VK_FORMAT_B8G8R8A8_UNORM
+info:    Color space:  VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+info:    Present mode: VK_PRESENT_MODE_IMMEDIATE_KHR (dynamic: yes)
+info:    Buffer size:  972x552
+info:    Image count:  4
+info:  DXVK-FF7R-ENQUEUE: ts_us=11139669597 samples=1024 mean_us=20 max_us=3233 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11139669675 samples=1024 mean_us=94 max_us=7200 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11139675643 samples=1024 mean_us=2376 max_us=52991 over_10ms=80 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=16 mean_ns=1100 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11141105897 samples=2048 mean_us=22 max_us=3233 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11141105950 samples=2048 mean_us=81 max_us=8126 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11141112583 samples=2048 mean_us=1854 max_us=52991 over_10ms=81 over_33ms=1
+info:  DXVK-FF7R-ENQUEUE: ts_us=11142808711 samples=3072 mean_us=23 max_us=3350 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11142808916 samples=3072 mean_us=83 max_us=8126 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11142816795 samples=3072 mean_us=1686 max_us=52991 over_10ms=82 over_33ms=1
+info:  DXVK-FF7R-PIPELINES: ts_us=11143102725 samples=64 pending=9 libraries=45 library_mean_us=2087 optimized=19 optimized_mean_us=5029 over_10ms=0 over_33ms=0 queue_wait_samples=66 queue_wait_mean_us=286 queue_wait_over_10ms=0 queue_wait_over_33ms=0 library_queue_wait_samples=47 library_queue_wait_mean_us=155 library_queue_wait_over_10ms=0 library_queue_wait_over_33ms=0 optimized_queue_wait_samples=19 optimized_queue_wait_mean_us=611 optimized_queue_wait_over_10ms=0 optimized_queue_wait_over_33ms=0 high_queue_wait_samples=0 high_queue_wait_mean_us=0 high_queue_wait_over_10ms=0 high_queue_wait_over_33ms=0 normal_queue_wait_samples=47 normal_queue_wait_mean_us=155 normal_queue_wait_over_10ms=0 normal_queue_wait_over_33ms=0 low_queue_wait_samples=19 low_queue_wait_mean_us=611 low_queue_wait_over_10ms=0 low_queue_wait_over_33ms=0
+info:  DXVK-FF7R-LOOKUP: samples=32 mean_ns=1034 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-PIPELINES: ts_us=11147099533 samples=128 pending=3 libraries=85 library_mean_us=1925 optimized=43 optimized_mean_us=3887 over_10ms=0 over_33ms=0 queue_wait_samples=129 queue_wait_mean_us=947 queue_wait_over_10ms=1 queue_wait_over_33ms=0 library_queue_wait_samples=85 library_queue_wait_mean_us=334 library_queue_wait_over_10ms=0 library_queue_wait_over_33ms=0 optimized_queue_wait_samples=44 optimized_queue_wait_mean_us=2133 optimized_queue_wait_over_10ms=1 optimized_queue_wait_over_33ms=0 high_queue_wait_samples=3 high_queue_wait_mean_us=1931 high_queue_wait_over_10ms=0 high_queue_wait_over_33ms=0 normal_queue_wait_samples=82 normal_queue_wait_mean_us=275 normal_queue_wait_over_10ms=0 normal_queue_wait_over_33ms=0 low_queue_wait_samples=44 low_queue_wait_mean_us=2133 low_queue_wait_over_10ms=1 low_queue_wait_over_33ms=0
+info:  DXVK-FF7R-LOOKUP: samples=48 mean_ns=1052 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-LOOKUP: samples=64 mean_ns=1035 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-QUEUE-PRESENT: ts_us=11150008089 samples=1024 mean_us=662 max_us=37354 over_10ms=2 over_33ms=1
+info:  DXVK-FF7R-ENQUEUE: ts_us=11150038891 samples=4096 mean_us=19 max_us=3350 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11150039262 samples=4096 mean_us=79 max_us=8126 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11150055989 samples=4096 mean_us=2106 max_us=52991 over_10ms=271 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=80 mean_ns=1026 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11153149090 samples=5120 mean_us=20 max_us=3350 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11153149373 samples=5120 mean_us=81 max_us=8126 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11153154927 samples=5120 mean_us=2057 max_us=52991 over_10ms=332 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=96 mean_ns=1045 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-LOOKUP: samples=112 mean_ns=1036 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11154661647 samples=6144 mean_us=21 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11154662142 samples=6144 mean_us=81 max_us=8126 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11154667133 samples=6144 mean_us=1907 max_us=52991 over_10ms=332 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=128 mean_ns=1036 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11156063863 samples=7168 mean_us=20 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11156063983 samples=7168 mean_us=78 max_us=8126 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11156066328 samples=7168 mean_us=1796 max_us=52991 over_10ms=332 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=144 mean_ns=1040 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-QUEUE-PRESENT: ts_us=11157429520 samples=2048 mean_us=667 max_us=37354 over_10ms=2 over_33ms=1
+info:  DXVK-FF7R-ENQUEUE: ts_us=11157434936 samples=8192 mean_us=19 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11157435672 samples=8192 mean_us=77 max_us=8126 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11157437745 samples=8192 mean_us=1708 max_us=52991 over_10ms=332 over_33ms=1
+info:  DXVK-FF7R-ENQUEUE: ts_us=11158837768 samples=9216 mean_us=18 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11158838634 samples=9216 mean_us=76 max_us=8126 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11158840925 samples=9216 mean_us=1643 max_us=52991 over_10ms=332 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=160 mean_ns=1036 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11160172353 samples=10240 mean_us=18 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11160173048 samples=10240 mean_us=74 max_us=8126 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11160176719 samples=10240 mean_us=1587 max_us=52991 over_10ms=332 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=176 mean_ns=1029 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11162026824 samples=11264 mean_us=17 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11162026871 samples=11264 mean_us=74 max_us=8126 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11162030080 samples=11264 mean_us=1551 max_us=52991 over_10ms=333 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=192 mean_ns=1026 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11163418861 samples=12288 mean_us=17 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11163419090 samples=12288 mean_us=74 max_us=8126 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-PRESENT: ts_us=11163420053 samples=3072 mean_us=635 max_us=37354 over_10ms=2 over_33ms=1
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11163424854 samples=12288 mean_us=1515 max_us=52991 over_10ms=333 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=208 mean_ns=1024 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11164808554 samples=13312 mean_us=17 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11164813404 samples=13312 mean_us=75 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11164815527 samples=13312 mean_us=1484 max_us=52991 over_10ms=334 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=224 mean_ns=1039 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11166299462 samples=14336 mean_us=17 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11166299639 samples=14336 mean_us=76 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11166301209 samples=14336 mean_us=1459 max_us=52991 over_10ms=334 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=240 mean_ns=1035 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11167745964 samples=15360 mean_us=17 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11167746141 samples=15360 mean_us=77 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11167748837 samples=15360 mean_us=1437 max_us=52991 over_10ms=334 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=256 mean_ns=1033 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11169202888 samples=16384 mean_us=17 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11169203680 samples=16384 mean_us=77 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-PRESENT: ts_us=11169204585 samples=4096 mean_us=638 max_us=37354 over_10ms=2 over_33ms=1
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11169208298 samples=16384 mean_us=1417 max_us=52991 over_10ms=334 over_33ms=1
+info:  DXVK-FF7R-ENQUEUE: ts_us=11170650852 samples=17408 mean_us=17 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11170651055 samples=17408 mean_us=77 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11170655391 samples=17408 mean_us=1400 max_us=52991 over_10ms=334 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=272 mean_ns=1032 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11172135670 samples=18432 mean_us=17 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11172135861 samples=18432 mean_us=77 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11172141422 samples=18432 mean_us=1385 max_us=52991 over_10ms=334 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=288 mean_ns=1033 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11173573740 samples=19456 mean_us=17 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11173573848 samples=19456 mean_us=76 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11173579270 samples=19456 mean_us=1371 max_us=52991 over_10ms=334 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=304 mean_ns=1032 mean_entries=0 cache_hit_pct=100 max_ns=3200 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11175001875 samples=20480 mean_us=17 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11175002167 samples=20480 mean_us=76 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-PRESENT: ts_us=11175002881 samples=5120 mean_us=633 max_us=37354 over_10ms=2 over_33ms=1
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11175004901 samples=20480 mean_us=1357 max_us=52991 over_10ms=334 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=320 mean_ns=1253 mean_entries=0 cache_hit_pct=100 max_ns=71700 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11176374172 samples=21504 mean_us=17 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11176374428 samples=21504 mean_us=76 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11176379626 samples=21504 mean_us=1346 max_us=52991 over_10ms=334 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=336 mean_ns=1239 mean_entries=0 cache_hit_pct=100 max_ns=71700 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11177814054 samples=22528 mean_us=17 max_us=6705 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11177814093 samples=22528 mean_us=75 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11177817492 samples=22528 mean_us=1336 max_us=52991 over_10ms=335 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=352 mean_ns=1233 mean_entries=0 cache_hit_pct=100 max_ns=71700 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11179268263 samples=23552 mean_us=17 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11179268446 samples=23552 mean_us=75 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11179271247 samples=23552 mean_us=1326 max_us=52991 over_10ms=335 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=368 mean_ns=1233 mean_entries=0 cache_hit_pct=100 max_ns=71700 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11180692196 samples=24576 mean_us=17 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11180692242 samples=24576 mean_us=74 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-PRESENT: ts_us=11180693628 samples=6144 mean_us=618 max_us=37354 over_10ms=2 over_33ms=1
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11180695410 samples=24576 mean_us=1317 max_us=52991 over_10ms=335 over_33ms=1
+info:  DXVK-FF7R-ENQUEUE: ts_us=11182198897 samples=25600 mean_us=17 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11182199711 samples=25600 mean_us=74 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11182204781 samples=25600 mean_us=1310 max_us=52991 over_10ms=335 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=384 mean_ns=1234 mean_entries=0 cache_hit_pct=100 max_ns=71700 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11183656171 samples=26624 mean_us=17 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11183657434 samples=26624 mean_us=74 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11183659493 samples=26624 mean_us=1302 max_us=52991 over_10ms=335 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=400 mean_ns=1232 mean_entries=0 cache_hit_pct=100 max_ns=71700 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11185075983 samples=27648 mean_us=16 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11185076145 samples=27648 mean_us=73 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11185080634 samples=27648 mean_us=1295 max_us=52991 over_10ms=335 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=416 mean_ns=1227 mean_entries=0 cache_hit_pct=100 max_ns=71700 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11186884237 samples=28672 mean_us=16 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11186884530 samples=28672 mean_us=73 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-PRESENT: ts_us=11186886382 samples=7168 mean_us=618 max_us=37354 over_10ms=2 over_33ms=1
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11186886825 samples=28672 mean_us=1289 max_us=52991 over_10ms=336 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=432 mean_ns=1221 mean_entries=0 cache_hit_pct=100 max_ns=71700 max_entries=0
+info:  DXVK-FF7R-ENQUEUE: ts_us=11188806542 samples=29696 mean_us=16 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11188806585 samples=29696 mean_us=74 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11188812631 samples=29696 mean_us=1285 max_us=52991 over_10ms=337 over_33ms=1
+info:  DXVK-FF7R-PIPELINES: ts_us=11191620971 samples=192 pending=12 libraries=145 library_mean_us=2407 optimized=47 optimized_mean_us=4016 over_10ms=0 over_33ms=0 queue_wait_samples=194 queue_wait_mean_us=818 queue_wait_over_10ms=1 queue_wait_over_33ms=0 library_queue_wait_samples=146 library_queue_wait_mean_us=395 library_queue_wait_over_10ms=0 library_queue_wait_over_33ms=0 optimized_queue_wait_samples=48 optimized_queue_wait_mean_us=2104 optimized_queue_wait_over_10ms=1 optimized_queue_wait_over_33ms=0 high_queue_wait_samples=4 high_queue_wait_mean_us=1546 high_queue_wait_over_10ms=0 high_queue_wait_over_33ms=0 normal_queue_wait_samples=142 normal_queue_wait_mean_us=362 normal_queue_wait_over_10ms=0 normal_queue_wait_over_33ms=0 low_queue_wait_samples=48 low_queue_wait_mean_us=2104 low_queue_wait_over_10ms=1 low_queue_wait_over_33ms=0
+info:  DXVK-FF7R-ONDEMAND: ts_us=11191671872 samples=64 mean_us=380 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-LOOKUP: samples=448 mean_ns=1235 mean_entries=0 cache_hit_pct=99 max_ns=71700 max_entries=0
+info:  DXVK-FF7R-PIPELINES: ts_us=11191701546 samples=256 pending=23 libraries=178 library_mean_us=2311 optimized=78 optimized_mean_us=3583 over_10ms=0 over_33ms=0 queue_wait_samples=257 queue_wait_mean_us=2173 queue_wait_over_10ms=20 queue_wait_over_33ms=0 library_queue_wait_samples=178 library_queue_wait_mean_us=368 library_queue_wait_over_10ms=0 library_queue_wait_over_33ms=0 optimized_queue_wait_samples=79 optimized_queue_wait_mean_us=6239 optimized_queue_wait_over_10ms=20 optimized_queue_wait_over_33ms=0 high_queue_wait_samples=4 high_queue_wait_mean_us=1546 high_queue_wait_over_10ms=0 high_queue_wait_over_33ms=0 normal_queue_wait_samples=174 normal_queue_wait_mean_us=341 normal_queue_wait_over_10ms=0 normal_queue_wait_over_33ms=0 low_queue_wait_samples=79 low_queue_wait_mean_us=6239 low_queue_wait_over_10ms=20 low_queue_wait_over_33ms=0
+info:  DXVK-FF7R-PIPELINES: ts_us=11192523692 samples=320 pending=11 libraries=203 library_mean_us=2305 optimized=117 optimized_mean_us=3667 over_10ms=1 over_33ms=0 queue_wait_samples=321 queue_wait_mean_us=4319 queue_wait_over_10ms=45 queue_wait_over_33ms=12 library_queue_wait_samples=203 library_queue_wait_mean_us=396 library_queue_wait_over_10ms=0 library_queue_wait_over_33ms=0 optimized_queue_wait_samples=118 optimized_queue_wait_mean_us=11068 optimized_queue_wait_over_10ms=45 optimized_queue_wait_over_33ms=12 high_queue_wait_samples=6 high_queue_wait_mean_us=1141 high_queue_wait_over_10ms=0 high_queue_wait_over_33ms=0 normal_queue_wait_samples=197 normal_queue_wait_mean_us=373 normal_queue_wait_over_10ms=0 normal_queue_wait_over_33ms=0 low_queue_wait_samples=118 low_queue_wait_mean_us=11068 low_queue_wait_over_10ms=45 low_queue_wait_over_33ms=12
+info:  DXVK-FF7R-LOOKUP: samples=464 mean_ns=1269 mean_entries=0 cache_hit_pct=99 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-ONDEMAND: ts_us=11193787944 samples=128 mean_us=236 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-LOOKUP: samples=480 mean_ns=1285 mean_entries=0 cache_hit_pct=99 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=496 mean_ns=1288 mean_entries=0 cache_hit_pct=99 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=512 mean_ns=1367 mean_entries=0 cache_hit_pct=99 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-ENQUEUE: ts_us=11196105874 samples=30720 mean_us=16 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11196106063 samples=30720 mean_us=75 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11196134312 samples=30720 mean_us=1366 max_us=90639 over_10ms=439 over_33ms=7
+info:  DXVK-FF7R-LOOKUP: samples=528 mean_ns=1379 mean_entries=0 cache_hit_pct=99 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=544 mean_ns=1375 mean_entries=0 cache_hit_pct=99 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=560 mean_ns=1369 mean_entries=0 cache_hit_pct=99 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=576 mean_ns=1432 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=592 mean_ns=1430 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=608 mean_ns=1430 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=624 mean_ns=1420 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=640 mean_ns=1426 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=656 mean_ns=1427 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=672 mean_ns=1433 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-ENQUEUE: ts_us=11204943161 samples=31744 mean_us=16 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11204944308 samples=31744 mean_us=75 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11204972623 samples=31744 mean_us=1551 max_us=90639 over_10ms=694 over_33ms=10
+info:  DXVK-FF7R-LOOKUP: samples=688 mean_ns=1430 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=704 mean_ns=1427 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=720 mean_ns=1422 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=736 mean_ns=1432 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=752 mean_ns=1433 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=768 mean_ns=1436 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=784 mean_ns=1432 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=800 mean_ns=1438 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=816 mean_ns=1437 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=832 mean_ns=1435 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-ENQUEUE: ts_us=11214063638 samples=32768 mean_us=16 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11214064161 samples=32768 mean_us=76 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11214093803 samples=32768 mean_us=1723 max_us=90639 over_10ms=946 over_33ms=13
+info:  DXVK-FF7R-LOOKUP: samples=848 mean_ns=1434 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=864 mean_ns=1435 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-QUEUE-PRESENT: ts_us=11215352609 samples=8192 mean_us=630 max_us=37354 over_10ms=2 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=880 mean_ns=1433 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=896 mean_ns=1431 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=912 mean_ns=1427 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=928 mean_ns=1423 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=944 mean_ns=1434 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=960 mean_ns=1436 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=976 mean_ns=1428 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=992 mean_ns=1422 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=1008 mean_ns=1424 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-PIPELINES: ts_us=11228908175 samples=384 pending=1 libraries=231 library_mean_us=2671 optimized=153 optimized_mean_us=3978 over_10ms=4 over_33ms=0 queue_wait_samples=384 queue_wait_mean_us=4184 queue_wait_over_10ms=54 queue_wait_over_33ms=12 library_queue_wait_samples=231 library_queue_wait_mean_us=533 library_queue_wait_over_10ms=0 library_queue_wait_over_33ms=0 optimized_queue_wait_samples=153 optimized_queue_wait_mean_us=9696 optimized_queue_wait_over_10ms=54 optimized_queue_wait_over_33ms=12 high_queue_wait_samples=7 high_queue_wait_mean_us=995 high_queue_wait_over_10ms=0 high_queue_wait_over_33ms=0 normal_queue_wait_samples=224 normal_queue_wait_mean_us=518 normal_queue_wait_over_10ms=0 normal_queue_wait_over_33ms=0 low_queue_wait_samples=153 low_queue_wait_mean_us=9696 low_queue_wait_over_10ms=54 low_queue_wait_over_33ms=12
+info:  DXVK-FF7R-LOOKUP: samples=1024 mean_ns=1425 mean_entries=0 cache_hit_pct=97 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=1040 mean_ns=1420 mean_entries=0 cache_hit_pct=97 max_ns=71700 max_entries=2
+info:  DXVK-FF7R-LOOKUP: samples=1056 mean_ns=1417 mean_entries=0 cache_hit_pct=97 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1072 mean_ns=1415 mean_entries=0 cache_hit_pct=97 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1088 mean_ns=1412 mean_entries=0 cache_hit_pct=97 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1104 mean_ns=1409 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-ENQUEUE: ts_us=11231009259 samples=33792 mean_us=17 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11231009354 samples=33792 mean_us=77 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11231052306 samples=33792 mean_us=1909 max_us=90639 over_10ms=1209 over_33ms=58
+info:  DXVK-FF7R-LOOKUP: samples=1120 mean_ns=1407 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1136 mean_ns=1402 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1152 mean_ns=1399 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1168 mean_ns=1397 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1184 mean_ns=1400 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1200 mean_ns=1402 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1216 mean_ns=1396 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1232 mean_ns=1399 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1248 mean_ns=1398 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1264 mean_ns=1402 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1280 mean_ns=1411 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1296 mean_ns=1411 mean_entries=0 cache_hit_pct=98 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1312 mean_ns=1413 mean_entries=0 cache_hit_pct=97 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1328 mean_ns=1411 mean_entries=0 cache_hit_pct=97 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1344 mean_ns=1409 mean_entries=0 cache_hit_pct=97 max_ns=71700 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1360 mean_ns=1515 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1376 mean_ns=1516 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1392 mean_ns=1513 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-ENQUEUE: ts_us=11241658552 samples=34816 mean_us=17 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11241659430 samples=34816 mean_us=78 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11241688096 samples=34816 mean_us=2077 max_us=90639 over_10ms=1466 over_33ms=110
+info:  DXVK-FF7R-LOOKUP: samples=1408 mean_ns=1512 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1424 mean_ns=1516 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-PIPELINES: ts_us=11242506814 samples=448 pending=3 libraries=260 library_mean_us=2834 optimized=188 optimized_mean_us=4919 over_10ms=18 over_33ms=0 queue_wait_samples=449 queue_wait_mean_us=3690 queue_wait_over_10ms=54 queue_wait_over_33ms=12 library_queue_wait_samples=260 library_queue_wait_mean_us=525 library_queue_wait_over_10ms=0 library_queue_wait_over_33ms=0 optimized_queue_wait_samples=189 optimized_queue_wait_mean_us=8043 optimized_queue_wait_over_10ms=54 optimized_queue_wait_over_33ms=12 high_queue_wait_samples=8 high_queue_wait_mean_us=892 high_queue_wait_over_10ms=0 high_queue_wait_over_33ms=0 normal_queue_wait_samples=252 normal_queue_wait_mean_us=514 normal_queue_wait_over_10ms=0 normal_queue_wait_over_33ms=0 low_queue_wait_samples=189 low_queue_wait_mean_us=8043 low_queue_wait_over_10ms=54 low_queue_wait_over_33ms=12
+info:  DXVK-FF7R-LOOKUP: samples=1440 mean_ns=1514 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1456 mean_ns=1519 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-ONDEMAND: ts_us=11243820517 samples=192 mean_us=273 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-LOOKUP: samples=1472 mean_ns=1518 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1488 mean_ns=1517 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1504 mean_ns=1516 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1520 mean_ns=1516 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+err:   DXVK-SD865-ALLOC stage=oom_reclaim attempt_id=29 heap=0 empty_chunks_before=0 empty_bytes_before=0 empty_chunks_after=0 empty_bytes_after=0 live_chunks_after=21 occupied_chunks_after=21 live_bytes_after=3321888768 occupied_bytes_after=3321888768 used_pages_after=50389 capacity_pages_after=50688 reclaimed_chunks=0 reclaimed_bytes=0 pass_reclaimed_chunks=0 pass_reclaimed_bytes=0 pool_experiment=0
+err:   DXVK-SD865-ALLOC stage=driver_retry first_attempt_id=29 retry_attempt_id=30 first_vkresult=-2 first_name=VK_ERROR_OUT_OF_DEVICE_MEMORY retry_vkresult=-2 retry_name=VK_ERROR_OUT_OF_DEVICE_MEMORY recovered=0 requested_bytes=268435456 memory_type=0 heap=0 heap_size_bytes=8337227776 dedicated=0 buffer_usage=137727 flags=2 dxvk_allocated_bytes=3560964096 dxvk_used_bytes=3242547968 dxvk_budget_bytes=3892283147 driver_allocated_bytes=3303910144 driver_budget_bytes=3959422976 pool_experiment=0 reclaim_pass_chunks=0 reclaim_pass_bytes=0 reclaim_total_chunks=6 reclaim_total_bytes=260046848
+info:  DXVK-FF7R-LOOKUP: samples=1536 mean_ns=1515 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1552 mean_ns=1513 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1568 mean_ns=1511 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1584 mean_ns=1511 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1600 mean_ns=1511 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1616 mean_ns=1513 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1632 mean_ns=1512 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1648 mean_ns=1515 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1664 mean_ns=1516 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-ENQUEUE: ts_us=11251699239 samples=35840 mean_us=18 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11251700368 samples=35840 mean_us=79 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11251729576 samples=35840 mean_us=2230 max_us=90639 over_10ms=1723 over_33ms=153
+info:  DXVK-FF7R-LOOKUP: samples=1680 mean_ns=1516 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1696 mean_ns=1511 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1712 mean_ns=1508 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1728 mean_ns=1503 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1744 mean_ns=1499 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1760 mean_ns=1498 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1776 mean_ns=1497 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1792 mean_ns=1495 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1808 mean_ns=1497 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1824 mean_ns=1494 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1840 mean_ns=1491 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1856 mean_ns=1488 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1872 mean_ns=1484 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1888 mean_ns=1484 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1904 mean_ns=1483 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1920 mean_ns=1480 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-ENQUEUE: ts_us=11260459427 samples=36864 mean_us=18 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11260459654 samples=36864 mean_us=79 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11260500292 samples=36864 mean_us=2371 max_us=90639 over_10ms=1990 over_33ms=175
+info:  DXVK-FF7R-LOOKUP: samples=1936 mean_ns=1476 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1952 mean_ns=1475 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1968 mean_ns=1471 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=1984 mean_ns=1472 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-QUEUE-PRESENT: ts_us=11263189467 samples=9216 mean_us=656 max_us=37354 over_10ms=2 over_33ms=1
+info:  DXVK-FF7R-LOOKUP: samples=2000 mean_ns=1470 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2016 mean_ns=1496 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2032 mean_ns=1494 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2048 mean_ns=1497 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2064 mean_ns=1505 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2080 mean_ns=1506 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2096 mean_ns=1503 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2112 mean_ns=1502 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2128 mean_ns=1502 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2144 mean_ns=1502 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2160 mean_ns=1501 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2176 mean_ns=1504 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2192 mean_ns=1504 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2208 mean_ns=1505 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2224 mean_ns=1510 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2240 mean_ns=1507 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-ENQUEUE: ts_us=11269426258 samples=37888 mean_us=18 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11269426465 samples=37888 mean_us=81 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11269451339 samples=37888 mean_us=2502 max_us=90639 over_10ms=2272 over_33ms=200
+info:  DXVK-FF7R-LOOKUP: samples=2256 mean_ns=1505 mean_entries=0 cache_hit_pct=97 max_ns=147600 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2272 mean_ns=1574 mean_entries=0 cache_hit_pct=97 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2288 mean_ns=1571 mean_entries=0 cache_hit_pct=97 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2304 mean_ns=1568 mean_entries=0 cache_hit_pct=97 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2320 mean_ns=1565 mean_entries=0 cache_hit_pct=97 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2336 mean_ns=1594 mean_entries=0 cache_hit_pct=97 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2352 mean_ns=1593 mean_entries=0 cache_hit_pct=97 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2368 mean_ns=1597 mean_entries=0 cache_hit_pct=97 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2384 mean_ns=1599 mean_entries=0 cache_hit_pct=97 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2400 mean_ns=1599 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2416 mean_ns=1599 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2432 mean_ns=1597 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2448 mean_ns=1598 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2464 mean_ns=1601 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2480 mean_ns=1600 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2496 mean_ns=1599 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2512 mean_ns=1599 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2528 mean_ns=1599 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2544 mean_ns=1599 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2560 mean_ns=1599 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2576 mean_ns=1601 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-ENQUEUE: ts_us=11278525887 samples=38912 mean_us=18 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11278526911 samples=38912 mean_us=82 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11278552770 samples=38912 mean_us=2619 max_us=90639 over_10ms=2527 over_33ms=216
+info:  DXVK-FF7R-LOOKUP: samples=2592 mean_ns=1602 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2608 mean_ns=1600 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2624 mean_ns=1599 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2640 mean_ns=1599 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2656 mean_ns=1598 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2672 mean_ns=1598 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2688 mean_ns=1596 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2704 mean_ns=1596 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2720 mean_ns=1594 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2736 mean_ns=1649 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2752 mean_ns=1649 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2768 mean_ns=1650 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2784 mean_ns=1649 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-ENQUEUE: ts_us=11287776938 samples=39936 mean_us=19 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11287777812 samples=39936 mean_us=83 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11287812279 samples=39936 mean_us=2727 max_us=90639 over_10ms=2783 over_33ms=226
+info:  DXVK-FF7R-LOOKUP: samples=2800 mean_ns=1651 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2816 mean_ns=1650 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2832 mean_ns=1652 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2848 mean_ns=1651 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+err:   DXVK-SD865-ALLOC stage=oom_reclaim attempt_id=33 heap=0 empty_chunks_before=0 empty_bytes_before=0 empty_chunks_after=0 empty_bytes_after=0 live_chunks_after=22 occupied_chunks_after=22 live_bytes_after=3456106496 occupied_bytes_after=3456106496 used_pages_after=51858 capacity_pages_after=52736 reclaimed_chunks=0 reclaimed_bytes=0 pass_reclaimed_chunks=0 pass_reclaimed_bytes=0 pool_experiment=0
+err:   DXVK-SD865-ALLOC stage=driver_retry first_attempt_id=33 retry_attempt_id=34 first_vkresult=-2 first_name=VK_ERROR_OUT_OF_DEVICE_MEMORY retry_vkresult=-2 retry_name=VK_ERROR_OUT_OF_DEVICE_MEMORY recovered=0 requested_bytes=268435456 memory_type=0 heap=0 heap_size_bytes=8337227776 dedicated=0 buffer_usage=137727 flags=2 dxvk_allocated_bytes=3695181824 dxvk_used_bytes=3342363904 dxvk_budget_bytes=3996092171 driver_allocated_bytes=3323057664 driver_budget_bytes=4056940544 pool_experiment=0 reclaim_pass_chunks=0 reclaim_pass_bytes=0 reclaim_total_chunks=7 reclaim_total_bytes=327155712
+err:   DXVK-SD865-ALLOC stage=oom_reclaim attempt_id=35 heap=0 empty_chunks_before=0 empty_bytes_before=0 empty_chunks_after=0 empty_bytes_after=0 live_chunks_after=22 occupied_chunks_after=22 live_bytes_after=3456106496 occupied_bytes_after=3456106496 used_pages_after=51858 capacity_pages_after=52736 reclaimed_chunks=0 reclaimed_bytes=0 pass_reclaimed_chunks=0 pass_reclaimed_bytes=0 pool_experiment=0
+err:   DXVK-SD865-ALLOC stage=driver_retry first_attempt_id=35 retry_attempt_id=36 first_vkresult=-2 first_name=VK_ERROR_OUT_OF_DEVICE_MEMORY retry_vkresult=-2 retry_name=VK_ERROR_OUT_OF_DEVICE_MEMORY recovered=0 requested_bytes=134217728 memory_type=0 heap=0 heap_size_bytes=8337227776 dedicated=0 buffer_usage=137727 flags=2 dxvk_allocated_bytes=3695181824 dxvk_used_bytes=3342363904 dxvk_budget_bytes=3996092171 driver_allocated_bytes=3323057664 driver_budget_bytes=4080009216 pool_experiment=0 reclaim_pass_chunks=0 reclaim_pass_bytes=0 reclaim_total_chunks=7 reclaim_total_bytes=327155712
+info:  DXVK-FF7R-LOOKUP: samples=2864 mean_ns=1651 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2880 mean_ns=1653 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2896 mean_ns=1653 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2912 mean_ns=1656 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2928 mean_ns=1656 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2944 mean_ns=1655 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2960 mean_ns=1657 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2976 mean_ns=1657 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=2992 mean_ns=1656 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3008 mean_ns=1655 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3024 mean_ns=1657 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3040 mean_ns=1658 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+err:   DXVK-SD865-ALLOC stage=oom_reclaim attempt_id=39 heap=0 empty_chunks_before=0 empty_bytes_before=0 empty_chunks_after=0 empty_bytes_after=0 live_chunks_after=24 occupied_chunks_after=24 live_bytes_after=3590324224 occupied_bytes_after=3590324224 used_pages_after=54094 capacity_pages_after=54784 reclaimed_chunks=0 reclaimed_bytes=0 pass_reclaimed_chunks=0 pass_reclaimed_bytes=0 pool_experiment=0
+err:   DXVK-SD865-ALLOC stage=driver_retry first_attempt_id=39 retry_attempt_id=40 first_vkresult=-2 first_name=VK_ERROR_OUT_OF_DEVICE_MEMORY retry_vkresult=-2 retry_name=VK_ERROR_OUT_OF_DEVICE_MEMORY recovered=0 requested_bytes=268435456 memory_type=0 heap=0 heap_size_bytes=8337227776 dedicated=0 buffer_usage=137727 flags=2 dxvk_allocated_bytes=3829399552 dxvk_used_bytes=3480976128 dxvk_budget_bytes=4000286475 driver_allocated_bytes=3457275392 driver_budget_bytes=4137680896 pool_experiment=0 reclaim_pass_chunks=0 reclaim_pass_bytes=0 reclaim_total_chunks=7 reclaim_total_bytes=327155712
+err:   DXVK-SD865-ALLOC stage=oom_reclaim attempt_id=41 heap=0 empty_chunks_before=0 empty_bytes_before=0 empty_chunks_after=0 empty_bytes_after=0 live_chunks_after=24 occupied_chunks_after=24 live_bytes_after=3590324224 occupied_bytes_after=3590324224 used_pages_after=54094 capacity_pages_after=54784 reclaimed_chunks=0 reclaimed_bytes=0 pass_reclaimed_chunks=0 pass_reclaimed_bytes=0 pool_experiment=0
+err:   DXVK-SD865-ALLOC stage=driver_retry first_attempt_id=41 retry_attempt_id=42 first_vkresult=-2 first_name=VK_ERROR_OUT_OF_DEVICE_MEMORY retry_vkresult=-2 retry_name=VK_ERROR_OUT_OF_DEVICE_MEMORY recovered=0 requested_bytes=134217728 memory_type=0 heap=0 heap_size_bytes=8337227776 dedicated=0 buffer_usage=137727 flags=2 dxvk_allocated_bytes=3829399552 dxvk_used_bytes=3480976128 dxvk_budget_bytes=4000286475 driver_allocated_bytes=3457275392 driver_budget_bytes=4143972352 pool_experiment=0 reclaim_pass_chunks=0 reclaim_pass_bytes=0 reclaim_total_chunks=7 reclaim_total_bytes=327155712
+info:  DXVK-FF7R-LOOKUP: samples=3056 mean_ns=1659 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3072 mean_ns=1658 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3088 mean_ns=1656 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3104 mean_ns=1654 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3120 mean_ns=1652 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3136 mean_ns=1650 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3152 mean_ns=1649 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3168 mean_ns=1646 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3184 mean_ns=1645 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3200 mean_ns=1643 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3216 mean_ns=1642 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3232 mean_ns=1640 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-ENQUEUE: ts_us=11299299077 samples=40960 mean_us=19 max_us=6872 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-QUEUE-SUBMIT: ts_us=11299299864 samples=40960 mean_us=84 max_us=8262 over_10ms=0 over_33ms=0
+info:  DXVK-FF7R-GPU-WAIT: ts_us=11299356857 samples=40960 mean_us=2875 max_us=91712 over_10ms=3053 over_33ms=343
+info:  DXVK-FF7R-LOOKUP: samples=3248 mean_ns=1639 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3264 mean_ns=1637 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3280 mean_ns=1636 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3296 mean_ns=1634 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3312 mean_ns=1634 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3328 mean_ns=1632 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3344 mean_ns=1632 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3360 mean_ns=1630 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3376 mean_ns=1627 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3392 mean_ns=1625 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3408 mean_ns=1625 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3424 mean_ns=1623 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
+info:  DXVK-FF7R-LOOKUP: samples=3440 mean_ns=1624 mean_entries=0 cache_hit_pct=98 max_ns=160900 max_entries=3
