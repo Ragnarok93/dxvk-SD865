@@ -67,3 +67,11 @@ Status: active review ledger for the unified working branch `feature/ff7r-adreno
 - Compatibility scope is the existing Vulkan 1.3 render-pass resolve path. No new Vulkan feature is required. Main risk is incorrect resolve destination preservation if tracking semantics differ in this older fork, so runtime validation must exercise first-use resolves, destinations previously sampled/written in the same render pass, MSAA color and depth/stencil resolves, and partial/subresource cases.
 - Candidate `952cad8f306b43903c1fc177685baa951a52d7b5` (small-vector dynamic-state cleanup) was inspected but not imported: the target's corresponding dynamic-state arrays are already sized for the state sets it builds, so upstream's container change does not establish a benefit here.
 - Validation status: awaiting fresh x86/x64 GameNative WCP build and source-contract workflow for the source commit, followed by device correctness/performance testing. Keep PR #4 unmerged until validation is complete.
+
+## Immediate constant-buffer transfer-stage tracking fix (2026-10-16)
+
+- Adapted upstream [`a16e14d791c632828325f08b6bf4fed22afb3f3b`](https://github.com/doitsujin/dxvk/commit/a16e14d791c632828325f08b6bf4fed22afb3f3b) to this fork's Vulkan 1.3-era synchronization API in `src/d3d11/d3d11_shader.cpp`.
+- The ICB buffer already declares `VK_BUFFER_USAGE_TRANSFER_SRC_BIT`, `VK_BUFFER_USAGE_TRANSFER_DST_BIT`, and transfer read/write access, but its stage mask only included the shader stage. Adding `VK_PIPELINE_STAGE_TRANSFER_BIT` makes the declared transfer operations visible to DXVK's buffer synchronization tracking. This is a correctness/validation fix rather than a claimed frame-time optimization.
+- Upstream reports this change fixes a validation error. This target's exact runtime manifestation is not yet confirmed; validation layers and device testing should verify upload, transfer, defragmentation/copy, and subsequent uniform reads.
+- This uses the legacy Vulkan 1.0-compatible pipeline-stage enum already used by the fork and does not require Vulkan 1.4 or synchronization2.
+- Build and source-contract validation are queued by the unified-branch commit. Do not treat it as runtime-verified until a fresh x86/x64 WCP build and device validation are complete.
