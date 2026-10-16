@@ -299,9 +299,9 @@ namespace dxvk {
     // assume that all other descriptor types share pool memory.
     std::array<VkDescriptorPoolSize, 6> pools = {{
       { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,          m_maxSets / 2  },
-      { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,          m_maxSets / 4  },
+      { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,          m_maxSets / 64 },
       { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,   m_maxSets / 2  },
-      { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,   m_maxSets / 4  },
+      { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,   m_maxSets / 64 },
       { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         m_maxSets * 2  },
       { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         m_maxSets / 2  },
     }};
