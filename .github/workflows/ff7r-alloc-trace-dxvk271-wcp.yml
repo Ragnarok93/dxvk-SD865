@@ -11,6 +11,8 @@ on:
       - 'src/d3d11/d3d11_main.cpp'
       - 'src/dxgi/dxgi_swapchain.cpp'
       - 'src/dxvk/dxvk_memory.cpp'
+      - 'src/dxvk/dxvk_context.cpp'
+      - 'src/dxvk/dxvk_context_state.h'
       - 'src/dxvk/dxvk_graphics.cpp'
       - 'package-release.sh'
       - 'tools/ff7r_alloc_trace_report.py'
@@ -80,6 +82,11 @@ jobs:
           grep -Fq 'if (rsInfo.rasterizerDiscardEnable)' src/dxvk/dxvk_graphics.cpp
           grep -Fq 'if (!m_flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard))' src/dxvk/dxvk_graphics.cpp
           grep -Fq 'info.pRasterizationState      = &key.prState.rsInfo;' src/dxvk/dxvk_graphics.cpp
+
+          grep -Fq 'GpDynamicViewport' src/dxvk/dxvk_context_state.h
+          grep -Fq 'GpDynamicViewport' src/dxvk/dxvk_context.cpp
+          grep -Fq 'm_flags.all(DxvkContextFlag::GpDirtyViewport,' src/dxvk/dxvk_context.cpp
+          grep -Fq 'if (!flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard))' src/dxvk/dxvk_graphics.cpp
 
       - name: Cross-compile PE x64 and x32
         shell: bash
