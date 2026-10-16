@@ -4010,7 +4010,10 @@ namespace dxvk {
     DxvkImageUsageInfo imageUsage = { };
     imageUsage.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
 
-    ensureImageCompatibility(image, imageUsage);
+    if (!ensureImageCompatibility(image, imageUsage)) {
+      Logger::err("DxvkContext: copyImageToBufferCs: Failed to make image shader-readable.");
+      return;
+    }
 
     flushPendingAccesses(*image, imageSubresource,
       imageOffset, imageExtent, DxvkAccess::Read);

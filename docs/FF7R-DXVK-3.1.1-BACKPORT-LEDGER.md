@@ -75,3 +75,12 @@ Status: active review ledger for the unified working branch `feature/ff7r-adreno
 - Upstream reports this change fixes a validation error. This target's exact runtime manifestation is not yet confirmed; validation layers and device testing should verify upload, transfer, defragmentation/copy, and subsequent uniform reads.
 - This uses the legacy Vulkan 1.0-compatible pipeline-stage enum already used by the fork and does not require Vulkan 1.4 or synchronization2.
 - Build and source-contract validation are queued by the unified-branch commit. Do not treat it as runtime-verified until a fresh x86/x64 WCP build and device validation are complete.
+
+
+## Failed image-relocation guards (2026-10-16)
+
+- Adapted three focused upstream guards: [`28a321141951003782c60d1846122df35aaf5b8a`](https://github.com/doitsujin/dxvk/commit/28a321141951003782c60d1846122df35aaf5b8a) for D3D11 ClearUAV, [`fe8a4b5799032a4568776c8b56c452e574b51f65`](https://github.com/doitsujin/dxvk/commit/fe8a4b5799032a4568776c8b56c452e574b51f65) for video input/output, and [`5502fe6a83e0dcffdf7d747ba7d97b41c318d211`](https://github.com/doitsujin/dxvk/commit/5502fe6a83e0dcffdf7d747ba7d97b41c318d211) for shader-based image-to-buffer readback.
+- These paths previously ignored the boolean result from `ensureImageCompatibility` and continued with the operation even if the image could not be made compatible. They now log an error and return from the queued operation on failure.
+- Relevance: hardens failure behavior under allocation/relocation pressure, including cases that can lead to invalid follow-on work after an allocation failure. This does not recover memory, prevent the original OOM, or claim a performance improvement.
+- Scope is deliberately limited to these three call sites. Other `ensureImageCompatibility` uses have different fallback contracts and were not changed.
+- Validation required: x86/x64 GameNative WCP CI; on-device pressure testing for ClearUAV and readback; video path smoke test where available; verify logs fail cleanly rather than issuing subsequent operations. Vulkan 1.3 API baseline unchanged.
