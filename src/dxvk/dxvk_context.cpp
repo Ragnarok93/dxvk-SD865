@@ -6105,10 +6105,17 @@ namespace dxvk {
                 DxvkContextFlag::GpDynamicStencilTest,
                 DxvkContextFlag::GpDynamicMultisampleState,
                 DxvkContextFlag::GpDynamicRasterizerState,
+                DxvkContextFlag::GpDynamicViewport,
                 DxvkContextFlag::GpHasPushData,
                 DxvkContextFlag::GpIndependentSets);
     
-    m_flags.set(m_state.gp.state.useDynamicBlendConstants()
+    bool hasRasterizerDiscard = m_state.gp.flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard);
+
+    m_flags.set(!hasRasterizerDiscard
+      ? DxvkContextFlag::GpDynamicViewport
+      : DxvkContextFlag::GpDirtyViewport);
+
+    m_flags.set(!hasRasterizerDiscard && m_state.gp.state.useDynamicBlendConstants()
       ? DxvkContextFlag::GpDynamicBlendConstants
       : DxvkContextFlag::GpDirtyBlendConstants);
     
@@ -6171,6 +6178,34 @@ namespace dxvk {
 
       m_flags.set(
         DxvkContextFlag::GpDirtyMultisampleState);
+    }
+
+    if (m_state.gp.flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard)) {
+      // Rasterizer discard pipelines do not declare raster-related dynamic state.
+      // Keep those states dirty so the next rasterizing pipeline emits them,
+      // but never issue dynamic commands against the discard pipeline.
+      m_flags.clr(
+        DxvkContextFlag::GpDynamicBlendConstants,
+        DxvkContextFlag::GpDynamicDepthBias,
+        DxvkContextFlag::GpDynamicDepthBounds,
+        DxvkContextFlag::GpDynamicDepthClip,
+        DxvkContextFlag::GpDynamicDepthTest,
+        DxvkContextFlag::GpDynamicStencilTest,
+        DxvkContextFlag::GpDynamicMultisampleState,
+        DxvkContextFlag::GpDynamicRasterizerState,
+        DxvkContextFlag::GpDynamicViewport);
+
+      m_flags.set(
+        DxvkContextFlag::GpDirtyBlendConstants,
+        DxvkContextFlag::GpDirtyDepthBias,
+        DxvkContextFlag::GpDirtyDepthBounds,
+        DxvkContextFlag::GpDirtyDepthClip,
+        DxvkContextFlag::GpDirtyDepthTest,
+        DxvkContextFlag::GpDirtyStencilTest,
+        DxvkContextFlag::GpDirtyStencilRef,
+        DxvkContextFlag::GpDirtyMultisampleState,
+        DxvkContextFlag::GpDirtyRasterizerState,
+        DxvkContextFlag::GpDirtyViewport);
     }
 
     // If necessary, dirty descriptor sets due to layout incompatibilities
@@ -7165,7 +7200,8 @@ namespace dxvk {
 
   
   void DxvkContext::updateDynamicState() {
-    if (unlikely(m_flags.test(DxvkContextFlag::GpDirtyViewport))) {
+    if (unlikely(m_flags.all(DxvkContextFlag::GpDirtyViewport,
+                             DxvkContextFlag::GpDynamicViewport))) {
       m_flags.clr(DxvkContextFlag::GpDirtyViewport);
 
       // Clamp scissor against rendering area. Not doing so is technically
