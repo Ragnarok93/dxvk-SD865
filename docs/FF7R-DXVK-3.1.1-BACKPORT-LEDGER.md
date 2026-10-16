@@ -177,6 +177,6 @@ The relocation entry stores `DxvkAllocationModes` (a flags wrapper), not a singl
 
 ## Preserve zeroMappedMemory's host-visible device-local fallback (2026-10-16)
 
-- Follow-up to the cached-mapping tiler preference: when `dxvk.zeroMappedMemory` is enabled, the allocator must not let the tiler cached-memory hint overwrite the existing host-visible device-local fallback. Cached coherent system-memory lookups remain preferred; the HVV lookup retains the zeroMappedMemory policy.
-- This keeps the two independent policies from overriding each other and avoids forcing zeroMappedMemory allocations onto a device-local host-visible memory type merely because cached mappings are preferred on tilers.
+- Follow-up to the cached-mapping tiler preference and upstream [d43594895e1c3036abbe323d1d33f373bcdddb85](https://github.com/doitsujin/dxvk/commit/d43594895e1c3036abbe323d1d33f373bcdddb85): when `dxvk.zeroMappedMemory` is enabled, first redirect the host-visible device-local lookup to the host-visible/coherent system-memory lookup, then prevent the tiler cached-memory hint from overwriting that choice. Cached coherent system-memory lookups remain preferred.
+- This preserves the zeroMappedMemory policy while retaining the cached mapping preference for normal host-visible coherent allocations. It avoids forcing zeroMappedMemory allocations onto a device-local host-visible memory type merely because the tiler hint prefers cached mappings.
 - Vulkan API baseline unchanged. Validate both settings combinations on the target driver, log selected memory types, and compare CPU zeroing cost, allocation failures, and memory pressure before claiming a performance benefit.

@@ -2395,6 +2395,11 @@ namespace dxvk {
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
       VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
+    // If mapped allocations are zeroed, avoid host-visible device-local memory:
+    // clearing large mappings is CPU-bandwidth intensive on this path.
+    if (m_device->config().zeroMappedMemory)
+      m_memTypesByPropertyFlags[hostVisibleVramIndex] = m_memTypesByPropertyFlags[hostCoherentIndex];
+
     // On tilers, prefer cached mappings for CPU writes. Uncached stores can
     // be particularly expensive on ARM systems.
     if (m_device->perfHints().preferCachedMemory) {
