@@ -1,0 +1,77 @@
+info:  Game: ff7remake_.exe
+info:  DXVK: 2.7.1
+info:  Build: x86_64 gcc 16.2.0
+info:  Found config env: ""
+info:  Vulkan: Found vkGetInstanceProcAddr in winevulkan.dll @ 0x4ff4567cc0
+info:  Extension providers:
+info:    Platform WSI
+info:    OpenVR
+info:  OpenVR: could not open registry key, status 2
+info:  OpenVR: Failed to locate module
+info:    OpenXR
+info:  Enabled instance extensions:
+info:    VK_EXT_surface_maintenance1
+info:    VK_KHR_get_surface_capabilities2
+info:    VK_KHR_surface
+info:    VK_KHR_win32_surface
+info:  Found device: Wrapper(5710) (Wrapper driver 26.2.99)
+err:   readMonitorEdidFromKey: Failed to get EDID reg key size
+err:   DXGI: Failed to parse display metadata + colorimetry info, using blank.
+info:  Game: ff7remake_.exe
+info:  DXVK: 2.7.1
+info:  Build: x86_64 gcc 16.2.0
+info:  Found config env: ""
+info:  Vulkan: Found vkGetInstanceProcAddr in winevulkan.dll @ 0x4ff4567cc0
+info:  Extension providers:
+info:    Platform WSI
+info:    OpenVR
+info:  OpenVR: could not open registry key, status 2
+info:  OpenVR: Failed to locate module
+info:    OpenXR
+info:  Enabled instance extensions:
+info:    VK_EXT_surface_maintenance1
+info:    VK_KHR_get_surface_capabilities2
+info:    VK_KHR_surface
+info:    VK_KHR_win32_surface
+info:  Found device: Wrapper(5710) (Wrapper driver 26.2.99)
+err:   readMonitorEdidFromKey: Failed to get EDID reg key size
+err:   DXGI: Failed to parse display metadata + colorimetry info, using blank.
+warn:  DXGI: MakeWindowAssociation: Ignoring flags
+warn:  DXVK-SD865-BUILD: component=dxgi sha=42870d5319d8d20a0725aed6485a5e9eb6c4eec3 exe=ff7remake_.exe metrics_enabled=1 contract=queue-sync-alloc-v2
+info:  DXVK-FF7R-FRAMES: ts_us=33391088832 present_id=258 count=256 mean_us=13967 p50_us=6794 p95_us=36444 p99_us=176811 max_us=278471
+info:  DXVK-FF7R-FRAMES: ts_us=33392510786 present_id=514 count=256 mean_us=5554 p50_us=6358 p95_us=7124 p99_us=7747 max_us=11678
+info:  DXVK-FF7R-FRAMES: ts_us=33394258399 present_id=770 count=256 mean_us=6826 p50_us=6388 p95_us=10889 p99_us=36006 max_us=76108
+info:  DXVK-FF7R-FRAMES: ts_us=33402278909 present_id=1026 count=256 mean_us=31329 p50_us=32943 p95_us=43529 p99_us=99931 max_us=205564
+info:  DXVK-FF7R-FRAMES: ts_us=33403690437 present_id=1282 count=256 mean_us=5513 p50_us=5237 p95_us=8603 p99_us=14168 max_us=119844
+info:  DXVK-FF7R-FRAMES: ts_us=33405046458 present_id=1538 count=256 mean_us=5296 p50_us=5224 p95_us=6683 p99_us=9577 max_us=12746
+info:  DXVK-FF7R-FRAMES: ts_us=33406460112 present_id=1794 count=256 mean_us=5521 p50_us=5329 p95_us=7686 p99_us=12487 max_us=14276
+info:  DXVK-FF7R-FRAMES: ts_us=33407820434 present_id=2050 count=256 mean_us=5313 p50_us=5023 p95_us=7116 p99_us=12073 max_us=19634
+info:  DXVK-FF7R-FRAMES: ts_us=33409131227 present_id=2306 count=256 mean_us=5119 p50_us=4994 p95_us=6962 p99_us=10940 max_us=14976
+info:  DXVK-FF7R-FRAMES: ts_us=33410527630 present_id=2562 count=256 mean_us=5454 p50_us=5114 p95_us=8987 p99_us=11883 max_us=13159
+info:  DXVK-FF7R-FRAMES: ts_us=33412213232 present_id=2818 count=256 mean_us=6583 p50_us=5310 p95_us=9569 p99_us=19134 max_us=142161
+info:  DXVK-FF7R-FRAMES: ts_us=33413619515 present_id=3074 count=256 mean_us=5492 p50_us=5288 p95_us=7926 p99_us=11550 max_us=16191
+info:  DXVK-FF7R-FRAMES: ts_us=33415025822 present_id=3330 count=256 mean_us=5492 p50_us=5349 p95_us=7433 p99_us=11570 max_us=13766
+info:  DXVK-FF7R-FRAMES: ts_us=33416439634 present_id=3586 count=256 mean_us=5522 p50_us=5287 p95_us=8599 p99_us=11489 max_us=15608
+info:  DXVK-FF7R-FRAMES: ts_us=33417849142 present_id=3842 count=256 mean_us=5505 p50_us=5300 p95_us=7732 p99_us=10544 max_us=14129
+info:  DXVK-FF7R-FRAMES: ts_us=33419252390 present_id=4098 count=256 mean_us=5480 p50_us=5375 p95_us=7532 p99_us=9515 max_us=13523
+info:  DXVK-FF7R-FRAMES: ts_us=33420699217 present_id=4354 count=256 mean_us=5651 p50_us=5359 p95_us=8447 p99_us=12195 max_us=15201
+info:  DXVK-FF7R-FRAMES: ts_us=33422096500 present_id=4610 count=256 mean_us=5457 p50_us=5243 p95_us=7587 p99_us=10779 max_us=12243
+info:  DXVK-FF7R-FRAMES: ts_us=33423522640 present_id=4866 count=256 mean_us=5570 p50_us=5248 p95_us=8163 p99_us=12007 max_us=17589
+info:  DXVK-FF7R-FRAMES: ts_us=33424875878 present_id=5122 count=256 mean_us=5285 p50_us=5109 p95_us=7867 p99_us=10538 max_us=11805
+info:  DXVK-FF7R-FRAMES: ts_us=33426267353 present_id=5378 count=256 mean_us=5434 p50_us=5235 p95_us=7983 p99_us=9815 max_us=14174
+info:  DXVK-FF7R-FRAMES: ts_us=33427667662 present_id=5634 count=256 mean_us=5469 p50_us=5159 p95_us=8969 p99_us=14845 max_us=15819
+info:  DXVK-FF7R-FRAMES: ts_us=33429081853 present_id=5890 count=256 mean_us=5523 p50_us=5266 p95_us=7605 p99_us=12734 max_us=16321
+info:  DXVK-FF7R-FRAMES: ts_us=33430452044 present_id=6146 count=256 mean_us=5351 p50_us=5084 p95_us=7724 p99_us=11427 max_us=13416
+info:  DXVK-FF7R-FRAMES: ts_us=33431874106 present_id=6402 count=256 mean_us=5554 p50_us=5256 p95_us=8554 p99_us=10573 max_us=14791
+info:  DXVK-FF7R-FRAMES: ts_us=33433263307 present_id=6658 count=256 mean_us=5426 p50_us=5150 p95_us=7398 p99_us=12616 max_us=18113
+info:  DXVK-FF7R-FRAMES: ts_us=33434769602 present_id=6914 count=256 mean_us=5883 p50_us=5347 p95_us=9307 p99_us=13761 max_us=17239
+info:  DXVK-FF7R-FRAMES: ts_us=33436534794 present_id=7170 count=256 mean_us=6894 p50_us=6481 p95_us=10572 p99_us=13715 max_us=18040
+info:  DXVK-FF7R-FRAMES: ts_us=33438384671 present_id=7426 count=256 mean_us=7225 p50_us=6577 p95_us=11624 p99_us=19016 max_us=27093
+info:  DXVK-FF7R-FRAMES: ts_us=33450098315 present_id=7682 count=256 mean_us=45755 p50_us=32455 p95_us=125614 p99_us=566881 max_us=838932
+info:  DXVK-FF7R-FRAMES: ts_us=33458688275 present_id=7938 count=256 mean_us=33554 p50_us=33268 p95_us=41449 p99_us=47459 max_us=51793
+info:  DXVK-FF7R-FRAMES: ts_us=33468301982 present_id=8194 count=256 mean_us=37553 p50_us=33563 p95_us=57420 p99_us=137155 max_us=253766
+info:  DXVK-FF7R-FRAMES: ts_us=33486701502 present_id=8504 count=256 mean_us=51926 p50_us=38616 p95_us=110686 p99_us=280027 max_us=397113
+info:  DXVK-FF7R-FRAMES: ts_us=33497615625 present_id=8760 count=256 mean_us=42632 p50_us=37142 p95_us=72109 p99_us=134176 max_us=580479
+info:  DXVK-FF7R-FRAMES: ts_us=33506926500 present_id=9016 count=256 mean_us=36370 p50_us=35710 p95_us=47418 p99_us=57653 max_us=74118
+info:  DXVK-FF7R-FRAMES: ts_us=33516641505 present_id=9272 count=256 mean_us=37948 p50_us=37925 p95_us=48540 p99_us=58011 max_us=70219
+info:  DXVK-FF7R-FRAMES: ts_us=33526686157 present_id=9528 count=256 mean_us=39236 p50_us=35100 p95_us=56693 p99_us=294985 max_us=347159
