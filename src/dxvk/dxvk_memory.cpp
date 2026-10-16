@@ -1811,6 +1811,52 @@ namespace dxvk {
       }
     };
 
+    // On OOM, distinguish genuinely empty/reclaimable chunks from memory
+    // retained by live suballocations. This is observational only: do not
+    // relocate resources or change allocation policy from the failure path.
+    auto countPoolPressure = [&] (
+            uint64_t&       liveChunks,
+            uint64_t&       occupiedChunks,
+            VkDeviceSize&   liveBytes,
+            VkDeviceSize&   occupiedBytes,
+            uint64_t&       usedPages,
+            uint64_t&       capacityPages) {
+      liveChunks = 0;
+      occupiedChunks = 0;
+      liveBytes = 0;
+      occupiedBytes = 0;
+      usedPages = 0;
+      capacityPages = 0;
+
+      auto countPool = [&] (const DxvkMemoryPool& pool) {
+        for (uint32_t i = 0; i < pool.chunks.size(); i++) {
+          const auto& chunk = pool.chunks[i];
+
+          if (!chunk.memory.memory)
+            continue;
+
+          const uint32_t pages = pool.pageAllocator.pageCount(i);
+          const uint32_t used = pool.pageAllocator.pagesUsed(i);
+
+          liveChunks++;
+          liveBytes += chunk.memory.size;
+          capacityPages += pages;
+          usedPages += used;
+
+          if (used) {
+            occupiedChunks++;
+            occupiedBytes += chunk.memory.size;
+          }
+        }
+      };
+
+      for (auto typeIndex : bit::BitMask(heap.memoryTypes)) {
+        const auto& type = m_memTypes[typeIndex];
+        countPool(type.devicePool);
+        countPool(type.mappedPool);
+      }
+    };
+
     uint64_t emptyChunksBefore = 0;
     VkDeviceSize emptyBytesBefore = 0;
     if (traceOomReclaim)
@@ -1842,6 +1888,15 @@ namespace dxvk {
       const uint64_t reclaimedBytesAfter =
         sd865PoolReclaimedBytes().load(std::memory_order_relaxed);
 
+      uint64_t liveChunksAfter = 0;
+      uint64_t occupiedChunksAfter = 0;
+      uint64_t usedPagesAfter = 0;
+      uint64_t capacityPagesAfter = 0;
+      VkDeviceSize liveBytesAfter = 0;
+      VkDeviceSize occupiedBytesAfter = 0;
+      countPoolPressure(liveChunksAfter, occupiedChunksAfter,
+        liveBytesAfter, occupiedBytesAfter, usedPagesAfter, capacityPagesAfter);
+
       Logger::err(str::format(
         "DXVK-SD865-ALLOC stage=oom_reclaim",
         " attempt_id=", traceAttemptId,
@@ -1850,6 +1905,12 @@ namespace dxvk {
         " empty_bytes_before=", emptyBytesBefore,
         " empty_chunks_after=", emptyChunksAfter,
         " empty_bytes_after=", emptyBytesAfter,
+        " live_chunks_after=", liveChunksAfter,
+        " occupied_chunks_after=", occupiedChunksAfter,
+        " live_bytes_after=", liveBytesAfter,
+        " occupied_bytes_after=", occupiedBytesAfter,
+        " used_pages_after=", usedPagesAfter,
+        " capacity_pages_after=", capacityPagesAfter,
         " reclaimed_chunks=", emptyChunksBefore >= emptyChunksAfter ? emptyChunksBefore - emptyChunksAfter : 0,
         " reclaimed_bytes=", emptyBytesBefore >= emptyBytesAfter ? emptyBytesBefore - emptyBytesAfter : 0,
         " pass_reclaimed_chunks=", reclaimedChunksAfter >= reclaimedChunksBefore ? reclaimedChunksAfter - reclaimedChunksBefore : 0,
