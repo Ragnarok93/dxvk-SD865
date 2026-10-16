@@ -175,8 +175,8 @@ namespace dxvk {
         " metrics_enabled=", env::getEnvVar("DXVK_FF7R_METRICS") == "1" ? 1 : 0,
         " alloc_trace_enabled=", env::getEnvVar("DXVK_SD865_ALLOC_TRACE") == "0" ? 0 : 1));
 
-      // Number of workers that can process pipeline pipelines with normal
-      // priority. Any other workers can only build high-priority pipelines.
+      // Distribute workers across wakeup groups. All groups can service
+      // every priority queue; dequeue order enforces task priority.
       uint32_t npWorkerCount = std::max(((workerCount - 1) * 5) / 7, 1u);
       uint32_t lpWorkerCount = std::max(((workerCount - 1) * 2) / 7, 1u);
 
