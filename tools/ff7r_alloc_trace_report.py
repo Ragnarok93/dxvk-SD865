@@ -12,7 +12,7 @@ from pathlib import Path
 
 MARKER = "DXVK-SD865-ALLOC stage="
 KV = re.compile(r"([a-z][a-z0-9_]*)=([^\s]+)", re.IGNORECASE)
-STAGES = {"driver_retry", "budget_guard", "pool_exhausted", "dedicated_exhausted"}
+STAGES = {"driver_retry", "oom_reclaim", "budget_guard", "pool_exhausted", "dedicated_exhausted"}
 RESULTS = {
     "VK_SUCCESS", "VK_ERROR_OUT_OF_HOST_MEMORY", "VK_ERROR_OUT_OF_DEVICE_MEMORY",
     "VK_ERROR_TOO_MANY_OBJECTS", "VK_ERROR_INITIALIZATION_FAILED",
@@ -35,11 +35,14 @@ def summarize(lines):
         safe = {"stage": stage}
         for field in (
             "first_vkresult", "retry_vkresult", "recovered",
-            "first_attempt_id", "retry_attempt_id",
+            "first_attempt_id", "retry_attempt_id", "attempt_id",
             "requested_bytes", "memory_type", "heap", "heap_size_bytes", "dedicated",
             "dxvk_allocated_bytes", "dxvk_used_bytes", "dxvk_budget_bytes",
             "driver_allocated_bytes", "driver_budget_bytes",
-            "pool_experiment", "empty_chunks_reclaimed", "empty_bytes_reclaimed",
+            "pool_experiment", "reclaim_pass_chunks", "reclaim_pass_bytes",
+            "reclaim_total_chunks", "reclaim_total_bytes",
+            "empty_chunks_before", "empty_bytes_before", "empty_chunks_after", "empty_bytes_after",
+            "reclaimed_chunks", "reclaimed_bytes", "pass_reclaimed_chunks", "pass_reclaimed_bytes",
             "flags", "buffer_usage", "driver_call",
             "requested_memory_types_mask", "eligible_memory_types_mask",
             "property_flags", "alignment", "has_dedicated_info",

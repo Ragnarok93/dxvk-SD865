@@ -4,12 +4,15 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - feature/ff7r-sd865-architecture-20261011
+      - feature/ff7r-adreno650-telemetry-20261014
     paths:
       - '.github/workflows/ff7r-alloc-trace-dxvk271-wcp.yml'
       - 'src/d3d11/d3d11_main.cpp'
       - 'src/dxgi/dxgi_swapchain.cpp'
       - 'src/dxvk/dxvk_memory.cpp'
+      - 'src/dxvk/dxvk_context.cpp'
+      - 'src/dxvk/dxvk_context_state.h'
+      - 'src/dxvk/dxvk_graphics.cpp'
       - 'package-release.sh'
       - 'tools/ff7r_alloc_trace_report.py'
       - 'tests/test_ff7r_alloc_trace_report.py'
@@ -18,6 +21,12 @@ on:
       - 'tools/package_gamenative_wcp.py'
       - 'tests/test_gamenative_wcp.py'
       - 'docs/FF7R-SD865-OPTIMIZATION-ARCHITECTURE.md'
+      - 'docs/FF7R-DXVK-3.1.1-BACKPORT-LEDGER.md'
+      - 'docs/FF7R-ADRENO650-DXVK-BACKPORT-AUDIT.md'
+
+concurrency:
+  group: ff7r-dxvk271-wcp-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -66,7 +75,41 @@ jobs:
           grep -Fq 'DXVK_SD865_ALLOC_DIAG_WCP' src/dxvk/dxvk_memory.cpp
           grep -Fq 'stage=driver_retry' src/dxvk/dxvk_memory.cpp
           grep -Fq 'retry_vkresult=' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'reclaim_pass_chunks=' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'reclaim_total_bytes=' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'live_chunks_after=' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'occupied_bytes_after=' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'capacity_pages_after=' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'sd865AllocTraceAllowOomEvent' src/dxvk/dxvk_memory.cpp
           grep -Fq 'stage=pool_exhausted' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'if (rsInfo.rasterizerDiscardEnable)' src/dxvk/dxvk_graphics.cpp
+          grep -Fq 'if (!m_flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard))' src/dxvk/dxvk_graphics.cpp
+          grep -Fq 'info.pRasterizationState      = &key.prState.rsInfo;' src/dxvk/dxvk_graphics.cpp
+
+          grep -Fq 'GpDynamicViewport' src/dxvk/dxvk_context_state.h
+          grep -Fq 'GpDynamicViewport' src/dxvk/dxvk_context.cpp
+          grep -Fq 'm_flags.all(DxvkContextFlag::GpDirtyViewport,' src/dxvk/dxvk_context.cpp
+          grep -Fq 'if (!flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard))' src/dxvk/dxvk_graphics.cpp
+          python3 - <<'PY'
+          from pathlib import Path
+
+          graphics = Path("src/dxvk/dxvk_graphics.cpp").read_text()
+          ctor_start = graphics.index("DxvkGraphicsPipelineDynamicState::DxvkGraphicsPipelineDynamicState(")
+          ctor_end = graphics.index("bool DxvkGraphicsPipelineDynamicState::eq", ctor_start)
+          ctor = graphics[ctor_start:ctor_end]
+          discard_guard = ctor.index("if (!flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard))")
+          assert ctor.index("if (state.useDynamicVertexStrides())") < discard_guard
+          assert ctor.index("VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT") > discard_guard
+          assert ctor.index("VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT") > discard_guard
+
+          context = Path("src/dxvk/dxvk_context.cpp").read_text()
+          assert "m_flags.all(DxvkContextFlag::GpDirtyViewport,\n                             DxvkContextFlag::GpDynamicViewport)" in context
+          discard_block_start = context.index("Rasterizer discard pipelines do not declare raster-related dynamic state.")
+          discard_block = context[discard_block_start:context.index("// If necessary, dirty descriptor sets", discard_block_start)]
+          for flag in ("GpDynamicViewport", "GpDynamicRasterizerState", "GpDirtyViewport", "GpDirtyRasterizerState"):
+              assert flag in discard_block, flag
+          print("Rasterizer-discard dynamic-state source contract passed")
+          PY
 
       - name: Cross-compile PE x64 and x32
         shell: bash

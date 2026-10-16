@@ -24,7 +24,20 @@ namespace dxvk {
     m_perfHints         (getPerfHints()),
     m_objects           (this),
     m_submissionQueue   (this, queueCallback) {
-
+    // Report effective FFVII Remake optimization/diagnostic state. The
+    // pipeline lookup cache is enabled unless explicitly disabled with =0;
+    // timing instrumentation stays opt-in to avoid perturbing normal runs.
+    const bool ff7rMetrics = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    const bool ff7rOnDemand = env::getEnvVar("DXVK_FF7R_ONDEMAND") == "1";
+    const bool ff7rLookupCache = env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_CACHE") != "0";
+    const bool ff7rLookupVictim = env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_VICTIM") != "0";
+    const bool ff7rSkipDuplicateBinds = env::getEnvVar("DXVK_FF7R_SKIP_DUPLICATE_BINDS") == "1";
+    Logger::info(str::format("DXVK-FF7R-TELEMETRY: metrics=", ff7rMetrics ? 1 : 0,
+      " on_demand=", ff7rOnDemand ? 1 : 0,
+      " lookup_cache=", ff7rLookupCache ? 1 : 0,
+      " lookup_victim=", ff7rLookupVictim ? 1 : 0,
+      " skip_duplicate_binds=", ff7rSkipDuplicateBinds ? 1 : 0,
+      " device=", m_properties.core.properties.deviceName));
   }
   
   
@@ -683,6 +696,7 @@ namespace dxvk {
 
     applyTristate(tilerMode, m_options.tilerMode);
     hints.preferRenderPassOps = tilerMode;
+    hints.preferCachedMemory = tilerMode;
 
     // Honeykrisp does not have native support for secondary command buffers
     // and would suffer from added CPU overhead, so be less aggressive.

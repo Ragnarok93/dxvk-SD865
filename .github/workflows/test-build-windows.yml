@@ -1,6 +1,6 @@
 name: Test Builds on Windows
 
-on: [push, pull_request, workflow_dispatch]
+on: [workflow_dispatch]
 
 jobs:
   build-set-windows:
@@ -13,6 +13,12 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 0
+
+    - name: Test FFVII Remake performance log parser
+      shell: pwsh
+      run: |
+        python -m py_compile tools/ff7r_perf_compare.py tests/test_ff7r_perf_compare.py
+        python -m unittest discover -s tests -p test_ff7r_perf_compare.py
 
     - name: Setup glslangValidator
       shell: pwsh

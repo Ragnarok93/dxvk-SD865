@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - feature/ff7r-sd865-architecture-20261011
+      - feature/ff7r-adreno650-telemetry-20261014
     paths:
       - '.github/workflows/ff7r-phase0-dxvk-wcp.yml'
       - 'src/**'
@@ -52,6 +52,22 @@ jobs:
 
       - name: Verify attribution tests
         run: python3 -m unittest discover -s tests -v
+
+      - name: Verify duplicate-bind opt-in contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'const bool ff7rSkipDuplicateBinds = env::getEnvVar("DXVK_FF7R_SKIP_DUPLICATE_BINDS") == "1";' src/dxvk/dxvk_device.cpp
+          grep -Fq 'env::getEnvVar("DXVK_FF7R_SKIP_DUPLICATE_BINDS") == "1"' src/dxvk/dxvk_cmdlist.cpp
+
+      - name: Verify per-attempt allocator trace contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'traceAttemptId != 0u' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'attempt_id=", traceAttemptId' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'pass_reclaimed_chunks=' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'uint64_t               traceAttemptId = 0u' src/dxvk/dxvk_memory.h
 
       - name: Cross-compile PE x64 and x32
         shell: bash

@@ -34,8 +34,15 @@ namespace dxvk {
 
 
   static bool sd865AllocTraceAllowEvent() {
-    // Multiple memory types and retry loops can fail during a single OOM.
-    // Cap costly log operations rather than flood Wine's stderr channel.
+    // Cap driver retry details independently from OOM reclaim summaries.
+    static std::atomic<uint32_t> emitted { 0u };
+    return emitted.fetch_add(1u, std::memory_order_relaxed) < 128u;
+  }
+
+
+  static bool sd865AllocTraceAllowOomEvent() {
+    // A busy retry loop must not consume the entire budget for the paired
+    // reclaim event. Keep a separate bounded budget for each diagnostic stage.
     static std::atomic<uint32_t> emitted { 0u };
     return emitted.fetch_add(1u, std::memory_order_relaxed) < 128u;
   }
@@ -630,7 +637,11 @@ namespace dxvk {
       if (totalSize && totalSize + iter->first.size > size)
         break;
 
-      totalSize += iter->first.size;
+      // Evicted resources may require expensive relocation to system memory.
+      // Overestimate their size to limit the amount of eviction work per batch.
+      totalSize += iter->second.mode.test(DxvkAllocationMode::NoDeviceMemory)
+        ? iter->first.size * 16u
+        : iter->first.size;
 
       result.push_back(std::move(iter->second));
       m_entries.erase(iter);
@@ -1392,7 +1403,20 @@ namespace dxvk {
     VkResult firstResult = vk->vkAllocateMemory(vk->device(), &memoryInfo, nullptr, &result.memory);
 
     if (firstResult != VK_SUCCESS) {
-      freeEmptyChunksInHeap(*type.heap, VkDeviceSize(-1), high_resolution_clock::time_point());
+      // Snapshot cumulative counters around this exact failed-allocation
+      // reclaim pass. The allocator mutex is held by allocateMemory, so the
+      // delta is attributable to this attempt rather than earlier failures.
+      const uint64_t reclaimedChunksBefore =
+        sd865PoolReclaimedChunks().load(std::memory_order_relaxed);
+      const uint64_t reclaimedBytesBefore =
+        sd865PoolReclaimedBytes().load(std::memory_order_relaxed);
+
+      freeEmptyChunksInHeap(*type.heap, VkDeviceSize(-1), high_resolution_clock::time_point(), firstAttemptId);
+
+      const uint64_t reclaimedChunksAfter =
+        sd865PoolReclaimedChunks().load(std::memory_order_relaxed);
+      const uint64_t reclaimedBytesAfter =
+        sd865PoolReclaimedBytes().load(std::memory_order_relaxed);
 
       const uint64_t retryAttemptId = sd865AllocTraceNextAttempt();
       VkResult retryResult = vk->vkAllocateMemory(vk->device(), &memoryInfo, nullptr, &result.memory);
@@ -1426,8 +1450,10 @@ namespace dxvk {
           " driver_allocated_bytes=", driverHeap.memoryAllocated,
           " driver_budget_bytes=", driverHeap.memoryBudget,
           " pool_experiment=", sd865PoolExperimentEnabled() ? 1 : 0,
-          " empty_chunks_reclaimed=", sd865PoolReclaimedChunks().load(std::memory_order_relaxed),
-          " empty_bytes_reclaimed=", sd865PoolReclaimedBytes().load(std::memory_order_relaxed)));
+          " reclaim_pass_chunks=", reclaimedChunksAfter >= reclaimedChunksBefore ? reclaimedChunksAfter - reclaimedChunksBefore : 0,
+          " reclaim_pass_bytes=", reclaimedBytesAfter >= reclaimedBytesBefore ? reclaimedBytesAfter - reclaimedBytesBefore : 0,
+          " reclaim_total_chunks=", reclaimedChunksAfter,
+          " reclaim_total_bytes=", reclaimedBytesAfter));
       }
 
       if (retryResult != VK_SUCCESS)
@@ -1758,7 +1784,93 @@ namespace dxvk {
   void DxvkMemoryAllocator::freeEmptyChunksInHeap(
     const DxvkMemoryHeap&       heap,
           VkDeviceSize          allocationSize,
-          high_resolution_clock::time_point time) {
+          high_resolution_clock::time_point time,
+          uint64_t               traceAttemptId) {
+    // Only the failed-allocation call supplies an attempt ID. The destructor
+    // also uses the all-bits-set size to release every empty chunk, so the size
+    // sentinel alone must not mislabel shutdown cleanup as an OOM retry pass.
+    const bool traceOomReclaim = allocationSize == VkDeviceSize(-1)
+      && traceAttemptId != 0u
+      && sd865AllocTraceEnabled();
+
+    auto countEmptyChunks = [&] (uint64_t& count, VkDeviceSize& bytes) {
+      count = 0;
+      bytes = 0;
+
+      auto countPool = [&] (const DxvkMemoryPool& pool) {
+        for (uint32_t i = 0; i < pool.chunks.size(); i++) {
+          const auto& chunk = pool.chunks[i];
+
+          if (chunk.memory.memory && !pool.pageAllocator.pagesUsed(i)) {
+            count++;
+            bytes += chunk.memory.size;
+          }
+        }
+      };
+
+      for (auto typeIndex : bit::BitMask(heap.memoryTypes)) {
+        const auto& type = m_memTypes[typeIndex];
+        countPool(type.devicePool);
+        countPool(type.mappedPool);
+      }
+    };
+
+    // On OOM, distinguish genuinely empty/reclaimable chunks from memory
+    // retained by live suballocations. This is observational only: do not
+    // relocate resources or change allocation policy from the failure path.
+    auto countPoolPressure = [&] (
+            uint64_t&       liveChunks,
+            uint64_t&       occupiedChunks,
+            VkDeviceSize&   liveBytes,
+            VkDeviceSize&   occupiedBytes,
+            uint64_t&       usedPages,
+            uint64_t&       capacityPages) {
+      liveChunks = 0;
+      occupiedChunks = 0;
+      liveBytes = 0;
+      occupiedBytes = 0;
+      usedPages = 0;
+      capacityPages = 0;
+
+      auto countPool = [&] (const DxvkMemoryPool& pool) {
+        for (uint32_t i = 0; i < pool.chunks.size(); i++) {
+          const auto& chunk = pool.chunks[i];
+
+          if (!chunk.memory.memory)
+            continue;
+
+          const uint32_t pages = pool.pageAllocator.pageCount(i);
+          const uint32_t used = pool.pageAllocator.pagesUsed(i);
+
+          liveChunks++;
+          liveBytes += chunk.memory.size;
+          capacityPages += pages;
+          usedPages += used;
+
+          if (used) {
+            occupiedChunks++;
+            occupiedBytes += chunk.memory.size;
+          }
+        }
+      };
+
+      for (auto typeIndex : bit::BitMask(heap.memoryTypes)) {
+        const auto& type = m_memTypes[typeIndex];
+        countPool(type.devicePool);
+        countPool(type.mappedPool);
+      }
+    };
+
+    uint64_t emptyChunksBefore = 0;
+    VkDeviceSize emptyBytesBefore = 0;
+    if (traceOomReclaim)
+      countEmptyChunks(emptyChunksBefore, emptyBytesBefore);
+
+    const uint64_t reclaimedChunksBefore = traceOomReclaim
+      ? sd865PoolReclaimedChunks().load(std::memory_order_relaxed) : 0u;
+    const uint64_t reclaimedBytesBefore = traceOomReclaim
+      ? sd865PoolReclaimedBytes().load(std::memory_order_relaxed) : 0u;
+
     bool freed = false;
 
     for (auto typeIndex : bit::BitMask(heap.memoryTypes)) {
@@ -1770,6 +1882,45 @@ namespace dxvk {
 
     if (freed)
       updateMemoryHeapStats(heap.index);
+
+    if (traceOomReclaim && sd865AllocTraceAllowOomEvent()) {
+      uint64_t emptyChunksAfter = 0;
+      VkDeviceSize emptyBytesAfter = 0;
+      countEmptyChunks(emptyChunksAfter, emptyBytesAfter);
+      const uint64_t reclaimedChunksAfter =
+        sd865PoolReclaimedChunks().load(std::memory_order_relaxed);
+      const uint64_t reclaimedBytesAfter =
+        sd865PoolReclaimedBytes().load(std::memory_order_relaxed);
+
+      uint64_t liveChunksAfter = 0;
+      uint64_t occupiedChunksAfter = 0;
+      uint64_t usedPagesAfter = 0;
+      uint64_t capacityPagesAfter = 0;
+      VkDeviceSize liveBytesAfter = 0;
+      VkDeviceSize occupiedBytesAfter = 0;
+      countPoolPressure(liveChunksAfter, occupiedChunksAfter,
+        liveBytesAfter, occupiedBytesAfter, usedPagesAfter, capacityPagesAfter);
+
+      Logger::err(str::format(
+        "DXVK-SD865-ALLOC stage=oom_reclaim",
+        " attempt_id=", traceAttemptId,
+        " heap=", heap.index,
+        " empty_chunks_before=", emptyChunksBefore,
+        " empty_bytes_before=", emptyBytesBefore,
+        " empty_chunks_after=", emptyChunksAfter,
+        " empty_bytes_after=", emptyBytesAfter,
+        " live_chunks_after=", liveChunksAfter,
+        " occupied_chunks_after=", occupiedChunksAfter,
+        " live_bytes_after=", liveBytesAfter,
+        " occupied_bytes_after=", occupiedBytesAfter,
+        " used_pages_after=", usedPagesAfter,
+        " capacity_pages_after=", capacityPagesAfter,
+        " reclaimed_chunks=", emptyChunksBefore >= emptyChunksAfter ? emptyChunksBefore - emptyChunksAfter : 0,
+        " reclaimed_bytes=", emptyBytesBefore >= emptyBytesAfter ? emptyBytesBefore - emptyBytesAfter : 0,
+        " pass_reclaimed_chunks=", reclaimedChunksAfter >= reclaimedChunksBefore ? reclaimedChunksAfter - reclaimedChunksBefore : 0,
+        " pass_reclaimed_bytes=", reclaimedBytesAfter >= reclaimedBytesBefore ? reclaimedBytesAfter - reclaimedBytesBefore : 0,
+        " pool_experiment=", sd865PoolExperimentEnabled() ? 1 : 0));
+    }
   }
 
 
@@ -1831,7 +1982,10 @@ namespace dxvk {
       }
 
       if (shouldFree) {
-        if (sd865PoolExperimentEnabled()) {
+        // These counters are diagnostic evidence, not pool-policy state.
+        // Count normal OOM reclamation too; otherwise the default allocator
+        // reports zero even when it actually releases chunks.
+        if (sd865AllocTraceEnabled()) {
           sd865PoolReclaimedChunks().fetch_add(1u, std::memory_order_relaxed);
           sd865PoolReclaimedBytes().fetch_add(chunk.memory.size, std::memory_order_relaxed);
         }
@@ -2235,6 +2389,27 @@ namespace dxvk {
 
     if (!m_memTypesByPropertyFlags[hostCachedIndex])
       m_memTypesByPropertyFlags[hostCachedIndex] = m_memTypesByPropertyFlags[hostCoherentIndex];
+
+    uint32_t hostVisibleVramIndex = uint32_t(
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    // If mapped allocations are zeroed, avoid host-visible device-local memory:
+    // clearing large mappings is CPU-bandwidth intensive on this path.
+    if (m_device->config().zeroMappedMemory)
+      m_memTypesByPropertyFlags[hostVisibleVramIndex] = m_memTypesByPropertyFlags[hostCoherentIndex];
+
+    // On tilers, prefer cached mappings for CPU writes. Uncached stores can
+    // be particularly expensive on ARM systems.
+    if (m_device->perfHints().preferCachedMemory) {
+      m_memTypesByPropertyFlags[hostCoherentIndex] = m_memTypesByPropertyFlags[hostCachedIndex];
+
+      // Preserve the zeroMappedMemory policy: clearing mapped allocations
+      // should not redirect host-visible device-local requests back to HVV.
+      if (!m_device->config().zeroMappedMemory)
+        m_memTypesByPropertyFlags[hostVisibleVramIndex] = m_memTypesByPropertyFlags[hostCachedIndex];
+    }
   }
 
 
@@ -2417,7 +2592,25 @@ namespace dxvk {
 
   uint32_t DxvkMemoryAllocator::getMemoryTypeMask(
           VkMemoryPropertyFlags properties) const {
-    return m_memTypesByPropertyFlags[uint32_t(properties) % uint32_t(m_memTypesByPropertyFlags.size())];
+    uint32_t index = uint32_t(properties);
+    uint32_t count = uint32_t(m_memTypesByPropertyFlags.size());
+
+    if (likely(index < count))
+      return m_memTypesByPropertyFlags[index];
+
+    // If we get asked for uncommon memory properties, scan
+    // memory types for the requested flags.
+    uint32_t mask = 0u;
+
+    for (uint32_t i = 0u; i < m_memTypes.size(); i++) {
+      if ((m_memTypes[i].properties.propertyFlags & properties) == properties)
+        mask |= 1u << i;
+    }
+
+    if (!mask)
+      mask = m_memTypesByPropertyFlags[index % count];
+
+    return mask;
   }
 
 

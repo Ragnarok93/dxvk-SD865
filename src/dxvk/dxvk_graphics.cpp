@@ -1,5 +1,6 @@
-#include <iomanip>
+#include <atomic>
 #include <chrono>
+#include <iomanip>
 
 #include "../util/util_time.h"
 #include "../util/sync/sync_spinlock.h"
@@ -280,8 +281,8 @@ namespace dxvk {
     uint32_t fsOutputMask = shaders.fs ? shaders.fs->info().outputMask : 0u;
 
     // Dual-source blending can only write to one render target
-    if (state.useDualSourceBlending())
-      fsOutputMask &= 0x1;
+    uint32_t rtCount = state.useDualSourceBlending()
+      ? 1u : uint32_t(MaxNumRenderTargets);
 
     const VkColorComponentFlags rgbaWriteMask
       = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
@@ -292,7 +293,7 @@ namespace dxvk {
 
     feedbackLoop = state.om.feedbackLoop();
 
-    for (uint32_t i = 0; i < MaxNumRenderTargets; i++) {
+    for (uint32_t i = 0; i < rtCount; i++) {
       rtColorFormats[i] = state.rt.getColorFormat(i);
 
       if (rtColorFormats[i]) {
@@ -325,6 +326,19 @@ namespace dxvk {
                 std::exchange(cbAttachments[i].dstAlphaBlendFactor, VK_BLEND_FACTOR_ZERO));
               cbAttachments[i].colorBlendOp =
                 std::exchange(cbAttachments[i].alphaBlendOp, VK_BLEND_OP_ADD);
+            }
+
+            // If dual-source blending is enabled but the fragment shader does
+            // not export a second output, replace dual-source factors with zero.
+            if (!i && cbAttachments[i].blendEnable && !(fsOutputMask & 0x2u)) {
+              if (util::isDualSourceBlendFactor(cbAttachments[i].srcColorBlendFactor))
+                cbAttachments[i].srcColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+              if (util::isDualSourceBlendFactor(cbAttachments[i].dstColorBlendFactor))
+                cbAttachments[i].dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+              if (util::isDualSourceBlendFactor(cbAttachments[i].srcAlphaBlendFactor))
+                cbAttachments[i].srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+              if (util::isDualSourceBlendFactor(cbAttachments[i].dstAlphaBlendFactor))
+                cbAttachments[i].dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
             }
           }
         }
@@ -553,11 +567,6 @@ namespace dxvk {
     // Set up tessellation state
     tsInfo.patchControlPoints = state.ia.patchVertexCount();
     
-    // Set up basic rasterization state
-    rsInfo.depthClampEnable         = VK_TRUE;
-    rsInfo.polygonMode              = state.rs.polygonMode();
-    rsInfo.lineWidth                = 1.0f;
-
     // Set up rasterized stream depending on geometry shader state.
     // Rasterizing stream 0 is default behaviour in all situations.
     int32_t streamIndex = shaders.gs ? shaders.gs->info().xfbRasterizedStream : 0;
@@ -568,6 +577,21 @@ namespace dxvk {
     } else if (streamIndex < 0) {
       rsInfo.rasterizerDiscardEnable = VK_TRUE;
     }
+
+    // If the geometry shader does not export a position, no primitives can
+    // be rasterized. Keep transform feedback behavior, but skip rasterization.
+    if (shaders.gs && !shaders.gs->flags().test(DxvkShaderFlag::ExportsPosition))
+      rsInfo.rasterizerDiscardEnable = VK_TRUE;
+
+    // Rasterizer discard makes the remaining rasterization state irrelevant.
+    // Leave it at its zero-initialized values to avoid unnecessary variants.
+    if (rsInfo.rasterizerDiscardEnable)
+      return;
+
+    // Set up basic rasterization state
+    rsInfo.depthClampEnable         = VK_TRUE;
+    rsInfo.polygonMode              = state.rs.polygonMode();
+    rsInfo.lineWidth                = 1.0f;
 
     // Set up depth clip state. If the extension is not supported,
     // use depth clamp instead, even though this is not accurate.
@@ -757,45 +781,43 @@ namespace dxvk {
     const DxvkDevice*                     device,
     const DxvkGraphicsPipelineStateInfo&  state,
           DxvkGraphicsPipelineFlags       flags) {
-    dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT;
-    dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT;
+    if (state.useDynamicVertexStrides())
+      dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE;
 
     if (!flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard)) {
+      dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT;
+      dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT;
       dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_BIAS;
       dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE;
       dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_CULL_MODE;
       dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_FRONT_FACE;
-    }
 
-    if (state.useDynamicVertexStrides())
-      dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE;
+      if (state.useDynamicDepthBounds() && device->features().core.features.depthBounds) {
+        dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_BOUNDS;
+        dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE;
+      }
 
-    if (state.useDynamicDepthBounds() && device->features().core.features.depthBounds) {
-      dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_BOUNDS;
-      dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE;
-    }
+      if (state.useDynamicBlendConstants())
+        dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_BLEND_CONSTANTS;
 
-    if (state.useDynamicBlendConstants())
-      dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_BLEND_CONSTANTS;
+      if (state.useDynamicDepthTest()) {
+        dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE;
+        dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_COMPARE_OP;
+        dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE;
+      }
 
-    if (state.useDynamicDepthTest()) {
-      dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE;
-      dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_COMPARE_OP;
-      dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE;
-    }
-
-    if (state.useDynamicStencilTest()) {
-      dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE;
-      dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_STENCIL_OP;
-      dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK;
-      dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_STENCIL_REFERENCE;
-      dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_STENCIL_WRITE_MASK;
+      if (state.useDynamicStencilTest()) {
+        dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE;
+        dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_STENCIL_OP;
+        dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK;
+        dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_STENCIL_REFERENCE;
+        dyStates[dyInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_STENCIL_WRITE_MASK;
+      }
     }
 
     if (dyInfo.dynamicStateCount)
       dyInfo.pDynamicStates = dyStates.data();
   }
-
 
   bool DxvkGraphicsPipelineDynamicState::eq(const DxvkGraphicsPipelineDynamicState& other) const {
     bool eq = dyInfo.dynamicStateCount == other.dyInfo.dynamicStateCount;
@@ -1024,7 +1046,8 @@ namespace dxvk {
                          |  VK_ACCESS_TRANSFORM_FEEDBACK_WRITE_BIT_EXT;
       }
 
-      if (m_shaders.gs->info().xfbRasterizedStream < 0)
+      if (m_shaders.gs->info().xfbRasterizedStream < 0
+       || !m_shaders.gs->flags().test(DxvkShaderFlag::ExportsPosition))
         m_flags.set(DxvkGraphicsPipelineFlag::HasRasterizerDiscard);
     }
     
@@ -1070,7 +1093,9 @@ namespace dxvk {
     if (unlikely(!instance)) {
       // The fast path is untouched. Time only cache misses that can block
       // the game render thread, including waiting for the pipeline mutex.
-      static const bool ff7rPerfEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+      static const bool ff7rPerfEnabled =
+        env::getEnvVar("DXVK_FF7R_METRICS") == "1"
+     && env::getEnvVar("DXVK_FF7R_ONDEMAND") == "1";
       static std::atomic<uint64_t> slowCount { 0 }, slowUs { 0 };
       static std::atomic<uint64_t> slowOver10ms { 0 }, slowOver33ms { 0 };
       auto slowStart = ff7rPerfEnabled
@@ -1228,11 +1253,97 @@ namespace dxvk {
   
   DxvkGraphicsPipelineInstance* DxvkGraphicsPipeline::findInstance(
     const DxvkGraphicsPipelineStateInfo& state) {
-    for (auto& instance : m_pipelines) {
-      if (instance.state == state)
-        return &instance;
+    static const bool ff7rLookupCacheEnabled = env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_CACHE") != "0";
+    static const bool ff7rMetricsEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+
+    // The last-hit cache is enabled by default: it only shortcuts equality
+    // lookup for an already-published immutable state instance. Set the
+    // environment variable to 0 to disable it for A/B tests. Metrics remain
+    // opt-in because timing and logging perturb the hot path.
+    auto findUnmeasured = [&]() -> DxvkGraphicsPipelineInstance* {
+      if (ff7rLookupCacheEnabled) {
+        DxvkGraphicsPipelineInstance* cached = m_lastInstance.load(std::memory_order_acquire);
+        if (cached && cached->state == state)
+          return cached;
+      }
+
+      for (auto& instance : m_pipelines) {
+        if (instance.state == state) {
+          if (ff7rLookupCacheEnabled)
+            m_lastInstance.store(&instance, std::memory_order_release);
+          return &instance;
+        }
+      }
+
+      return nullptr;
+    };
+
+    if (!ff7rMetricsEnabled)
+      return findUnmeasured();
+
+    static std::atomic<uint64_t> lookupCalls { 0 };
+    static std::atomic<uint64_t> sampleCount { 0 };
+    static std::atomic<uint64_t> sampleTimeNs { 0 };
+    static std::atomic<uint64_t> sampleEntries { 0 };
+    static std::atomic<uint64_t> sampleCacheHits { 0 };
+    static std::atomic<uint64_t> sampleMaxNs { 0 };
+    static std::atomic<uint64_t> sampleMaxEntries { 0 };
+
+    const uint64_t callId = lookupCalls.fetch_add(1, std::memory_order_relaxed) + 1;
+    const bool sample = (callId & 255u) == 0;
+
+    if (!sample)
+      return findUnmeasured();
+
+    const auto startTime = std::chrono::steady_clock::now();
+
+    auto recordSample = [&](uint64_t scanned, bool cacheHit) {
+      const uint64_t elapsedNs = uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now() - startTime).count());
+      sampleTimeNs.fetch_add(elapsedNs, std::memory_order_relaxed);
+      sampleEntries.fetch_add(scanned, std::memory_order_relaxed);
+      if (cacheHit)
+        sampleCacheHits.fetch_add(1, std::memory_order_relaxed);
+
+      uint64_t oldMaxNs = sampleMaxNs.load(std::memory_order_relaxed);
+      while (oldMaxNs < elapsedNs && !sampleMaxNs.compare_exchange_weak(
+          oldMaxNs, elapsedNs, std::memory_order_relaxed)) { }
+      uint64_t oldMaxEntries = sampleMaxEntries.load(std::memory_order_relaxed);
+      while (oldMaxEntries < scanned && !sampleMaxEntries.compare_exchange_weak(
+          oldMaxEntries, scanned, std::memory_order_relaxed)) { }
+
+      const uint64_t samples = sampleCount.fetch_add(1, std::memory_order_relaxed) + 1;
+      if (samples == 1 || (samples & 15u) == 0) {
+        Logger::info(str::format(
+          "DXVK-FF7R-LOOKUP: samples=", samples,
+          " mean_ns=", sampleTimeNs.load(std::memory_order_relaxed) / samples,
+          " mean_entries=", sampleEntries.load(std::memory_order_relaxed) / samples,
+          " cache_hit_pct=", (sampleCacheHits.load(std::memory_order_relaxed) * 100) / samples,
+          " max_ns=", sampleMaxNs.load(std::memory_order_relaxed),
+          " max_entries=", sampleMaxEntries.load(std::memory_order_relaxed)));
+      }
+    };
+
+    if (ff7rLookupCacheEnabled) {
+      DxvkGraphicsPipelineInstance* cached = m_lastInstance.load(std::memory_order_acquire);
+      if (cached && cached->state == state) {
+        recordSample(0, true);
+        return cached;
+      }
     }
-    
+
+    uint64_t scanned = 0;
+    for (auto& instance : m_pipelines) {
+      scanned++;
+      if (instance.state == state) {
+        if (ff7rLookupCacheEnabled)
+          m_lastInstance.store(&instance, std::memory_order_release);
+        recordSample(scanned, false);
+        return &instance;
+      }
+    }
+
+    recordSample(scanned, false);
     return nullptr;
   }
   
@@ -1456,32 +1567,37 @@ namespace dxvk {
 
     VkPipelineCreateFlags2CreateInfo flags = { VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO };
 
-    if (key.foState.feedbackLoop & VK_IMAGE_ASPECT_COLOR_BIT)
-      flags.flags |= VK_PIPELINE_CREATE_2_COLOR_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT;
+    if (!m_flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard)) {
+      if (key.foState.feedbackLoop & VK_IMAGE_ASPECT_COLOR_BIT)
+        flags.flags |= VK_PIPELINE_CREATE_2_COLOR_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT;
 
-    if (key.foState.feedbackLoop & VK_IMAGE_ASPECT_DEPTH_BIT)
-      flags.flags |= VK_PIPELINE_CREATE_2_DEPTH_STENCIL_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT;
+      if (key.foState.feedbackLoop & VK_IMAGE_ASPECT_DEPTH_BIT)
+        flags.flags |= VK_PIPELINE_CREATE_2_DEPTH_STENCIL_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT;
+    }
 
     if (m_device->canUseDescriptorBuffer())
       flags.flags |= VK_PIPELINE_CREATE_2_DESCRIPTOR_BUFFER_BIT_EXT;
 
-    VkGraphicsPipelineCreateInfo info = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, &key.foState.rtInfo };
+    VkGraphicsPipelineCreateInfo info = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
     info.stageCount               = stageInfo.getStageCount();
     info.pStages                  = stageInfo.getStageInfos();
     info.pVertexInputState        = &key.viState.viInfo;
     info.pInputAssemblyState      = &key.viState.iaInfo;
-    info.pTessellationState       = &key.prState.tsInfo;
-    info.pViewportState           = &key.prState.vpInfo;
     info.pRasterizationState      = &key.prState.rsInfo;
-    info.pMultisampleState        = &key.foState.msInfo;
-    info.pDepthStencilState       = &key.fsState.dsInfo;
-    info.pColorBlendState         = &key.foState.cbInfo;
     info.pDynamicState            = &key.dyState.dyInfo;
     info.layout                   = m_layout.getLayout(DxvkPipelineLayoutType::Merged)->getPipelineLayout();
     info.basePipelineIndex        = -1;
-    
-    if (!key.prState.tsInfo.patchControlPoints)
-      info.pTessellationState = nullptr;
+
+    if (key.prState.tsInfo.patchControlPoints)
+      info.pTessellationState     = &key.prState.tsInfo;
+
+    if (!m_flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard)) {
+      info.pNext                  = &key.foState.rtInfo;
+      info.pViewportState         = &key.prState.vpInfo;
+      info.pMultisampleState      = &key.foState.msInfo;
+      info.pDepthStencilState     = &key.fsState.dsInfo;
+      info.pColorBlendState       = &key.foState.cbInfo;
+    }
 
     if (flags.flags)
       flags.pNext = std::exchange(info.pNext, &flags);

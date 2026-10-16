@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstring>
 #include <map>
@@ -9,7 +10,38 @@
 #include "dxvk_context.h"
 
 namespace dxvk {
-  
+
+  namespace {
+
+    void recordFf7rPipelineLookup(bool graphics, bool hit, bool victimHit = false) {
+      static std::atomic<uint64_t> graphicsLookups { 0 };
+      static std::atomic<uint64_t> graphicsHits { 0 };
+      static std::atomic<uint64_t> graphicsVictimHits { 0 };
+      static std::atomic<uint64_t> computeLookups { 0 };
+      static std::atomic<uint64_t> computeHits { 0 };
+      static std::atomic<uint64_t> computeVictimHits { 0 };
+
+      auto& lookups = graphics ? graphicsLookups : computeLookups;
+      auto& hits = graphics ? graphicsHits : computeHits;
+      auto& victimHits = graphics ? graphicsVictimHits : computeVictimHits;
+
+      if (hit)
+        hits.fetch_add(1, std::memory_order_relaxed);
+      if (victimHit)
+        victimHits.fetch_add(1, std::memory_order_relaxed);
+
+      const uint64_t count = lookups.fetch_add(1, std::memory_order_relaxed) + 1;
+      if ((count & 0xfffffu) == 0) {
+        Logger::info(str::format("DXVK-FF7R-LOOKUP-CACHE: point=",
+          graphics ? "graphics" : "compute",
+          " calls=", count,
+          " hits=", hits.load(std::memory_order_relaxed),
+          " victim_hits=", victimHits.load(std::memory_order_relaxed)));
+      }
+    }
+
+  }
+
   DxvkContext::DxvkContext(const Rc<DxvkDevice>& device)
   : m_device      (device),
     m_common      (&device->m_objects),
@@ -2130,7 +2162,8 @@ namespace dxvk {
       
       if ((clearAspects | discardAspects) & VK_IMAGE_ASPECT_COLOR_BIT) {
         clearStages |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        clearAccess |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        clearAccess |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+                    |  VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
 
         attachmentInfo.loadOp = colorOp.loadOp;
 
@@ -2145,7 +2178,8 @@ namespace dxvk {
       } else {
         clearStages |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT
                     |  VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-        clearAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        clearAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+                    |  VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
 
         if (imageView->info().aspects & VK_IMAGE_ASPECT_DEPTH_BIT) {
           renderingInfo.pDepthAttachment = &attachmentInfo;
@@ -2356,7 +2390,10 @@ namespace dxvk {
     for (const auto& clear : m_deferredClears) {
       int32_t attachmentIndex = -1;
 
-      if (useRenderPass && m_state.om.framebufferInfo.isFullSize(clear.imageView))
+      // Don't try to fuse clears with feedback loops. Clearing an area that is
+      // also being read requires a barrier between the clear and the first draw.
+      if (useRenderPass && m_state.om.framebufferInfo.isFullSize(clear.imageView)
+       && !(m_state.gp.state.om.feedbackLoop() & clear.imageView->info().aspects))
         attachmentIndex = m_state.om.framebufferInfo.findAttachment(clear.imageView);
 
       this->performClear(clear.imageView, attachmentIndex,
@@ -2462,17 +2499,20 @@ namespace dxvk {
                                           | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT
                                           | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 
-      bool needsNewBackingStorage = (dstImage->info().stages & graphicsStages)
-        && dstImage->isTracked(m_trackingId, DxvkAccess::Write);
+      bool needsNewBackingStorage = false;
 
-      if (needsNewBackingStorage && dstImage->hasGfxStores()) {
-        needsNewBackingStorage = resourceHasAccess(*dstImage, dstSubresource, DxvkAccess::Read, DxvkAccessOp::None)
-                              || resourceHasAccess(*dstImage, dstSubresource, DxvkAccess::Write, DxvkAccessOp::None);
+      if (dstImage->info().stages & graphicsStages) {
+        // We never make MSAA passes unsynchronized, so this should be fine
+        if (dstImage->hasGfxStores()) {
+          needsNewBackingStorage = resourceHasAccess(*dstImage, dstSubresource, DxvkAccess::Read, DxvkAccessOp::None)
+                                || resourceHasAccess(*dstImage, dstSubresource, DxvkAccess::Write, DxvkAccessOp::None);
+        } else {
+          dstImage->trackGfxStores();
+
+          needsNewBackingStorage = dstImage->isTracked(
+            m_trackingId, DxvkAccess::Write);
+        }
       }
-
-      // Enable tracking so that we don't unnecessarily hit slow paths in the future
-      if (dstImage->info().stages & graphicsStages)
-        dstImage->trackGfxStores();
 
       if (needsNewBackingStorage) {
         auto imageSubresource = dstImage->getAvailableSubresources();
@@ -3975,7 +4015,10 @@ namespace dxvk {
     DxvkImageUsageInfo imageUsage = { };
     imageUsage.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
 
-    ensureImageCompatibility(image, imageUsage);
+    if (!ensureImageCompatibility(image, imageUsage)) {
+      Logger::err("DxvkContext: copyImageToBufferCs: Failed to make image shader-readable.");
+      return;
+    }
 
     flushPendingAccesses(*image, imageSubresource,
       imageOffset, imageExtent, DxvkAccess::Read);
@@ -5557,15 +5600,9 @@ namespace dxvk {
         VkPipelineStageFlags2 depthStages =
           VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
           VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
-        VkAccessFlags2 depthAccess = VK_ACCESS_2_NONE;
+        VkAccessFlags2 depthAccess = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
 
-        if (((depthAspects & VK_IMAGE_ASPECT_DEPTH_BIT) && ops.depthOps.loadOpD == VK_ATTACHMENT_LOAD_OP_LOAD)
-         || ((depthAspects & VK_IMAGE_ASPECT_STENCIL_BIT) && ops.depthOps.loadOpS == VK_ATTACHMENT_LOAD_OP_LOAD))
-          depthAccess |= VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
-
-        if (((depthAspects & VK_IMAGE_ASPECT_DEPTH_BIT) && ops.depthOps.loadOpD != VK_ATTACHMENT_LOAD_OP_LOAD)
-         || ((depthAspects & VK_IMAGE_ASPECT_STENCIL_BIT) && ops.depthOps.loadOpS != VK_ATTACHMENT_LOAD_OP_LOAD)
-         || (layout != VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL))
+        if (layout != VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
           depthAccess |= VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
         if (layout != VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
@@ -5589,10 +5626,8 @@ namespace dxvk {
         VkImageLayout layout = colorAttachment.view->getLayout();
 
         if (layout != ops.colorOps[i].loadLayout) {
-          VkAccessFlags2 colorAccess = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-
-          if (ops.colorOps[i].loadOp == VK_ATTACHMENT_LOAD_OP_LOAD)
-            colorAccess |= VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT;
+          VkAccessFlags2 colorAccess = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
+                                     | VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT;
 
           accessImage(DxvkCmdBuffer::ExecBuffer,
             *colorAttachment.view->image(),
@@ -6073,10 +6108,17 @@ namespace dxvk {
                 DxvkContextFlag::GpDynamicStencilTest,
                 DxvkContextFlag::GpDynamicMultisampleState,
                 DxvkContextFlag::GpDynamicRasterizerState,
+                DxvkContextFlag::GpDynamicViewport,
                 DxvkContextFlag::GpHasPushData,
                 DxvkContextFlag::GpIndependentSets);
     
-    m_flags.set(m_state.gp.state.useDynamicBlendConstants()
+    bool hasRasterizerDiscard = m_state.gp.flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard);
+
+    m_flags.set(!hasRasterizerDiscard
+      ? DxvkContextFlag::GpDynamicViewport
+      : DxvkContextFlag::GpDirtyViewport);
+
+    m_flags.set(!hasRasterizerDiscard && m_state.gp.state.useDynamicBlendConstants()
       ? DxvkContextFlag::GpDynamicBlendConstants
       : DxvkContextFlag::GpDirtyBlendConstants);
     
@@ -6139,6 +6181,34 @@ namespace dxvk {
 
       m_flags.set(
         DxvkContextFlag::GpDirtyMultisampleState);
+    }
+
+    if (m_state.gp.flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard)) {
+      // Rasterizer discard pipelines do not declare raster-related dynamic state.
+      // Keep those states dirty so the next rasterizing pipeline emits them,
+      // but never issue dynamic commands against the discard pipeline.
+      m_flags.clr(
+        DxvkContextFlag::GpDynamicBlendConstants,
+        DxvkContextFlag::GpDynamicDepthBias,
+        DxvkContextFlag::GpDynamicDepthBounds,
+        DxvkContextFlag::GpDynamicDepthClip,
+        DxvkContextFlag::GpDynamicDepthTest,
+        DxvkContextFlag::GpDynamicStencilTest,
+        DxvkContextFlag::GpDynamicMultisampleState,
+        DxvkContextFlag::GpDynamicRasterizerState,
+        DxvkContextFlag::GpDynamicViewport);
+
+      m_flags.set(
+        DxvkContextFlag::GpDirtyBlendConstants,
+        DxvkContextFlag::GpDirtyDepthBias,
+        DxvkContextFlag::GpDirtyDepthBounds,
+        DxvkContextFlag::GpDirtyDepthClip,
+        DxvkContextFlag::GpDirtyDepthTest,
+        DxvkContextFlag::GpDirtyStencilTest,
+        DxvkContextFlag::GpDirtyStencilRef,
+        DxvkContextFlag::GpDirtyMultisampleState,
+        DxvkContextFlag::GpDirtyRasterizerState,
+        DxvkContextFlag::GpDirtyViewport);
     }
 
     // If necessary, dirty descriptor sets due to layout incompatibilities
@@ -7133,7 +7203,8 @@ namespace dxvk {
 
   
   void DxvkContext::updateDynamicState() {
-    if (unlikely(m_flags.test(DxvkContextFlag::GpDirtyViewport))) {
+    if (unlikely(m_flags.all(DxvkContextFlag::GpDirtyViewport,
+                             DxvkContextFlag::GpDynamicViewport))) {
       m_flags.clr(DxvkContextFlag::GpDirtyViewport);
 
       // Clamp scissor against rendering area. Not doing so is technically
@@ -7192,8 +7263,8 @@ namespace dxvk {
       m_cmd->cmdSetBlendConstants(&m_state.dyn.blendConstants.r);
     }
 
-    if (m_flags.all(DxvkContextFlag::GpDirtyRasterizerState,
-                    DxvkContextFlag::GpDynamicRasterizerState)) {
+    if (unlikely(m_flags.all(DxvkContextFlag::GpDirtyRasterizerState,
+                             DxvkContextFlag::GpDynamicRasterizerState))) {
       m_flags.clr(DxvkContextFlag::GpDirtyRasterizerState);
 
       m_cmd->cmdSetRasterizerState(
@@ -7228,8 +7299,8 @@ namespace dxvk {
       }
     }
 
-    if (m_flags.all(DxvkContextFlag::GpDirtyStencilTest,
-                    DxvkContextFlag::GpDynamicStencilTest)) {
+    if (unlikely(m_flags.all(DxvkContextFlag::GpDirtyStencilTest,
+                             DxvkContextFlag::GpDynamicStencilTest))) {
       m_flags.clr(DxvkContextFlag::GpDirtyStencilTest);
 
       if (m_state.dyn.depthStencilState.stencilTest()) {
@@ -7265,16 +7336,16 @@ namespace dxvk {
       }
     }
 
-    if (m_flags.all(DxvkContextFlag::GpDirtyStencilRef,
-                    DxvkContextFlag::GpDynamicStencilTest)) {
+    if (unlikely(m_flags.all(DxvkContextFlag::GpDirtyStencilRef,
+                             DxvkContextFlag::GpDynamicStencilTest))) {
       m_flags.clr(DxvkContextFlag::GpDirtyStencilRef);
 
       m_cmd->cmdSetStencilReference(VK_STENCIL_FRONT_AND_BACK,
         m_state.dyn.stencilReference);
     }
     
-    if (m_flags.all(DxvkContextFlag::GpDirtyDepthBias,
-                    DxvkContextFlag::GpDynamicDepthBias)) {
+    if (unlikely(m_flags.all(DxvkContextFlag::GpDirtyDepthBias,
+                             DxvkContextFlag::GpDynamicDepthBias))) {
       m_flags.clr(DxvkContextFlag::GpDirtyDepthBias);
 
       if (m_device->features().extDepthBiasControl.depthBiasControl) {
@@ -7297,8 +7368,8 @@ namespace dxvk {
       }
     }
     
-    if (m_flags.all(DxvkContextFlag::GpDirtyDepthBounds,
-                    DxvkContextFlag::GpDynamicDepthBounds)) {
+    if (unlikely(m_flags.all(DxvkContextFlag::GpDirtyDepthBounds,
+                             DxvkContextFlag::GpDynamicDepthBounds))) {
       m_flags.clr(DxvkContextFlag::GpDirtyDepthBounds);
 
       m_cmd->cmdSetDepthBounds(
@@ -7329,9 +7400,8 @@ namespace dxvk {
     if (unlikely(pushData.isEmpty()))
       return;
 
-    if ((bit::tzcnt(pushData.getResourceDwordMask() + 1u) * 4u) >= pushData.getSize()) {
-      // All push data comes from resource updates, which means it
-      // is already in the correct layout. Commit directly.
+    if (!layout->needsPushDataGather()) {
+      // Resource-only push data is already in the correct layout.
       m_cmd->cmdPushConstants(DxvkCmdBuffer::ExecBuffer,
         layout->getPipelineLayout(),
         pushData.getStageMask(),
@@ -7339,48 +7409,12 @@ namespace dxvk {
         pushData.getSize(),
         &m_state.pc.resourceData[pushData.getOffset()]);
     } else {
-      // Gather push data for all the different blocks
+      // Use the layout's precomputed copy ranges instead of rebuilding the
+      // resource-mask copy plan at draw frequency.
       std::array<char, MaxTotalPushDataSize> data;
-
-      for (auto i : bit::BitMask(layout->getPushDataMask())) {
-        auto block = layout->getPushDataBlock(i);
-        auto blockSize = block.getSize();
-
-        auto srcOffset = computePushDataBlockOffset(i);
-        auto dstOffset = block.getOffset();
-
-        auto constantData = &m_state.pc.constantData[srcOffset];
-        auto resourceData = &m_state.pc.resourceData[dstOffset];
-
-        auto dstData = &data[dstOffset];
-
-        uint32_t rangeOffset = 0u;
-
-        // Copy chunks of dwords either from the constant data array or
-        // the resource data array, depending on the resource mask.
-        uint64_t resourceMask = block.getResourceDwordMask();
-
-        while (resourceMask) {
-          uint32_t dwordIndex = bit::tzcnt(resourceMask);
-          uint32_t dwordCount = bit::tzcnt(resourceMask + (resourceMask & -resourceMask));
-
-          uint32_t byteIndex = dwordIndex * sizeof(uint32_t);
-          uint32_t byteCount = dwordCount * sizeof(uint32_t);
-
-          std::memcpy(&dstData[rangeOffset],
-            &constantData[rangeOffset], byteIndex);
-
-          std::memcpy(&dstData[rangeOffset + byteIndex],
-            &resourceData[rangeOffset + byteIndex],
-            byteCount - byteIndex);
-
-          resourceMask >>= dwordCount;
-          rangeOffset += byteCount;
-        }
-
-        std::memcpy(&dstData[rangeOffset],
-          &constantData[rangeOffset], blockSize - rangeOffset);
-      }
+      layout->gatherPushData(data.data(),
+        m_state.pc.constantData.data(),
+        m_state.pc.resourceData.data());
 
       m_cmd->cmdPushConstants(DxvkCmdBuffer::ExecBuffer,
         layout->getPipelineLayout(),
@@ -7444,14 +7478,15 @@ namespace dxvk {
 
     if (m_flags.test(DxvkContextFlag::GpXfbActive)) {
       // If transform feedback is active and there is a chance that we might
-      // need to rebind the pipeline, we need to end transform feedback and
-      // issue a barrier. End the render pass to do that. Ignore dirty vertex
-      // buffers here since non-dynamic vertex strides are such an extreme
-      // edge case that it's likely irrelevant in practice.
+      // need to rebind the pipeline, pause transform feedback and check for
+      // hazards without necessarily ending the current render pass. Ignore
+      // dirty vertex buffers here since non-dynamic vertex strides are an
+      // extreme edge case.
       if (m_flags.any(DxvkContextFlag::GpDirtyPipelineState,
-                      DxvkContextFlag::GpDirtySpecConstants,
-                      DxvkContextFlag::GpDirtyXfbBuffers))
-        this->spillRenderPass(true);
+                      DxvkContextFlag::GpDirtySpecConstants)) {
+        m_flags.set(DxvkContextFlag::GpDirtyXfbBuffers);
+        this->pauseTransformFeedback();
+      }
     }
 
     if (m_flags.test(DxvkContextFlag::GpRenderPassSideEffects)
@@ -7680,7 +7715,7 @@ namespace dxvk {
      && m_state.gp.flags.test(DxvkGraphicsPipelineFlag::HasTransformFeedback)) {
       for (uint32_t i = 0; i < MaxNumXfbBuffers; i++) {
         const auto& xfbBufferSlice = m_state.xfb.buffers[i];
-        const auto& xfbCounterSlice = m_state.xfb.activeCounters[i];
+        const auto& xfbCounterSlice = m_state.xfb.counters[i];
 
         if (xfbBufferSlice.length()) {
           requiresBarrier |= !xfbBufferSlice.buffer()->trackGfxStores();
@@ -8204,23 +8239,81 @@ namespace dxvk {
 
   DxvkGraphicsPipeline* DxvkContext::lookupGraphicsPipeline(
     const DxvkGraphicsPipelineShaders&  shaders) {
-    auto idx = shaders.hash() % m_gpLookupCache.size();
-    
-    if (unlikely(!m_gpLookupCache[idx] || !shaders.eq(m_gpLookupCache[idx]->shaders())))
-      m_gpLookupCache[idx] = m_common->pipelineManager().createGraphicsPipeline(shaders);
+    static const bool useLookupCache =
+      env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_CACHE") != "0";
+    static const bool metricsEnabled =
+      env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    static const bool useVictimCache =
+      env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_VICTIM") != "0";
 
-    return m_gpLookupCache[idx];
+    if (!useLookupCache) {
+      if (metricsEnabled)
+        recordFf7rPipelineLookup(true, false);
+      return m_common->pipelineManager().createGraphicsPipeline(shaders);
+    }
+
+    auto idx = shaders.hash() % m_gpLookupCache.size();
+    auto* pipeline = m_gpLookupCache[idx];
+    bool hit = pipeline && shaders.eq(pipeline->shaders());
+    bool victimHit = false;
+
+    if (!hit && useVictimCache) {
+      pipeline = m_gpLookupCacheVictim[idx];
+      victimHit = pipeline && shaders.eq(pipeline->shaders());
+    }
+
+    if (metricsEnabled)
+      recordFf7rPipelineLookup(true, hit || victimHit, victimHit);
+
+    if (victimHit) {
+      std::swap(m_gpLookupCache[idx], m_gpLookupCacheVictim[idx]);
+    } else if (!hit) {
+      if (useVictimCache)
+        m_gpLookupCacheVictim[idx] = m_gpLookupCache[idx];
+      m_gpLookupCache[idx] = m_common->pipelineManager().createGraphicsPipeline(shaders);
+    }
+
+    return hit || victimHit ? pipeline : m_gpLookupCache[idx];
   }
 
 
   DxvkComputePipeline* DxvkContext::lookupComputePipeline(
     const DxvkComputePipelineShaders&   shaders) {
-    auto idx = shaders.hash() % m_cpLookupCache.size();
-    
-    if (unlikely(!m_cpLookupCache[idx] || !shaders.eq(m_cpLookupCache[idx]->shaders())))
-      m_cpLookupCache[idx] = m_common->pipelineManager().createComputePipeline(shaders);
+    static const bool useLookupCache =
+      env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_CACHE") != "0";
+    static const bool metricsEnabled =
+      env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    static const bool useVictimCache =
+      env::getEnvVar("DXVK_FF7R_PIPELINE_LOOKUP_VICTIM") != "0";
 
-    return m_cpLookupCache[idx];
+    if (!useLookupCache) {
+      if (metricsEnabled)
+        recordFf7rPipelineLookup(false, false);
+      return m_common->pipelineManager().createComputePipeline(shaders);
+    }
+
+    auto idx = shaders.hash() % m_cpLookupCache.size();
+    auto* pipeline = m_cpLookupCache[idx];
+    bool hit = pipeline && shaders.eq(pipeline->shaders());
+    bool victimHit = false;
+
+    if (!hit && useVictimCache) {
+      pipeline = m_cpLookupCacheVictim[idx];
+      victimHit = pipeline && shaders.eq(pipeline->shaders());
+    }
+
+    if (metricsEnabled)
+      recordFf7rPipelineLookup(false, hit || victimHit, victimHit);
+
+    if (victimHit) {
+      std::swap(m_cpLookupCache[idx], m_cpLookupCacheVictim[idx]);
+    } else if (!hit) {
+      if (useVictimCache)
+        m_cpLookupCacheVictim[idx] = m_cpLookupCache[idx];
+      m_cpLookupCache[idx] = m_common->pipelineManager().createComputePipeline(shaders);
+    }
+
+    return hit || victimHit ? pipeline : m_cpLookupCache[idx];
   }
 
 
@@ -8611,6 +8704,11 @@ namespace dxvk {
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.image = image.handle();
     barrier.subresourceRange = subresources;
+
+    // Depth/stencil images may require both aspects in a barrier even when
+    // the tracked access covers only one aspect.
+    if (barrier.subresourceRange.aspectMask & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
+      barrier.subresourceRange.aspectMask = image.formatInfo()->aspectMask;
 
     batch.addImageBarrier(barrier);
 

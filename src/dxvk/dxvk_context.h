@@ -1405,8 +1405,16 @@ namespace dxvk {
     std::array<DxvkBufferSlice, MaxNumUniformBufferSlots> m_uniformBuffers;
     std::array<DxvkViewPair, MaxNumResourceSlots> m_resources;
 
-    std::array<DxvkGraphicsPipeline*, 4096> m_gpLookupCache = { };
-    std::array<DxvkComputePipeline*,   256> m_cpLookupCache = { };
+    // A small victim slot reduces direct-mapped cache conflict misses while
+    // keeping the common lookup to one shader-key comparison.
+    // FF7R revisits a broad graphics-pipeline set. Double the direct-mapped
+    // working set to reduce hash conflicts without adding comparisons to hits.
+    // The extra pointer storage is 64 KiB per context; the common path remains
+    // one primary lookup plus the existing victim lookup on a primary miss.
+    std::array<DxvkGraphicsPipeline*, 8192> m_gpLookupCache = { };
+    std::array<DxvkGraphicsPipeline*, 8192> m_gpLookupCacheVictim = { };
+    std::array<DxvkComputePipeline*,   512> m_cpLookupCache = { };
+    std::array<DxvkComputePipeline*,   512> m_cpLookupCacheVictim = { };
 
     std::vector<VkImageMemoryBarrier2> m_imageLayoutTransitions;
 

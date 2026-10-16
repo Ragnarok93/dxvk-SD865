@@ -1,8 +1,51 @@
 
+#include <atomic>
+
 #include "dxvk_cmdlist.h"
 #include "dxvk_device.h"
 
 namespace dxvk {
+
+  void recordFf7rPipelineBind(VkPipelineBindPoint bindPoint, bool skipped) {
+    // Bind counters are diagnostic only. Avoid two contended atomic updates
+    // per bind in normal runs; duplicate-bind suppression remains independent.
+    static const bool metricsEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    if (!metricsEnabled)
+      return;
+
+    static std::atomic<uint64_t> graphicsCalls { 0 };
+    static std::atomic<uint64_t> graphicsSkipped { 0 };
+    static std::atomic<uint64_t> computeCalls { 0 };
+    static std::atomic<uint64_t> computeSkipped { 0 };
+
+    std::atomic<uint64_t>* calls = nullptr;
+    std::atomic<uint64_t>* skippedCalls = nullptr;
+
+    switch (bindPoint) {
+      case VK_PIPELINE_BIND_POINT_GRAPHICS:
+        calls = &graphicsCalls;
+        skippedCalls = &graphicsSkipped;
+        break;
+      case VK_PIPELINE_BIND_POINT_COMPUTE:
+        calls = &computeCalls;
+        skippedCalls = &computeSkipped;
+        break;
+      default:
+        return;
+    }
+
+    if (skipped)
+      skippedCalls->fetch_add(1, std::memory_order_relaxed);
+
+    const uint64_t callCount = calls->fetch_add(1, std::memory_order_relaxed) + 1;
+    if ((callCount & 0xfffffu) == 0) {
+      Logger::info(str::format("DXVK-FF7R-BINDS: point=",
+        bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS ? "graphics" : "compute",
+        " calls=", callCount,
+        " skipped=", skippedCalls->load(std::memory_order_relaxed)));
+    }
+  }
+
 
   DxvkCommandSubmission::DxvkCommandSubmission() {
 
@@ -382,6 +425,9 @@ namespace dxvk {
     // reasonably expect that to always get used. Saves some checks
     // during command recording.
     m_cmd = DxvkCommandSubmissionInfo();
+    m_boundPipelines = { };
+    m_execBufferPipelineStateBackup = { };
+    m_execBufferPipelineStateBackupActive = false;
     m_cmd.cmdBuffers[uint32_t(DxvkCmdBuffer::ExecBuffer)] = allocateCommandBuffer(DxvkCmdBuffer::ExecBuffer);
   }
   
@@ -409,6 +455,7 @@ namespace dxvk {
 
     // Reset all command buffer handles
     m_cmd = DxvkCommandSubmissionInfo();
+    m_boundPipelines = { };
 
     // Increment queue submission count
     uint64_t submissionCount = m_cmdSubmissions.size();
@@ -431,6 +478,7 @@ namespace dxvk {
         m_cmd.cmdBuffers[i] = cmdBuffer == DxvkCmdBuffer::ExecBuffer
           ? allocateCommandBuffer(cmdBuffer)
           : VK_NULL_HANDLE;
+        m_boundPipelines[i] = { };
 
         push = true;
       }
@@ -476,6 +524,7 @@ namespace dxvk {
 
     m_cmdSubmissions.clear();
     m_cmdSparseBinds.clear();
+    m_boundPipelines = { };
 
     m_wsiSemaphores = PresenterSync();
 
@@ -740,7 +789,18 @@ namespace dxvk {
     if (m_device->canUseDescriptorBuffer())
       bindDescriptorBuffers(secondary);
 
-    m_execBuffer = std::exchange(m_cmd.cmdBuffers[uint32_t(DxvkCmdBuffer::ExecBuffer)], secondary);
+    // Pipeline state belongs to a command buffer. The slot temporarily points
+    // at the secondary buffer, so isolate tracking only when duplicate-bind
+    // suppression is enabled; the default path pays no extra state-copy cost.
+    static const bool ff7rSkipDuplicateBinds =
+      env::getEnvVar("DXVK_FF7R_SKIP_DUPLICATE_BINDS") == "1";
+    auto execSlot = uint32_t(DxvkCmdBuffer::ExecBuffer);
+    if (ff7rSkipDuplicateBinds) {
+      m_execBufferPipelineStateBackup = m_boundPipelines[execSlot];
+      m_boundPipelines[execSlot] = { };
+      m_execBufferPipelineStateBackupActive = true;
+    }
+    m_execBuffer = std::exchange(m_cmd.cmdBuffers[execSlot], secondary);
   }
 
 
@@ -750,8 +810,16 @@ namespace dxvk {
     if (m_vkd->vkEndCommandBuffer(cmd))
       throw DxvkError("DxvkCommandList: Failed to end secondary command buffer");
 
-    m_cmd.cmdBuffers[uint32_t(DxvkCmdBuffer::ExecBuffer)] = m_execBuffer;
+    auto execSlot = uint32_t(DxvkCmdBuffer::ExecBuffer);
+    m_cmd.cmdBuffers[execSlot] = m_execBuffer;
     m_execBuffer = VK_NULL_HANDLE;
+
+    // Restore the primary buffer's tracked state after secondary recording.
+    if (m_execBufferPipelineStateBackupActive) {
+      m_boundPipelines[execSlot] = m_execBufferPipelineStateBackup;
+      m_execBufferPipelineStateBackup = { };
+      m_execBufferPipelineStateBackupActive = false;
+    }
     return cmd;
   }
 

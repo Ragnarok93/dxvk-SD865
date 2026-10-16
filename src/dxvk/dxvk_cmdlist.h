@@ -1,6 +1,9 @@
 #pragma once
 
+#include <array>
 #include <limits>
+
+#include "../util/util_env.h"
 
 #include "dxvk_bind_mask.h"
 #include "dxvk_buffer.h"
@@ -240,6 +243,10 @@ namespace dxvk {
    * When the command list has completed execution, resources that
    * are no longer used may get destroyed.
    */
+  // Records opt-in FFVII Remake pipeline-bind telemetry.
+  void recordFf7rPipelineBind(VkPipelineBindPoint bindPoint, bool skipped);
+
+
   class DxvkCommandList : public RcObject {
     
   public:
@@ -649,8 +656,38 @@ namespace dxvk {
             DxvkCmdBuffer           cmdBuffer,
             VkPipelineBindPoint     pipelineBindPoint,
             VkPipeline              pipeline) {
-      m_vkd->vkCmdBindPipeline(getCmdBuffer(cmdBuffer),
-        pipelineBindPoint, pipeline);
+      static const bool ff7rSkipDuplicateBinds =
+        env::getEnvVar("DXVK_FF7R_SKIP_DUPLICATE_BINDS") != "0";
+      static const bool ff7rMetricsEnabled =
+        env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+
+      VkCommandBuffer commandBuffer = getCmdBuffer(cmdBuffer);
+      bool skip = false;
+
+      if (ff7rSkipDuplicateBinds && pipeline != VK_NULL_HANDLE) {
+        auto& bound = m_boundPipelines[uint32_t(cmdBuffer)];
+        VkPipeline* lastPipeline = nullptr;
+
+        switch (pipelineBindPoint) {
+          case VK_PIPELINE_BIND_POINT_GRAPHICS: lastPipeline = &bound.graphics; break;
+          case VK_PIPELINE_BIND_POINT_COMPUTE:  lastPipeline = &bound.compute;  break;
+          default: break;
+        }
+
+        if (lastPipeline) {
+          if (*lastPipeline == pipeline) {
+            skip = true;
+          } else {
+            *lastPipeline = pipeline;
+          }
+        }
+      }
+
+      if (ff7rMetricsEnabled)
+        recordFf7rPipelineBind(pipelineBindPoint, skip);
+
+      if (!skip)
+        m_vkd->vkCmdBindPipeline(commandBuffer, pipelineBindPoint, pipeline);
     }
 
 
@@ -1255,7 +1292,16 @@ namespace dxvk {
     }
 
   private:
-    
+
+    struct BoundPipelineState {
+      VkPipeline graphics = VK_NULL_HANDLE;
+      VkPipeline compute  = VK_NULL_HANDLE;
+    };
+
+    std::array<BoundPipelineState, uint32_t(DxvkCmdBuffer::Count)> m_boundPipelines = { };
+    BoundPipelineState m_execBufferPipelineStateBackup = { };
+    bool m_execBufferPipelineStateBackupActive = false;
+
     DxvkDevice*               m_device;
     Rc<vk::DeviceFn>          m_vkd;
     Rc<vk::InstanceFn>        m_vki;
@@ -1308,6 +1354,7 @@ namespace dxvk {
 
       // Allocate a new command buffer if necessary
       buffer = allocateCommandBuffer(cmdBuffer);
+      m_boundPipelines[uint32_t(cmdBuffer)] = { };
       m_cmd.cmdBuffers[uint32_t(cmdBuffer)] = buffer;
       return buffer;
     }

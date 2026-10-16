@@ -1256,6 +1256,16 @@ namespace dxvk {
       return m_pushData.blocks[index];
     }
 
+    /**
+     * \brief Checks whether push data requires a gather operation.
+     */
+    bool needsPushDataGather() const;
+
+    /**
+     * \brief Gathers packed push data using precomputed dword copy ranges.
+     */
+    void gatherPushData(void* dst, const void* srcData, const void* srcResources) const;
+
   private:
 
     DxvkDevice*             m_device;
@@ -1269,10 +1279,19 @@ namespace dxvk {
       VkPipelineLayout  layout = VK_NULL_HANDLE;
     } m_legacy;
 
+    struct PushDataCopy {
+      bool    isResource      = false;
+      uint8_t srcDwordOffset  = 0u;
+      uint8_t dstDwordOffset  = 0u;
+      uint8_t dwordCount      = 0u;
+    };
+
     struct {
       DxvkPushDataBlock mergedBlock = { };
       uint32_t          blockMask   = 0u;
       std::array<DxvkPushDataBlock, DxvkPushDataBlock::MaxBlockCount> blocks = { };
+      small_vector<PushDataCopy, 8u> copies;
+      bool              needsGather = false;
     } m_pushData;
 
     struct {
@@ -1284,6 +1303,10 @@ namespace dxvk {
 
     void initPipelineLayout(
       const DxvkPipelineLayoutKey&      key);
+
+    void initPushDataCopy();
+
+    void addPushDataCopyEntry(const PushDataCopy& entry);
 
   };
 

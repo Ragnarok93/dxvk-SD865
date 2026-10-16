@@ -52,6 +52,7 @@ namespace dxvk {
     GpDynamicStencilTest,       ///< Stencil test state is dynamic
     GpDynamicMultisampleState,  ///< Multisample state is dynamic
     GpDynamicRasterizerState,   ///< Cull mode and front face are dynamic
+    GpDynamicViewport,          ///< Viewport state is dynamic. Disabled for rasterizer discard.
     GpDynamicVertexStrides,     ///< Vertex buffer strides are dynamic
     GpHasPushData,              ///< Graphics pipeline uses push data
     GpIndependentSets,          ///< Graphics pipeline layout was created with independent sets
