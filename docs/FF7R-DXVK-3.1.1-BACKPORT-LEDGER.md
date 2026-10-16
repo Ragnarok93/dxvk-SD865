@@ -186,7 +186,8 @@ The relocation entry stores `DxvkAllocationModes` (a flags wrapper), not a singl
 
 - Audited upstream [`84c34155aa093a55d2e57032c93696cae0899515`](https://github.com/doitsujin/dxvk/commit/84c34155aa093a55d2e57032c93696cae0899515), which raises storage-image and storage-texel-buffer capacity from `MaxSets / 64` to `MaxSets / 4` in upstream's fixed `MaxSets = 1024` pool (16 to 256 descriptors per type).
 - **No source change retained:** this fork sizes pools dynamically at 24,576 sets on 32-bit hosts and 49,152 on 64-bit hosts. Its current `m_maxSets / 64` already reserves 384 and 768 descriptors per type, respectively—more than upstream's post-fix 256. Blindly changing the divisor to `/ 4` would reserve 6,144–12,288 per type and could unnecessarily increase driver-side pool memory on the 12 GB unified-memory target.
-- Next evidence gate: capture the actual `vkAllocateDescriptorSets` result rather than collapsing every error to a null handle; specifically distinguish `VK_ERROR_OUT_OF_POOL_MEMORY`, `VK_ERROR_FRAGMENTED_POOL`, and device OOM. Only change the pool sizing if a representative workload demonstrates descriptor exhaustion, then stress pool reuse and monitor system-memory pressure. Vulkan 1.3 compatibility is unchanged.
+- Added diagnostic logging around `vkAllocateDescriptorSets`: expected pool exhaustion/fragmentation is debug-level, while other allocation errors are warning-level and preserve the numeric `VkResult`. Allocation fallback behavior is unchanged.
+- Next evidence gate: run a representative capture with debug logging enabled and distinguish `VK_ERROR_OUT_OF_POOL_MEMORY`, `VK_ERROR_FRAGMENTED_POOL`, and device OOM. Only change pool sizing if descriptor exhaustion is demonstrated, then stress pool reuse and monitor system-memory pressure. Vulkan 1.3 compatibility is unchanged.
 
 ## Persistent DXBC-to-SPIR-V shader-cache dependency audit (2026-10-16)
 
