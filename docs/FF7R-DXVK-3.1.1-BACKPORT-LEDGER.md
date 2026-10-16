@@ -141,3 +141,9 @@ Source: committed companion log `logs/ff7remake__d3d11.txt` at branch head `039a
 - The existing discard-state backport then omits irrelevant rasterization state and dynamic commands. No Vulkan feature newer than 1.3 is required.
 - Expected benefit is limited to geometry-shader pipelines without position output (including upstream's stated D3D9 SWVP case); do not assume this is exercised by FFVII Remake or claim a game-level speedup without a matched capture.
 - Validation: WCP x86/x64 builds; confirm the shader metadata marks `ExportsPosition` correctly for geometry shaders; test GS pipelines with/without position output, with transform feedback, and normal rasterizing GS pipelines.
+
+## Resource-allocation reference-count release ordering (2026-10-16)
+
+- Backported upstream [`8dc04230705481734d67875c34a7e8801c850c28`](https://github.com/doitsujin/dxvk/commit/8dc04230705481734d67875c34a7e8801c850c28): change the final resource-allocation reference decrement from acquire-only to release ordering, matching the upstream lifetime/allocator handoff semantics.
+- This is a small atomic-ordering correction in the allocator's refcount path; it does not change allocation sizes, retry policy, or Vulkan API requirements. Treat any CPU-side performance effect as unmeasured.
+- Validation: WCP x86/x64 builds, allocation/release stress, and device-side memory-pressure testing. Revisit if allocator stress or thread sanitizer testing identifies a lifetime-ordering concern.
