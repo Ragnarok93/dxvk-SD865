@@ -8711,6 +8711,11 @@ namespace dxvk {
     barrier.image = image.handle();
     barrier.subresourceRange = subresources;
 
+    // Depth/stencil images may require both aspects in a barrier even when
+    // the tracked access covers only one aspect.
+    if (barrier.subresourceRange.aspectMask & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
+      barrier.subresourceRange.aspectMask = image.formatInfo()->aspectMask;
+
     batch.addImageBarrier(barrier);
 
     if (cmdBuffer == DxvkCmdBuffer::ExecBuffer) {

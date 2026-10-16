@@ -126,3 +126,10 @@ Source: committed companion log `logs/ff7remake__d3d11.txt` at branch head `039a
 2. Do not increase compiler threads based on queue backlog alone. Audit priority scheduling and on-demand compilation separately, and compare a matched four-worker baseline before changing it.
 3. Keep the hash-indexed variant-table series deferred because the measured lookup scan is small and the last-hit cache is effective.
 4. Preserve the current branch and Vulkan 1.3 baseline. The WCP allocation-trace and phase-0 builds passed on source commit `c6b1135f8378ca069c833c432143c78e07d60ae3` (runs [38889643669](https://github.com/Ragnarok93/dxvk-SD865/actions/runs/38889643669) and [38889643714](https://github.com/Ragnarok93/dxvk-SD865/actions/runs/38889643714)); telemetry tooling tests passed on log-only head `039a6779` (run [38891987510](https://github.com/Ragnarok93/dxvk-SD865/actions/runs/38891987510)). The latest ledger-only commit has not been rerun through CI. No matched device A/B result or performance gain is established.
+
+## Depth/stencil image barrier aspect correction (2026-10-16)
+
+- Adapted upstream [`30f6f8338e3f88aadfd38aa8fc6fc0d35b1c70cc`](https://github.com/doitsujin/dxvk/commit/30f6f8338e3f88aadfd38aa8fc6fc0d35b1c70cc).
+- When emitting an image access barrier for a depth/stencil format, the barrier range now includes the image format's complete aspect mask rather than only the tracked aspect. This addresses edge cases where a depth image is subsequently used as a compute resource and the barrier would omit the stencil aspect (or vice versa).
+- Compatibility: uses existing Vulkan 1.3 barrier structures and no new extension or feature. This is a correctness/validation fix, not a performance claim.
+- Validation: WCP x86/x64 builds; Vulkan validation where available; smoke tests for depth-only, stencil, and combined depth/stencil images, including render-to-compute transitions. Keep the change limited to the normal `accessImage` barrier path; layout-transition and transfer ownership paths have their own subresource semantics.
