@@ -6,6 +6,7 @@ on:
     branches:
       - feature/ff7r-sd865-architecture-20261011
       - feature/ff7r-adreno650-telemetry-20261014
+      - feature/ff7r-oom-pressure-vulkan13-20261016
     paths:
       - '.github/workflows/ff7r-alloc-trace-dxvk271-wcp.yml'
       - 'src/d3d11/d3d11_main.cpp'
@@ -69,6 +70,9 @@ jobs:
           grep -Fq 'retry_vkresult=' src/dxvk/dxvk_memory.cpp
           grep -Fq 'reclaim_pass_chunks=' src/dxvk/dxvk_memory.cpp
           grep -Fq 'reclaim_total_bytes=' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'live_chunks_after=' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'occupied_bytes_after=' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'capacity_pages_after=' src/dxvk/dxvk_memory.cpp
           grep -Fq 'sd865AllocTraceAllowOomEvent' src/dxvk/dxvk_memory.cpp
           grep -Fq 'stage=pool_exhausted' src/dxvk/dxvk_memory.cpp
 
