@@ -220,10 +220,10 @@ namespace dxvk {
     static std::atomic<uint64_t> libraryQueueWaitOver10ms { 0 }, libraryQueueWaitOver33ms { 0 };
     static std::atomic<uint64_t> optimizedQueueWaitUs { 0 }, optimizedQueueWaitCount { 0 };
     static std::atomic<uint64_t> optimizedQueueWaitOver10ms { 0 }, optimizedQueueWaitOver33ms { 0 };
-    static std::array<std::atomic<uint64_t>, 3> priorityQueueWaitUs { { 0 }, { 0 }, { 0 } };
-    static std::array<std::atomic<uint64_t>, 3> priorityQueueWaitCount { { 0 }, { 0 }, { 0 } };
-    static std::array<std::atomic<uint64_t>, 3> priorityQueueWaitOver10ms { { 0 }, { 0 }, { 0 } };
-    static std::array<std::atomic<uint64_t>, 3> priorityQueueWaitOver33ms { { 0 }, { 0 }, { 0 } };
+    static std::array<std::atomic<uint64_t>, 3> priorityQueueWaitUs { 0, 0, 0 };
+    static std::array<std::atomic<uint64_t>, 3> priorityQueueWaitCount { 0, 0, 0 };
+    static std::array<std::atomic<uint64_t>, 3> priorityQueueWaitOver10ms { 0, 0, 0 };
+    static std::array<std::atomic<uint64_t>, 3> priorityQueueWaitOver33ms { 0, 0, 0 };
 
     const uint32_t maxPriorityIndex = uint32_t(maxPriority);
     env::setThreadName(str::format("dxvk-shader-", suffixes.at(maxPriorityIndex)));
