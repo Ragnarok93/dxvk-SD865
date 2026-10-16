@@ -75,6 +75,10 @@ jobs:
           grep -Fq 'reclaim_total_bytes=' src/dxvk/dxvk_memory.cpp
           grep -Fq 'sd865AllocTraceAllowOomEvent' src/dxvk/dxvk_memory.cpp
           grep -Fq 'stage=pool_exhausted' src/dxvk/dxvk_memory.cpp
+          # Guard the isolated rasterizer-discard state reduction against accidental removal.
+          grep -Fq 'if (rsInfo.rasterizerDiscardEnable)' src/dxvk/dxvk_graphics.cpp
+          grep -Fq 'if (!m_flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard))' src/dxvk/dxvk_graphics.cpp
+          grep -Fq 'info.pRasterizationState      = &key.prState.rsInfo;' src/dxvk/dxvk_graphics.cpp
 
       - name: Cross-compile PE x64 and x32
         shell: bash
