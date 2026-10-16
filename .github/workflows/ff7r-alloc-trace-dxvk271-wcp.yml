@@ -6,12 +6,12 @@ on:
     branches:
       - feature/ff7r-sd865-architecture-20261011
       - feature/ff7r-adreno650-telemetry-20261014
-      - feature/ff7r-oom-pressure-vulkan13-20261016
     paths:
       - '.github/workflows/ff7r-alloc-trace-dxvk271-wcp.yml'
       - 'src/d3d11/d3d11_main.cpp'
       - 'src/dxgi/dxgi_swapchain.cpp'
       - 'src/dxvk/dxvk_memory.cpp'
+      - 'src/dxvk/dxvk_graphics.cpp'
       - 'package-release.sh'
       - 'tools/ff7r_alloc_trace_report.py'
       - 'tests/test_ff7r_alloc_trace_report.py'
@@ -20,6 +20,8 @@ on:
       - 'tools/package_gamenative_wcp.py'
       - 'tests/test_gamenative_wcp.py'
       - 'docs/FF7R-SD865-OPTIMIZATION-ARCHITECTURE.md'
+      - 'docs/FF7R-DXVK-3.1.1-BACKPORT-LEDGER.md'
+      - 'docs/FF7R-ADRENO650-DXVK-BACKPORT-AUDIT.md'
 
 permissions:
   contents: write
@@ -75,6 +77,9 @@ jobs:
           grep -Fq 'capacity_pages_after=' src/dxvk/dxvk_memory.cpp
           grep -Fq 'sd865AllocTraceAllowOomEvent' src/dxvk/dxvk_memory.cpp
           grep -Fq 'stage=pool_exhausted' src/dxvk/dxvk_memory.cpp
+          grep -Fq 'if (rsInfo.rasterizerDiscardEnable)' src/dxvk/dxvk_graphics.cpp
+          grep -Fq 'if (!m_flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard))' src/dxvk/dxvk_graphics.cpp
+          grep -Fq 'info.pRasterizationState      = &key.prState.rsInfo;' src/dxvk/dxvk_graphics.cpp
 
       - name: Cross-compile PE x64 and x32
         shell: bash
