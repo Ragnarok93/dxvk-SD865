@@ -166,8 +166,7 @@ namespace dxvk {
             requested, " valid_base_range=1..8"));
         }
 
-        workerCount = std::clamp(workerCount, 1u, 8u) * 2;
-        countSource += "-doubled";
+        workerCount = std::clamp(workerCount, 1u, 8u);
       }
       workerCount = std::clamp(workerCount, 1u, 64u);
       Logger::warn(str::format("DXVK-SD865-CONFIG: sha=", DXVK_SD865_BUILD_SHA,
