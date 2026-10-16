@@ -33,8 +33,13 @@ Status: active review ledger for the unified working branch `feature/ff7r-adreno
 
 ## Next implementation/verification gates
 
-1. Automated telemetry/report tests passed on the latest source checkpoint; x86/x64 cross-compilation and WCP packaging passed on commit `0e8136f`.
+1. Current verified gates: telemetry-tool tests passed at `0d8737f9f4b07254e6bf99d22ad3374d6d58c536` in [run #38880814788](https://github.com/Ragnarok93/dxvk-SD865/actions/runs/38880814788); x86/x64 cross-compilation and WCP packaging passed at `7764af18b03e1ac068f065d2d4f0fcf43eb3a9b2` in [run #38879612618](https://github.com/Ragnarok93/dxvk-SD865/actions/runs/38879612618). The exact documentation-follow-up head still needs its own WCP run to complete before claiming packaging is verified for that SHA.
 2. Use matched Adreno 650 captures to decide whether the tiler render-area backport, push-data gather, lookup victim slots, and duplicate-bind suppression are retained. Do not report a speedup without real device results.
 3. Use the `DXVK-FF7R-LOOKUP` scan count to decide whether the pipeline-variant table is worth the added complexity.
 4. WCP CI passed for the rasterizer-discard pipeline and dynamic-state reductions on `7764af18b03e1ac068f065d2d4f0fcf43eb3a9b2` (run [38879612618]). Next gate: test discard↔normal pipeline transitions and visual correctness on Adreno 650 before matched device A/B testing.
 5. Keep flush suppression, allocator policy changes, and persistent shader-cache backports deferred until their workload-specific contracts are verified.
+
+
+## Additional upstream triage (2026-10-16)
+- Reviewed upstream DXVK commit [`5cbf10835ec21e23d6aaeccfa4cffc5630276dc4`](https://github.com/doitsujin/dxvk/commit/5cbf10835ec21e23d6aaeccfa4cffc5630276dc4), which adjusts dual-source blending when a fragment shader does not export a second color output. This is primarily a correctness/compatibility fix, not a demonstrated FFVII Remake CPU optimization; it also changes render-target iteration and blend-factor normalization. Do not import it as an optimization without confirming the relevant shader-output metadata and blend-factor helper contracts in this 2.7.1 fork.
+- No additional source optimization was applied in this pass: rasterizer-discard runtime correctness remains the active validation gate, and the deferred pipeline-table/allocator changes lack workload evidence. Keep Vulkan 1.3 compatibility and WCP-only packaging.
