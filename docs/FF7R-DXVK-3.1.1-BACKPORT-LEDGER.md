@@ -84,3 +84,11 @@ Status: active review ledger for the unified working branch `feature/ff7r-adreno
 - Relevance: hardens failure behavior under allocation/relocation pressure, including cases that can lead to invalid follow-on work after an allocation failure. This does not recover memory, prevent the original OOM, or claim a performance improvement.
 - Scope is deliberately limited to these three call sites. Other `ensureImageCompatibility` uses have different fallback contracts and were not changed.
 - Validation required: x86/x64 GameNative WCP CI; on-device pressure testing for ClearUAV and readback; video path smoke test where available; verify logs fail cleanly rather than issuing subsequent operations. Vulkan 1.3 API baseline unchanged.
+
+
+## Feedback-loop clear fusion guard and memory-property fallback (2026-10-16)
+
+- Backported the focused guard from [upstream `843b200443e7c76215aefe6594937ddd0f0bd178`](https://github.com/doitsujin/dxvk/commit/843b200443e7c76215aefe6594937ddd0f0bd178): deferred clears are no longer fused into a render pass when their image aspects overlap the active feedback-loop aspects. This preserves the required clear/read ordering and avoids incorrect rendering. Vulkan 1.3 baseline unchanged; validate feedback-loop rendering and normal clear batching.
+- Backported the uncommon memory-property fallback from [upstream `a7841308f0394b9c5dd6800a62f3079b7a2e8573`](https://github.com/doitsujin/dxvk/commit/a7841308f0394b9c5dd6800a62f3079b7a2e8573). The previous 16-entry property-mask lookup wrapped uncommon property flags modulo 16, which could return a mask for unrelated flags. The new path scans actual memory types when the requested property bitmask is outside the precomputed table and preserves the prior fallback only if no matching type exists.
+- This improves allocator correctness for uncommon memory-property combinations, but is not claimed to reduce the previously observed OOM events by itself. Validate standard host-visible/coherent/cached requests and any uncommon extension property combinations on target hardware.
+- Both changes are scoped to existing code paths and do not require Vulkan 1.4 or synchronization2. x86/x64 WCP CI and device-side correctness validation remain required.
