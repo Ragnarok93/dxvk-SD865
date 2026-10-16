@@ -7484,14 +7484,15 @@ namespace dxvk {
 
     if (m_flags.test(DxvkContextFlag::GpXfbActive)) {
       // If transform feedback is active and there is a chance that we might
-      // need to rebind the pipeline, we need to end transform feedback and
-      // issue a barrier. End the render pass to do that. Ignore dirty vertex
-      // buffers here since non-dynamic vertex strides are such an extreme
-      // edge case that it's likely irrelevant in practice.
+      // need to rebind the pipeline, pause transform feedback and check for
+      // hazards without necessarily ending the current render pass. Ignore
+      // dirty vertex buffers here since non-dynamic vertex strides are an
+      // extreme edge case.
       if (m_flags.any(DxvkContextFlag::GpDirtyPipelineState,
-                      DxvkContextFlag::GpDirtySpecConstants,
-                      DxvkContextFlag::GpDirtyXfbBuffers))
-        this->spillRenderPass(true);
+                      DxvkContextFlag::GpDirtySpecConstants)) {
+        m_flags.set(DxvkContextFlag::GpDirtyXfbBuffers);
+        this->pauseTransformFeedback();
+      }
     }
 
     if (m_flags.test(DxvkContextFlag::GpRenderPassSideEffects)
@@ -7720,7 +7721,7 @@ namespace dxvk {
      && m_state.gp.flags.test(DxvkGraphicsPipelineFlag::HasTransformFeedback)) {
       for (uint32_t i = 0; i < MaxNumXfbBuffers; i++) {
         const auto& xfbBufferSlice = m_state.xfb.buffers[i];
-        const auto& xfbCounterSlice = m_state.xfb.activeCounters[i];
+        const auto& xfbCounterSlice = m_state.xfb.counters[i];
 
         if (xfbBufferSlice.length()) {
           requiresBarrier |= !xfbBufferSlice.buffer()->trackGfxStores();
