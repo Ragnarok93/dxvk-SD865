@@ -152,8 +152,8 @@ namespace dxvk {
       const bool isFf7r = env::getExeName() == "ff7remake_.exe";
       const std::string requested = env::getEnvVar("DXVK_FF7R_COMPILER_THREADS");
       if (isFf7r) {
-        // Diagnostic default for FF7R only. This is a controlled experiment,
-        // not a claim that four threads is faster than eight.
+        // Use four as the base experiment count when no explicit DXVK count
+        // is configured, then double the effective pool for this test.
         if (m_device->config().numCompilerThreads <= 0) {
           workerCount = 4;
           countSource = "ff7r-experiment-default";
@@ -163,8 +163,11 @@ namespace dxvk {
           countSource = "ff7r-env-override";
         } else if (!requested.empty()) {
           Logger::warn(str::format("DXVK-SD865-CONFIG: invalid_compiler_override=",
-            requested, " valid_range=1..8"));
+            requested, " valid_base_range=1..8"));
         }
+
+        workerCount = std::min(workerCount * 2, 16u);
+        countSource += "-doubled";
       }
       workerCount = std::clamp(workerCount, 1u, 64u);
       Logger::warn(str::format("DXVK-SD865-CONFIG: sha=", DXVK_SD865_BUILD_SHA,
