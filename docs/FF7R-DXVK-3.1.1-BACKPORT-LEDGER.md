@@ -147,3 +147,11 @@ Source: committed companion log `logs/ff7remake__d3d11.txt` at branch head `039a
 - Backported upstream [`8dc04230705481734d67875c34a7e8801c850c28`](https://github.com/doitsujin/dxvk/commit/8dc04230705481734d67875c34a7e8801c850c28): change the final resource-allocation reference decrement from acquire-only to release ordering, matching the upstream lifetime/allocator handoff semantics.
 - This is a small atomic-ordering correction in the allocator's refcount path; it does not change allocation sizes, retry policy, or Vulkan API requirements. Treat any CPU-side performance effect as unmeasured.
 - Validation: WCP x86/x64 builds, allocation/release stress, and device-side memory-pressure testing. Revisit if allocator stress or thread sanitizer testing identifies a lifetime-ordering concern.
+
+## Throttle resource eviction batches (2026-10-16)
+
+- Adapted upstream [`31c543361ef469cedbd0c4f56dc8dcbc8e60c6be`](https://github.com/doitsujin/dxvk/commit/31c543361ef469cedbd0c4f56dc8dcbc8e60c6be).
+- In `DxvkRelocationList::poll`, resources marked `NoDeviceMemory` (eviction to system memory) count as 16 times their allocation size against the per-poll byte target. This deliberately overestimates relocation cost so one request does not process an excessive number of evictions at once.
+- Expected benefit is less concentrated eviction/relocation work and potentially less stutter in memory-pressure scenarios. It does **not** create free memory immediately, change the Vulkan heap budget, or guarantee recovery from a single large allocation failure.
+- This is a targeted scheduler heuristic, not a change to chunk sizing or allocator limits. Validate allocation retry counts, bytes relocated per poll, frame-time spikes, and OOM outcomes against the prior build under the same route and capture settings.
+- Vulkan 1.3 API baseline unchanged.

@@ -637,7 +637,11 @@ namespace dxvk {
       if (totalSize && totalSize + iter->first.size > size)
         break;
 
-      totalSize += iter->first.size;
+      // Evicted resources may require expensive relocation to system memory.
+      // Overestimate their size to limit the amount of eviction work per batch.
+      totalSize += iter->second.mode == DxvkAllocationMode::NoDeviceMemory
+        ? iter->first.size * 16u
+        : iter->first.size;
 
       result.push_back(std::move(iter->second));
       m_entries.erase(iter);
