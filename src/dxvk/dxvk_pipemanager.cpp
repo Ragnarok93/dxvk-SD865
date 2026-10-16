@@ -115,7 +115,7 @@ namespace dxvk {
   }
 
 
-  void DxvkPipelineWorkers::notifyWorkers(DxvkPipelinePriority priority) {
+  void DxvkPipelineWorkers::notifyWorkers(DxvkPipelinePriority) {
     // Every worker can now help with every priority, always taking the
     // highest-priority queued task first. Wake the first idle worker group;
     // if none is idle, a running worker will pick up the task on its next
