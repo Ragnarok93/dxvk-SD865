@@ -163,3 +163,10 @@ Source: committed companion log `logs/ff7remake__d3d11.txt` at branch head `039a
 - If cached coherent memory is unavailable, the existing fallback to the coherent type remains. This changes memory-type preference, not Vulkan feature requirements, API version, or allocation budget.
 - Expected benefit: lower CPU cost for mapped writes on supported memory-type layouts. This is hardware- and workload-dependent and is not yet measured on the Snapdragon 865. Monitor memory-type selections, CPU timing, and OOM behavior; ensure host-visible/coherent requirements remain satisfied.
 - Validation: WCP x86/x64 builds; inspect target-device memory-type logs to verify the chosen type includes both `HOST_VISIBLE` and `HOST_COHERENT`, and `HOST_CACHED` when such a type is exposed.
+
+## Include attachment reads in clear and render-pass barriers (2026-10-16)
+
+- Adapted upstream [`49c5078886867e5f9ff5fc5107dc8dca7daec79a`](https://github.com/doitsujin/dxvk/commit/49c5078886867e5f9ff5fc5107dc8dca7daec79a).
+- Clear operations now include attachment-read access along with attachment writes for color and depth/stencil. Render-pass attachment transitions likewise conservatively include read access; depth/stencil writes remain excluded for a read-only layout.
+- The old load-op-based read-access inference was too narrow: attachment reads can occur as part of blending/depth-stencil tests even when the load op is not `LOAD`. More complete access masks improve synchronization correctness and Vulkan validation behavior.
+- This does not change render-pass API requirements or introduce post-1.3 features. Validate color blending, depth/stencil tests, clear/discard operations, and read-only depth attachments on the target driver.
