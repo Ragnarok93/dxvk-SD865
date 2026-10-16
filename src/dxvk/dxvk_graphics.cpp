@@ -554,11 +554,6 @@ namespace dxvk {
     // Set up tessellation state
     tsInfo.patchControlPoints = state.ia.patchVertexCount();
     
-    // Set up basic rasterization state
-    rsInfo.depthClampEnable         = VK_TRUE;
-    rsInfo.polygonMode              = state.rs.polygonMode();
-    rsInfo.lineWidth                = 1.0f;
-
     // Set up rasterized stream depending on geometry shader state.
     // Rasterizing stream 0 is default behaviour in all situations.
     int32_t streamIndex = shaders.gs ? shaders.gs->info().xfbRasterizedStream : 0;
@@ -569,6 +564,16 @@ namespace dxvk {
     } else if (streamIndex < 0) {
       rsInfo.rasterizerDiscardEnable = VK_TRUE;
     }
+
+    // Rasterizer discard makes the remaining rasterization state irrelevant.
+    // Leave it at its zero-initialized values to avoid unnecessary variants.
+    if (rsInfo.rasterizerDiscardEnable)
+      return;
+
+    // Set up basic rasterization state
+    rsInfo.depthClampEnable         = VK_TRUE;
+    rsInfo.polygonMode              = state.rs.polygonMode();
+    rsInfo.lineWidth                = 1.0f;
 
     // Set up depth clip state. If the extension is not supported,
     // use depth clamp instead, even though this is not accurate.
@@ -1545,32 +1550,37 @@ namespace dxvk {
 
     VkPipelineCreateFlags2CreateInfo flags = { VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO };
 
-    if (key.foState.feedbackLoop & VK_IMAGE_ASPECT_COLOR_BIT)
-      flags.flags |= VK_PIPELINE_CREATE_2_COLOR_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT;
+    if (!m_flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard)) {
+      if (key.foState.feedbackLoop & VK_IMAGE_ASPECT_COLOR_BIT)
+        flags.flags |= VK_PIPELINE_CREATE_2_COLOR_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT;
 
-    if (key.foState.feedbackLoop & VK_IMAGE_ASPECT_DEPTH_BIT)
-      flags.flags |= VK_PIPELINE_CREATE_2_DEPTH_STENCIL_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT;
+      if (key.foState.feedbackLoop & VK_IMAGE_ASPECT_DEPTH_BIT)
+        flags.flags |= VK_PIPELINE_CREATE_2_DEPTH_STENCIL_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT;
+    }
 
     if (m_device->canUseDescriptorBuffer())
       flags.flags |= VK_PIPELINE_CREATE_2_DESCRIPTOR_BUFFER_BIT_EXT;
 
-    VkGraphicsPipelineCreateInfo info = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, &key.foState.rtInfo };
+    VkGraphicsPipelineCreateInfo info = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
     info.stageCount               = stageInfo.getStageCount();
     info.pStages                  = stageInfo.getStageInfos();
     info.pVertexInputState        = &key.viState.viInfo;
     info.pInputAssemblyState      = &key.viState.iaInfo;
-    info.pTessellationState       = &key.prState.tsInfo;
-    info.pViewportState           = &key.prState.vpInfo;
     info.pRasterizationState      = &key.prState.rsInfo;
-    info.pMultisampleState        = &key.foState.msInfo;
-    info.pDepthStencilState       = &key.fsState.dsInfo;
-    info.pColorBlendState         = &key.foState.cbInfo;
     info.pDynamicState            = &key.dyState.dyInfo;
     info.layout                   = m_layout.getLayout(DxvkPipelineLayoutType::Merged)->getPipelineLayout();
     info.basePipelineIndex        = -1;
-    
-    if (!key.prState.tsInfo.patchControlPoints)
-      info.pTessellationState = nullptr;
+
+    if (key.prState.tsInfo.patchControlPoints)
+      info.pTessellationState     = &key.prState.tsInfo;
+
+    if (!m_flags.test(DxvkGraphicsPipelineFlag::HasRasterizerDiscard)) {
+      info.pNext                  = &key.foState.rtInfo;
+      info.pViewportState         = &key.prState.vpInfo;
+      info.pMultisampleState      = &key.foState.msInfo;
+      info.pDepthStencilState     = &key.fsState.dsInfo;
+      info.pColorBlendState       = &key.foState.cbInfo;
+    }
 
     if (flags.flags)
       flags.pNext = std::exchange(info.pNext, &flags);
