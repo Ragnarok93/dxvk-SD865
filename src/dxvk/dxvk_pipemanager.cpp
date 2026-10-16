@@ -166,7 +166,7 @@ namespace dxvk {
             requested, " valid_base_range=1..8"));
         }
 
-        workerCount = std::min(workerCount * 2, 16u);
+        workerCount = std::clamp(workerCount, 1u, 8u) * 2;
         countSource += "-doubled";
       }
       workerCount = std::clamp(workerCount, 1u, 64u);
