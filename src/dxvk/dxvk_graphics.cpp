@@ -281,8 +281,8 @@ namespace dxvk {
     uint32_t fsOutputMask = shaders.fs ? shaders.fs->info().outputMask : 0u;
 
     // Dual-source blending can only write to one render target
-    if (state.useDualSourceBlending())
-      fsOutputMask &= 0x1;
+    uint32_t rtCount = state.useDualSourceBlending()
+      ? 1u : uint32_t(MaxNumRenderTargets);
 
     const VkColorComponentFlags rgbaWriteMask
       = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
@@ -293,7 +293,7 @@ namespace dxvk {
 
     feedbackLoop = state.om.feedbackLoop();
 
-    for (uint32_t i = 0; i < MaxNumRenderTargets; i++) {
+    for (uint32_t i = 0; i < rtCount; i++) {
       rtColorFormats[i] = state.rt.getColorFormat(i);
 
       if (rtColorFormats[i]) {
@@ -326,6 +326,19 @@ namespace dxvk {
                 std::exchange(cbAttachments[i].dstAlphaBlendFactor, VK_BLEND_FACTOR_ZERO));
               cbAttachments[i].colorBlendOp =
                 std::exchange(cbAttachments[i].alphaBlendOp, VK_BLEND_OP_ADD);
+            }
+
+            // If dual-source blending is enabled but the fragment shader does
+            // not export a second output, replace dual-source factors with zero.
+            if (!i && cbAttachments[i].blendEnable && !(fsOutputMask & 0x2u)) {
+              if (util::isDualSourceBlendFactor(cbAttachments[i].srcColorBlendFactor))
+                cbAttachments[i].srcColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+              if (util::isDualSourceBlendFactor(cbAttachments[i].dstColorBlendFactor))
+                cbAttachments[i].dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+              if (util::isDualSourceBlendFactor(cbAttachments[i].srcAlphaBlendFactor))
+                cbAttachments[i].srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+              if (util::isDualSourceBlendFactor(cbAttachments[i].dstAlphaBlendFactor))
+                cbAttachments[i].dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
             }
           }
         }

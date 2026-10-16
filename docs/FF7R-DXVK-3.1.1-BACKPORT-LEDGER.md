@@ -99,3 +99,12 @@ Status: active review ledger for the unified working branch `feature/ff7r-adreno
 - Adapted upstream [`a54af5db88ea66fae1469a99cfcc30150f413f9c`](https://github.com/doitsujin/dxvk/commit/a54af5db88ea66fae1469a99cfcc30150f413f9c): when graphics pipeline state or specialization constants may require a rebind during active transform feedback, pause transform feedback and mark its buffers dirty rather than immediately spilling the render pass. Existing hazard checks can then decide whether a barrier and pass spill are actually needed.
 - Also use the configured transform-feedback counter slices for hazard checks, rather than only the active counter slices. Pausing transform feedback clears the active slices; checking the configured counters preserves counter hazard tracking across that pause.
 - Expected upside: avoid unnecessary render-pass interruptions for transform-feedback workloads. This is workload-dependent and not a claimed FFVII Remake performance win. Requires CI and device validation for transform-feedback pause/resume, counter reuse, pipeline/spec-constant changes, and actual hazard cases. Vulkan 1.3 baseline unchanged.
+
+
+## Dual-source blending with a missing second fragment output (2026-10-16)
+
+- Adapted upstream [`5cbf10835ec21e23d6aaeccfa4cffc5630276dc4`](https://github.com/doitsujin/dxvk/commit/5cbf10835ec21e23d6aaeccfa4cffc5630276dc4).
+- Dual-source blending now limits color attachments to render target 0 without masking the fragment shader output mask. If the shader does not export the second output, any dual-source blend factors are replaced with `VK_BLEND_FACTOR_ZERO` before pipeline creation.
+- This avoids constructing a pipeline with dual-source factors that reference a nonexistent second fragment output. It is a correctness/compatibility fix, not a claimed performance improvement.
+- The target already provides `util::isDualSourceBlendFactor`; no new helper or Vulkan feature is required. Vulkan 1.3 baseline unchanged.
+- Validate with dual-source blend factors when the shader exports both outputs, when it exports only one output, and when blending is disabled; also verify normal multi-render-target output remains unchanged. WCP build and source-contract tests are required, followed by a device/game smoke test if the workload exercises this path.
