@@ -2389,6 +2389,18 @@ namespace dxvk {
 
     if (!m_memTypesByPropertyFlags[hostCachedIndex])
       m_memTypesByPropertyFlags[hostCachedIndex] = m_memTypesByPropertyFlags[hostCoherentIndex];
+
+    uint32_t hostVisibleVramIndex = uint32_t(
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    // On tilers, prefer cached mappings for CPU writes. Uncached stores can
+    // be particularly expensive on ARM systems.
+    if (m_device->perfHints().preferCachedMemory) {
+      m_memTypesByPropertyFlags[hostCoherentIndex] = m_memTypesByPropertyFlags[hostCachedIndex];
+      m_memTypesByPropertyFlags[hostVisibleVramIndex] = m_memTypesByPropertyFlags[hostCachedIndex];
+    }
   }
 
 

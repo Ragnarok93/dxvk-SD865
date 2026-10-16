@@ -155,3 +155,11 @@ Source: committed companion log `logs/ff7remake__d3d11.txt` at branch head `039a
 - Expected benefit is less concentrated eviction/relocation work and potentially less stutter in memory-pressure scenarios. It does **not** create free memory immediately, change the Vulkan heap budget, or guarantee recovery from a single large allocation failure.
 - This is a targeted scheduler heuristic, not a change to chunk sizing or allocator limits. Validate allocation retry counts, bytes relocated per poll, frame-time spikes, and OOM outcomes against the prior build under the same route and capture settings.
 - Vulkan 1.3 API baseline unchanged.
+
+## Prefer cached mappings for host-visible allocations on tilers (2026-10-16)
+
+- Adapted upstream [`e3d3f69fe3707a6c0b6886262d404f5af92b4b33`](https://github.com/doitsujin/dxvk/commit/e3d3f69fe3707a6c0b6886262d404f5af92b4b33).
+- Added a device performance hint that follows the existing tiler-mode classification and makes host-visible/coherent allocation lookups prefer the cached coherent memory-type mask when available. This is aimed at avoiding slow uncached CPU stores on ARM tiler systems such as Turnip/Adreno.
+- If cached coherent memory is unavailable, the existing fallback to the coherent type remains. This changes memory-type preference, not Vulkan feature requirements, API version, or allocation budget.
+- Expected benefit: lower CPU cost for mapped writes on supported memory-type layouts. This is hardware- and workload-dependent and is not yet measured on the Snapdragon 865. Monitor memory-type selections, CPU timing, and OOM behavior; ensure host-visible/coherent requirements remain satisfied.
+- Validation: WCP x86/x64 builds; inspect target-device memory-type logs to verify the chosen type includes both `HOST_VISIBLE` and `HOST_COHERENT`, and `HOST_CACHED` when such a type is exposed.
