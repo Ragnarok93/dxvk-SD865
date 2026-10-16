@@ -117,14 +117,12 @@ namespace dxvk {
 
   void DxvkPipelineWorkers::notifyWorkers(DxvkPipelinePriority) {
     // Every worker can now help with every priority, always taking the
-    // highest-priority queued task first. Wake the first idle worker group;
-    // if none is idle, a running worker will pick up the task on its next
-    // dequeue.
+    // highest-priority queued task first. Wake one waiter in each idle group
+    // so a backlog can be drained in parallel instead of funneling work to
+    // whichever group happened to receive the first notification.
     for (uint32_t i = 0; i < m_buckets.size(); i++) {
-      if (m_buckets[i].idleWorkers) {
+      if (m_buckets[i].idleWorkers)
         m_buckets[i].cond.notify_one();
-        break;
-      }
     }
   }
 
