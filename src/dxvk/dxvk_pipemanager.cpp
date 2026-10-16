@@ -152,8 +152,8 @@ namespace dxvk {
       const bool isFf7r = env::getExeName() == "ff7remake_.exe";
       const std::string requested = env::getEnvVar("DXVK_FF7R_COMPILER_THREADS");
       if (isFf7r) {
-        // Use four as the base experiment count when no explicit DXVK count
-        // is configured, then double the effective pool for this test.
+        // Use four workers by default for FF7R when no explicit DXVK count
+        // is configured; honor the bounded environment override as-is.
         if (m_device->config().numCompilerThreads <= 0) {
           workerCount = 4;
           countSource = "ff7r-experiment-default";
