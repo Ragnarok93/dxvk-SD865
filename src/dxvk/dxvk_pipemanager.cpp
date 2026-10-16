@@ -70,6 +70,7 @@ namespace dxvk {
 
     m_buckets[uint32_t(priority)].queue.emplace(library);
     static const bool ff7rMetricsEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    m_buckets[uint32_t(priority)].queue.back().priority = priority;
     if (ff7rMetricsEnabled)
       m_buckets[uint32_t(priority)].queue.back().enqueuedAt = std::chrono::steady_clock::now();
     notifyWorkers(priority);
@@ -88,6 +89,7 @@ namespace dxvk {
 
     m_buckets[uint32_t(priority)].queue.emplace(pipeline, state);
     static const bool ff7rMetricsEnabled = env::getEnvVar("DXVK_FF7R_METRICS") == "1";
+    m_buckets[uint32_t(priority)].queue.back().priority = priority;
     if (ff7rMetricsEnabled)
       m_buckets[uint32_t(priority)].queue.back().enqueuedAt = std::chrono::steady_clock::now();
     notifyWorkers(priority);
@@ -218,6 +220,10 @@ namespace dxvk {
     static std::atomic<uint64_t> libraryQueueWaitOver10ms { 0 }, libraryQueueWaitOver33ms { 0 };
     static std::atomic<uint64_t> optimizedQueueWaitUs { 0 }, optimizedQueueWaitCount { 0 };
     static std::atomic<uint64_t> optimizedQueueWaitOver10ms { 0 }, optimizedQueueWaitOver33ms { 0 };
+    static std::array<std::atomic<uint64_t>, 3> priorityQueueWaitUs { };
+    static std::array<std::atomic<uint64_t>, 3> priorityQueueWaitCount { };
+    static std::array<std::atomic<uint64_t>, 3> priorityQueueWaitOver10ms { };
+    static std::array<std::atomic<uint64_t>, 3> priorityQueueWaitOver33ms { };
 
     const uint32_t maxPriorityIndex = uint32_t(maxPriority);
     env::setThreadName(str::format("dxvk-shader-", suffixes.at(maxPriorityIndex)));
@@ -259,10 +265,17 @@ namespace dxvk {
           started - entry.enqueuedAt).count());
         queueWaitUs.fetch_add(waitedUs, std::memory_order_relaxed);
         queueWaitCount.fetch_add(1, std::memory_order_relaxed);
-        if (waitedUs >= 10000)
+        const uint32_t priorityIndex = uint32_t(entry.priority);
+        priorityQueueWaitUs[priorityIndex].fetch_add(waitedUs, std::memory_order_relaxed);
+        priorityQueueWaitCount[priorityIndex].fetch_add(1, std::memory_order_relaxed);
+        if (waitedUs >= 10000) {
           queueWaitOver10ms.fetch_add(1, std::memory_order_relaxed);
-        if (waitedUs >= 33000)
+          priorityQueueWaitOver10ms[priorityIndex].fetch_add(1, std::memory_order_relaxed);
+        }
+        if (waitedUs >= 33000) {
           queueWaitOver33ms.fetch_add(1, std::memory_order_relaxed);
+          priorityQueueWaitOver33ms[priorityIndex].fetch_add(1, std::memory_order_relaxed);
+        }
 
         // Split backlog wait by work type so aggregate queue stalls can be
         // attributed to library compilation versus optimized pipelines.
@@ -327,7 +340,22 @@ namespace dxvk {
             " optimized_queue_wait_mean_us=", optimizedQueueWaitCount.load(std::memory_order_relaxed)
               ? optimizedQueueWaitUs.load(std::memory_order_relaxed) / optimizedQueueWaitCount.load(std::memory_order_relaxed) : 0,
             " optimized_queue_wait_over_10ms=", optimizedQueueWaitOver10ms.load(std::memory_order_relaxed),
-            " optimized_queue_wait_over_33ms=", optimizedQueueWaitOver33ms.load(std::memory_order_relaxed)));
+            " optimized_queue_wait_over_33ms=", optimizedQueueWaitOver33ms.load(std::memory_order_relaxed),
+            " high_queue_wait_samples=", priorityQueueWaitCount[0].load(std::memory_order_relaxed),
+            " high_queue_wait_mean_us=", priorityQueueWaitCount[0].load(std::memory_order_relaxed)
+              ? priorityQueueWaitUs[0].load(std::memory_order_relaxed) / priorityQueueWaitCount[0].load(std::memory_order_relaxed) : 0,
+            " high_queue_wait_over_10ms=", priorityQueueWaitOver10ms[0].load(std::memory_order_relaxed),
+            " high_queue_wait_over_33ms=", priorityQueueWaitOver33ms[0].load(std::memory_order_relaxed),
+            " normal_queue_wait_samples=", priorityQueueWaitCount[1].load(std::memory_order_relaxed),
+            " normal_queue_wait_mean_us=", priorityQueueWaitCount[1].load(std::memory_order_relaxed)
+              ? priorityQueueWaitUs[1].load(std::memory_order_relaxed) / priorityQueueWaitCount[1].load(std::memory_order_relaxed) : 0,
+            " normal_queue_wait_over_10ms=", priorityQueueWaitOver10ms[1].load(std::memory_order_relaxed),
+            " normal_queue_wait_over_33ms=", priorityQueueWaitOver33ms[1].load(std::memory_order_relaxed),
+            " low_queue_wait_samples=", priorityQueueWaitCount[2].load(std::memory_order_relaxed),
+            " low_queue_wait_mean_us=", priorityQueueWaitCount[2].load(std::memory_order_relaxed)
+              ? priorityQueueWaitUs[2].load(std::memory_order_relaxed) / priorityQueueWaitCount[2].load(std::memory_order_relaxed) : 0,
+            " low_queue_wait_over_10ms=", priorityQueueWaitOver10ms[2].load(std::memory_order_relaxed),
+            " low_queue_wait_over_33ms=", priorityQueueWaitOver33ms[2].load(std::memory_order_relaxed)));
         }
       }
 
