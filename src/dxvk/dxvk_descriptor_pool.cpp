@@ -231,9 +231,16 @@ namespace dxvk {
     info.pSetLayouts = &setLayout;
 
     VkDescriptorSet set = VK_NULL_HANDLE;
-    
-    if (vk->vkAllocateDescriptorSets(vk->device(), &info, &set) != VK_SUCCESS)
+    VkResult vr = vk->vkAllocateDescriptorSets(vk->device(), &info, &set);
+
+    if (vr != VK_SUCCESS) {
+      if (vr == VK_ERROR_OUT_OF_POOL_MEMORY || vr == VK_ERROR_FRAGMENTED_POOL)
+        Logger::debug(str::format("DxvkDescriptorPool: Pool allocation failed: ", vr));
+      else
+        Logger::warn(str::format("DxvkDescriptorPool: Failed to allocate descriptor set: ", vr));
+
       return VK_NULL_HANDLE;
+    }
 
     return set;
   }
